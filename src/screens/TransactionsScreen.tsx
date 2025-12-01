@@ -32,15 +32,15 @@ export const TransactionsScreen = () => {
                 style={{
                     paddingHorizontal: spacing.lg,
                     paddingVertical: spacing.sm,
-                    borderRadius: radius.full,
-                    backgroundColor: isActive ? colors.primary : colors.secondary,
+                    borderRadius: 999,
+                    backgroundColor: isActive ? colors.accent : colors.background,
                     borderWidth: 1,
-                    borderColor: isActive ? colors.primary : 'transparent',
+                    borderColor: isActive ? colors.accent : colors.border,
                 }}
             >
                 <Text
                     style={{
-                        color: isActive ? colors.primaryForeground : colors.mutedForeground,
+                        color: isActive ? '#FFFFFF' : colors.foreground,
                         fontWeight: '600',
                         fontSize: typography.sizes.sm,
                     }}
@@ -52,7 +52,7 @@ export const TransactionsScreen = () => {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        <View style={[styles.container, { backgroundColor: colors.screenBackground, paddingTop: insets.top }]}>
             <View style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.md }}>
                 <Text
                     style={{
@@ -68,13 +68,31 @@ export const TransactionsScreen = () => {
                     placeholder="Search transactions..."
                     value={searchQuery}
                     onChangeText={setSearchQuery}
+                    variant="pill"
                     leftIcon={<Ionicons name="search" size={20} color={colors.mutedForeground} />}
                 />
 
-                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
-                    <FilterPill label="All" value="all" />
-                    <FilterPill label="Income" value="income" />
-                    <FilterPill label="Expense" value="expense" />
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+                        <FilterPill label="All" value="all" />
+                        <FilterPill label="Income" value="income" />
+                        <FilterPill label="Expense" value="expense" />
+                    </ScrollView>
+                    <TouchableOpacity
+                        style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: colors.background,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginLeft: spacing.sm,
+                        }}
+                    >
+                        <Ionicons name="options-outline" size={20} color={colors.accent} />
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -84,7 +102,13 @@ export const TransactionsScreen = () => {
                     paddingBottom: spacing['3xl'] + 80 // Extra padding for tab bar + FAB
                 }}
             >
-                <View style={{ marginTop: spacing.sm }}>
+                <View style={{
+                    marginTop: spacing.sm,
+                    backgroundColor: colors.card,
+                    borderRadius: radius.xl,
+                    overflow: 'hidden',
+                    ...useTheme().shadows.soft
+                }}>
                     <TransactionList transactions={filteredTransactions} showDateHeaders={true} />
                 </View>
             </ScrollView>

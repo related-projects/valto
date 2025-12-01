@@ -107,9 +107,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             style={[
                                 styles.transactionItem,
                                 {
-                                    backgroundColor: colors.secondary,
-                                    borderRadius: radius.lg,
                                     padding: spacing.sm,
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: colors.border,
                                 },
                             ]}
                         >
@@ -155,21 +155,21 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     const grouped = groupByDate(transactions);
 
     return (
-        <View style={{ gap: 16 }}>
+        <View style={{ gap: 0 }}>
             {Object.entries(grouped).map(([date, items]) => (
                 <View key={date}>
-                    <Text
-                        style={{
-                            color: colors.mutedForeground,
-                            fontSize: typography.sizes.xs,
-                            fontWeight: '500',
-                            marginBottom: 8,
-                            paddingHorizontal: 4,
-                        }}
-                    >
-                        {date}
-                    </Text>
-                    <View style={{ gap: 4 }}>
+                    <View style={{ backgroundColor: '#f7f8f7', paddingVertical: 8, paddingHorizontal: 16 }}>
+                        <Text
+                            style={{
+                                color: colors.mutedForeground,
+                                fontSize: typography.sizes.xs,
+                                fontWeight: '500',
+                            }}
+                        >
+                            {date}
+                        </Text>
+                    </View>
+                    <View>
                         {items.map((transaction) => {
                             const categoryColor = getCategoryColor(transaction.category);
                             return (
@@ -178,9 +178,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     style={[
                                         styles.transactionItem,
                                         {
-                                            backgroundColor: colors.secondary,
-                                            borderRadius: radius.lg,
-                                            padding: spacing.sm,
+                                            padding: spacing.md,
+                                            backgroundColor: colors.card,
+                                            borderBottomWidth: 1,
+                                            borderBottomColor: colors.border,
                                         },
                                     ]}
                                 >

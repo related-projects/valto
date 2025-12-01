@@ -1,6 +1,7 @@
 export const palette = {
   light: {
-    background: '#F5F7F6',
+    background: '#FFFFFF',
+    screenBackground: '#f7f8f7',
     foreground: '#2F241F',
     card: '#FFFFFF',
     cardForeground: '#2F241F',
@@ -34,8 +35,9 @@ export const palette = {
     navInactive: '#87918C',
   },
   dark: {
-    background: '#1D1816',
-    foreground: '#E9EFEC',
+    background: '#09090b',
+    screenBackground: '#09090b',
+    foreground: '#fafafa',
     card: '#292220',
     cardForeground: '#E9EFEC',
     popover: '#292220',
