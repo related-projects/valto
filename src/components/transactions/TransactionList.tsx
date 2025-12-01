@@ -158,29 +158,33 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         <View style={{ gap: 0 }}>
             {Object.entries(grouped).map(([date, items]) => (
                 <View key={date}>
-                    <View style={{ backgroundColor: '#f7f8f7', paddingVertical: 8, paddingHorizontal: 16 }}>
+                    <View style={{ backgroundColor: '#f7f8f7', paddingVertical: 12, paddingHorizontal: 20 }}>
                         <Text
                             style={{
                                 color: colors.mutedForeground,
-                                fontSize: typography.sizes.xs,
-                                fontWeight: '500',
+                                fontSize: 13,
+                                fontWeight: '600',
+                                textTransform: 'uppercase',
+                                letterSpacing: 0.5,
                             }}
                         >
                             {date}
                         </Text>
                     </View>
                     <View>
-                        {items.map((transaction) => {
+                        {items.map((transaction, index) => {
                             const categoryColor = getCategoryColor(transaction.category);
+                            const isLast = index === items.length - 1;
                             return (
                                 <TouchableOpacity
                                     key={transaction.id}
                                     style={[
                                         styles.transactionItem,
                                         {
-                                            padding: spacing.md,
+                                            paddingVertical: 16,
+                                            paddingHorizontal: 20,
                                             backgroundColor: colors.card,
-                                            borderBottomWidth: 1,
+                                            borderBottomWidth: isLast ? 0 : 1,
                                             borderBottomColor: colors.border,
                                         },
                                     ]}
@@ -189,22 +193,24 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                         style={[
                                             styles.iconContainer,
                                             {
-                                                backgroundColor: `${categoryColor}20`,
-                                                borderRadius: radius.md,
+                                                backgroundColor: `${categoryColor}15`, // Slightly lighter tint
+                                                borderRadius: 12,
+                                                width: 44,
+                                                height: 44,
                                             },
                                         ]}
                                     >
                                         <Ionicons
                                             name={getIconName(transaction.category)}
-                                            size={20}
+                                            size={22}
                                             color={categoryColor}
                                         />
                                     </View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
+                                        <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '600', marginBottom: 2 }}>
                                             {transaction.title}
                                         </Text>
-                                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, textTransform: 'capitalize' }}>
+                                        <Text style={{ color: colors.mutedForeground, fontSize: 13, textTransform: 'capitalize' }}>
                                             {transaction.category}
                                         </Text>
                                     </View>
@@ -212,7 +218,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                         style={{
                                             color: transaction.type === 'income' ? colors.success : colors.foreground,
                                             fontWeight: '600',
-                                            fontSize: typography.sizes.sm,
+                                            fontSize: 16,
                                         }}
                                     >
                                         {transaction.type === 'income' ? '+' : '-'}{currency}{transaction.amount.toFixed(2)}
