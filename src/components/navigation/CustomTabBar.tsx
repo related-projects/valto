@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../../theme/theme';
@@ -32,16 +32,16 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                 >
                     <Path
                         d={`
-              M 0,0
-              L ${curveStart},0
-              Q ${curveStart + 10},0 ${curveStart + 20},${CURVE_DEPTH}
+              M 0, 0
+              L ${curveStart}, 0
+              Q ${curveStart + 10}, 0 ${curveStart + 20},${CURVE_DEPTH}
               Q ${curveCenter},${TAB_BAR_HEIGHT / 2} ${curveEnd - 20},${CURVE_DEPTH}
-              Q ${curveEnd - 10},0 ${curveEnd},0
-              L ${screenWidth},0
+              Q ${curveEnd - 10}, 0 ${curveEnd}, 0
+              L ${screenWidth}, 0
               L ${screenWidth},${TAB_BAR_HEIGHT}
-              L 0,${TAB_BAR_HEIGHT}
-              Z
-            `}
+              L 0, ${TAB_BAR_HEIGHT}
+Z
+    `}
                         fill={colors.navBackground}
                     />
                 </Svg>
@@ -82,6 +82,15 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                                     size={24}
                                     color={isFocused ? colors.navActive : colors.navInactive}
                                 />
+                                <Text
+                                    style={{
+                                        fontSize: 11,
+                                        marginTop: 4,
+                                        color: isFocused ? colors.navActive : colors.navInactive,
+                                    }}
+                                >
+                                    {options.title}
+                                </Text>
                             </TouchableOpacity>
                         );
                     })}

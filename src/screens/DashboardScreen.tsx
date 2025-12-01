@@ -7,6 +7,7 @@ import { QuickActions } from '../components/dashboard/QuickActions';
 import { SpendingChart } from '../components/dashboard/SpendingChart';
 import { WalletList } from '../components/dashboard/WalletList';
 import { TransactionList } from '../components/transactions/TransactionList';
+import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import {
     mockBudget,
@@ -91,8 +92,12 @@ export const DashboardScreen = () => {
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
-                <SectionHeader title="Recent Transactions" action="View All" onActionPress={() => { }} />
-                <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={true} />
+                <Card>
+                    <SectionHeader title="Recent Transactions" action="View All" onActionPress={() => { }} />
+                    <View style={{ marginTop: spacing.sm }}>
+                        <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={true} />
+                    </View>
+                </Card>
             </View>
         </ScrollView>
     );
