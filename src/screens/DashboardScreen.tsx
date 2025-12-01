@@ -91,12 +91,22 @@ export const DashboardScreen = () => {
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
-                <Card>
-                    <SectionHeader title="Recent Transactions" action="View All" onActionPress={() => { }} />
-                    <View style={{ marginTop: spacing.sm }}>
+                <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                    <Card padding="none" style={{ overflow: 'hidden' }}>
+                        <SectionHeader
+                            title="Recent Transactions"
+                            action="View All"
+                            onActionPress={() => { }}
+                            style={{
+                                backgroundColor: '#f7f8f7',
+                                paddingHorizontal: 20,
+                                paddingVertical: 16,
+                                marginBottom: 0,
+                            }}
+                        />
                         <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={true} />
-                    </View>
-                </Card>
+                    </Card>
+                </View>
             </View>
         </ScrollView>
     );
