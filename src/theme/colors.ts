@@ -1,7 +1,6 @@
 export const palette = {
   light: {
-    background: '#FFFFFF',
-    screenBackground: '#f7f8f7',
+    background: '#f7f8f7',
     foreground: '#2F241F',
     card: '#FFFFFF',
     cardForeground: '#2F241F',

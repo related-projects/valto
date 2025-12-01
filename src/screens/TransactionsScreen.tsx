@@ -33,7 +33,7 @@ export const TransactionsScreen = () => {
                     paddingHorizontal: 20,
                     paddingVertical: 8,
                     borderRadius: 999,
-                    backgroundColor: isActive ? colors.accent : colors.background,
+                    backgroundColor: isActive ? colors.accent : colors.card,
                     borderWidth: 1,
                     borderColor: isActive ? colors.accent : colors.border,
                     marginRight: 8,
@@ -53,7 +53,7 @@ export const TransactionsScreen = () => {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.screenBackground, paddingTop: insets.top }]}>
+        <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
             <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
                 <Text
                     style={{
@@ -86,7 +86,7 @@ export const TransactionsScreen = () => {
                             width: 40,
                             height: 40,
                             borderRadius: 20,
-                            backgroundColor: colors.background,
+                            backgroundColor: colors.card,
                             borderWidth: 1,
                             borderColor: colors.border,
                             alignItems: 'center',

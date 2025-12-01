@@ -46,7 +46,7 @@ export const InputField: React.FC<InputFieldProps> = ({
                 style={[
                     styles.inputContainer,
                     {
-                        backgroundColor: isPill ? colors.background : colors.input,
+                        backgroundColor: isPill ? colors.card : colors.input,
                         borderColor: error
                             ? colors.destructive
                             : isFocused

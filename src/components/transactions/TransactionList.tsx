@@ -172,9 +172,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         </Text>
                     </View>
                     <View>
-                        {items.map((transaction, index) => {
+                        {items.map((transaction) => {
                             const categoryColor = getCategoryColor(transaction.category);
-                            const isLast = index === items.length - 1;
                             return (
                                 <TouchableOpacity
                                     key={transaction.id}
@@ -184,8 +183,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             paddingVertical: 16,
                                             paddingHorizontal: 20,
                                             backgroundColor: colors.card,
-                                            borderBottomWidth: isLast ? 0 : 1,
-                                            borderBottomColor: colors.border,
                                         },
                                     ]}
                                 >

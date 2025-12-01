@@ -41,14 +41,13 @@ export const DashboardScreen = () => {
         <ScrollView
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
-                paddingTop: insets.top + spacing.md,
-                paddingBottom: spacing['3xl'], // Extra padding for tab bar
+                paddingBottom: 100,
             }}
             refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
         >
-            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+            <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
                     Good morning
                 </Text>
