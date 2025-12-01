@@ -1,9 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
-import { HapticTab } from '../../components/haptic-tab';
-import TabBarBackground from '../../components/ui/TabBarBackground';
+import { CustomTabBar } from '../../src/components/navigation/CustomTabBar';
 import { useTheme } from '../../src/theme/theme';
 
 export default function TabLayout() {
@@ -11,24 +9,11 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         tabBarActiveTintColor: colors.navActive,
         tabBarInactiveTintColor: colors.navInactive,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-            backgroundColor: colors.navBackground,
-            borderTopColor: colors.border,
-          },
-          default: {
-            backgroundColor: colors.navBackground,
-            borderTopColor: colors.border,
-          },
-        }),
       }}>
       <Tabs.Screen
         name="index"

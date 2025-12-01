@@ -78,7 +78,7 @@ export const DashboardScreen = () => {
                 <SpendingChart data={mockSpendingData} />
             </View>
 
-            <View style={{ marginBottom: spacing.lg }}>
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <QuickActions
                     onAddExpense={() => { }}
                     onAddIncome={() => { }}
@@ -86,7 +86,7 @@ export const DashboardScreen = () => {
                 />
             </View>
 
-            <View style={{ marginBottom: spacing.lg }}>
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <WalletList wallets={mockWallets} />
             </View>
 
