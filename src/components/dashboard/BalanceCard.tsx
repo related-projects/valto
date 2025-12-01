@@ -1,108 +1,132 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
-import { Card } from '../ui/Card';
 
 interface BalanceCardProps {
     totalBalance: number;
     monthlyIncome: number;
     monthlyExpense: number;
+    currency?: string;
 }
 
 export const BalanceCard: React.FC<BalanceCardProps> = ({
     totalBalance,
     monthlyIncome,
     monthlyExpense,
+    currency = '$',
 }) => {
-    const { colors, typography, spacing } = useTheme();
+    const { colors, typography, spacing, radius, shadows } = useTheme();
+    const [hidden, setHidden] = useState(false);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-        }).format(amount);
+    const formatAmount = (amount: number) => {
+        if (hidden) return '••••••';
+        return `${currency}${amount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })}`;
     };
 
     return (
-        <Card variant="elevated" padding="lg" style={{ backgroundColor: colors.foreground }}>
-            <View>
-                <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                    Total Balance
-                </Text>
-                <Text
+        <View
+            style={[
+                styles.container,
+                {
+                    backgroundColor: colors.accent,
+                    borderRadius: radius.xl,
+                    padding: spacing.lg, // p-6 = 24px = lg
+                    ...shadows.card,
+                },
+            ]}
+        >
+            <View style={styles.header}>
+                <View>
+                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: typography.sizes.sm, marginBottom: 4 }}>
+                        Total Balance
+                    </Text>
+                    <Text
+                        style={{
+                            color: colors.accentForeground,
+                            fontSize: 32, // text-display approx
+                            fontWeight: '600',
+                            letterSpacing: -1,
+                        }}
+                    >
+                        {formatAmount(totalBalance)}
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    onPress={() => setHidden(!hidden)}
                     style={{
-                        color: colors.background,
-                        fontSize: typography.sizes['3xl'],
-                        fontWeight: '700',
-                        marginTop: spacing.xs,
+                        padding: 8,
+                        borderRadius: radius.full,
+                        backgroundColor: 'rgba(255,255,255,0.1)',
                     }}
                 >
-                    {formatCurrency(totalBalance)}
-                </Text>
+                    <Ionicons
+                        name={hidden ? 'eye-off-outline' : 'eye-outline'}
+                        size={20}
+                        color={colors.accentForeground}
+                    />
+                </TouchableOpacity>
             </View>
 
-            <View style={styles.statsContainer}>
+            <View style={[styles.statsRow, { borderTopColor: 'rgba(255,255,255,0.2)' }]}>
                 <View style={styles.statItem}>
-                    <View style={[styles.iconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                        <Ionicons name="arrow-down" size={16} color={colors.success} />
+                    <View style={styles.statLabelRow}>
+                        <View style={[styles.iconBadge, { backgroundColor: 'rgba(74, 222, 128, 0.2)' }]}>
+                            <Ionicons name="trending-up" size={12} color="#4ade80" />
+                        </View>
+                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.xs }}>Income</Text>
                     </View>
-                    <View>
-                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                            Income
-                        </Text>
-                        <Text
-                            style={{
-                                color: colors.background,
-                                fontSize: typography.sizes.md,
-                                fontWeight: '600',
-                            }}
-                        >
-                            {formatCurrency(monthlyIncome)}
-                        </Text>
-                    </View>
+                    <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
+                        {formatAmount(monthlyIncome)}
+                    </Text>
                 </View>
 
                 <View style={styles.statItem}>
-                    <View style={[styles.iconContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                        <Ionicons name="arrow-up" size={16} color={colors.destructive} />
+                    <View style={styles.statLabelRow}>
+                        <View style={[styles.iconBadge, { backgroundColor: 'rgba(248, 113, 113, 0.2)' }]}>
+                            <Ionicons name="trending-down" size={12} color="#f87171" />
+                        </View>
+                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.xs }}>Expenses</Text>
                     </View>
-                    <View>
-                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                            Expense
-                        </Text>
-                        <Text
-                            style={{
-                                color: colors.background,
-                                fontSize: typography.sizes.md,
-                                fontWeight: '600',
-                            }}
-                        >
-                            {formatCurrency(monthlyExpense)}
-                        </Text>
-                    </View>
+                    <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
+                        {formatAmount(monthlyExpense)}
+                    </Text>
                 </View>
             </View>
-        </Card>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    statsContainer: {
+    container: {
+        width: '100%',
+    },
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 24,
+        alignItems: 'flex-start',
+        marginBottom: 16,
+    },
+    statsRow: {
+        flexDirection: 'row',
+        paddingTop: 16,
+        borderTopWidth: 1,
+        gap: 16,
     },
     statItem: {
+        flex: 1,
+    },
+    statLabelRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
+        marginBottom: 4,
     },
-    iconContainer: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
+    iconBadge: {
+        padding: 4,
+        borderRadius: 999,
     },
 });

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { Card } from '../ui/Card';
 
 interface QuickActionsProps {
     onAddExpense: () => void;
@@ -16,60 +17,87 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
 
-    const ActionButton = ({
-        icon,
-        label,
-        onPress,
-    }: {
-        icon: keyof typeof Ionicons.glyphMap;
-        label: string;
-        onPress: () => void;
-    }) => (
-        <TouchableOpacity onPress={onPress} style={styles.actionItem}>
-            <View
-                style={[
-                    styles.iconContainer,
-                    {
-                        backgroundColor: colors.secondary,
-                        borderRadius: radius.full,
-                        width: 48,
-                        height: 48,
-                    },
-                ]}
-            >
-                <Ionicons name={icon} size={24} color={colors.primaryForeground} />
-            </View>
-            <Text
-                style={{
-                    color: colors.foreground,
-                    fontSize: typography.sizes.xs,
-                    marginTop: spacing.xs,
-                    fontWeight: '500',
-                }}
-            >
-                {label}
-            </Text>
-        </TouchableOpacity>
-    );
+    const actions = [
+        {
+            icon: 'arrow-down-outline' as const, // ArrowDownLeft approx
+            label: 'Income',
+            onPress: onAddIncome,
+            bg: 'rgba(74, 222, 128, 0.1)', // success/10
+            iconColor: '#4ade80', // success
+        },
+        {
+            icon: 'arrow-up-outline' as const, // ArrowUpRight approx
+            label: 'Expense',
+            onPress: onAddExpense,
+            bg: 'rgba(248, 113, 113, 0.1)', // destructive/10
+            iconColor: '#f87171', // destructive
+        },
+        {
+            icon: 'swap-horizontal-outline' as const,
+            label: 'Transfer',
+            onPress: onTransfer,
+            bg: 'rgba(96, 57, 47, 0.1)', // accent/10
+            iconColor: '#60392F', // accent
+        },
+    ];
 
     return (
-        <View style={styles.container}>
-            <ActionButton icon="remove-circle-outline" label="Expense" onPress={onAddExpense} />
-            <ActionButton icon="add-circle-outline" label="Income" onPress={onAddIncome} />
-            <ActionButton icon="swap-horizontal-outline" label="Transfer" onPress={onTransfer} />
-            <ActionButton icon="qr-code-outline" label="Scan" onPress={() => { }} />
-        </View>
+        <Card>
+            <Text style={{ fontSize: typography.sizes.sm, fontWeight: '600', marginBottom: spacing.md, color: colors.foreground }}>
+                Quick Actions
+            </Text>
+            <View style={styles.container}>
+                {actions.map((action, index) => (
+                    <TouchableOpacity
+                        key={index}
+                        onPress={action.onPress}
+                        style={[
+                            styles.actionButton,
+                            {
+                                backgroundColor: colors.secondary,
+                                borderRadius: radius.lg,
+                                padding: spacing.md,
+                            },
+                        ]}
+                    >
+                        <View
+                            style={[
+                                styles.iconContainer,
+                                {
+                                    backgroundColor: action.bg,
+                                    borderRadius: radius.full,
+                                    padding: 8,
+                                    marginBottom: 8,
+                                },
+                            ]}
+                        >
+                            <Ionicons name={action.icon} size={16} color={action.iconColor} />
+                        </View>
+                        <Text
+                            style={{
+                                color: colors.foreground,
+                                fontSize: typography.sizes.xs,
+                                fontWeight: '500',
+                            }}
+                        >
+                            {action.label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </Card>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
+        gap: 12,
     },
-    actionItem: {
+    actionButton: {
+        flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     iconContainer: {
         alignItems: 'center',

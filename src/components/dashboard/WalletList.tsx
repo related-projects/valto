@@ -1,5 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
 import { Card } from '../ui/Card';
 
@@ -7,62 +9,111 @@ interface Wallet {
     id: string;
     name: string;
     balance: number;
+    type: string;
     color: string;
 }
 
 interface WalletListProps {
     wallets: Wallet[];
+    currency?: string;
 }
 
-export const WalletList: React.FC<WalletListProps> = ({ wallets }) => {
+export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' }) => {
     const { colors, typography, spacing, radius } = useTheme();
+    const router = useRouter();
+
+    const getIconName = (type: string): keyof typeof Ionicons.glyphMap => {
+        switch (type) {
+            case 'cash': return 'wallet-outline';
+            case 'bank': return 'card-outline';
+            case 'mobile': return 'phone-portrait-outline';
+            case 'savings': return 'cash-outline';
+            default: return 'wallet-outline';
+        }
+    };
 
     return (
-        <View>
-            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
-                <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: '600' }}>
-                    My Wallets
+        <Card>
+            <View style={styles.header}>
+                <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '600' }}>
+                    Wallets
                 </Text>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/wallets')}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Text style={{ color: colors.accent, fontSize: typography.sizes.xs, fontWeight: '500' }}>
+                            See all
+                        </Text>
+                        <Ionicons name="chevron-forward" size={12} color={colors.accent} />
+                    </View>
+                </TouchableOpacity>
             </View>
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: spacing.md, gap: spacing.md }}
-            >
-                {wallets.map((wallet) => (
-                    <TouchableOpacity key={wallet.id}>
-                        <Card
-                            style={{
-                                width: 140,
-                                height: 100,
-                                backgroundColor: wallet.color,
-                                justifyContent: 'space-between',
-                            }}
-                            padding="md"
+
+            <View style={{ gap: 8 }}>
+                {wallets.slice(0, 3).map((wallet) => (
+                    <TouchableOpacity
+                        key={wallet.id}
+                        onPress={() => { }}
+                        style={[
+                            styles.walletItem,
+                            {
+                                backgroundColor: colors.secondary,
+                                borderRadius: radius.lg,
+                                padding: spacing.md,
+                            },
+                        ]}
+                    >
+                        <View
+                            style={[
+                                styles.iconContainer,
+                                {
+                                    backgroundColor: `${wallet.color}20`, // 20% opacity hex
+                                    borderRadius: 8,
+                                },
+                            ]}
                         >
-                            <Text style={{ color: '#fff', fontSize: typography.sizes.sm, fontWeight: '500' }}>
+                            <Ionicons name={getIconName(wallet.type)} size={16} color={wallet.color} />
+                        </View>
+
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
                                 {wallet.name}
                             </Text>
-                            <Text style={{ color: '#fff', fontSize: typography.sizes.lg, fontWeight: 'bold' }}>
-                                ${wallet.balance.toLocaleString()}
+                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, textTransform: 'capitalize' }}>
+                                {wallet.type}
                             </Text>
-                        </Card>
+                        </View>
+
+                        <Text
+                            style={{
+                                color: wallet.balance < 0 ? colors.destructive : colors.foreground,
+                                fontSize: typography.sizes.sm,
+                                fontWeight: '600',
+                            }}
+                        >
+                            {currency}{wallet.balance.toLocaleString()}
+                        </Text>
                     </TouchableOpacity>
                 ))}
-                <TouchableOpacity>
-                    <Card
-                        style={{
-                            width: 60,
-                            height: 100,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: colors.secondary,
-                        }}
-                    >
-                        <Text style={{ fontSize: 24, color: colors.mutedForeground }}>+</Text>
-                    </Card>
-                </TouchableOpacity>
-            </ScrollView>
-        </View>
+            </View>
+        </Card>
     );
 };
+
+const styles = StyleSheet.create({
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    walletItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    iconContainer: {
+        padding: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+});
