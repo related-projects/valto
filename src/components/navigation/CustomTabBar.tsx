@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../../theme/theme';
@@ -9,29 +9,36 @@ import { useTheme } from '../../theme/theme';
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
     const insets = useSafeAreaInsets();
     const { colors, shadows } = useTheme();
+    const { width: screenWidth } = Dimensions.get('window');
 
     const TAB_BAR_HEIGHT = 60;
     const FAB_SIZE = 56;
+    const CURVE_DEPTH = 20;
     const CURVE_WIDTH = 100;
+
+    // Calculate absolute positions
+    const curveStart = (screenWidth - CURVE_WIDTH) / 2;
+    const curveEnd = (screenWidth + CURVE_WIDTH) / 2;
+    const curveCenter = screenWidth / 2;
 
     return (
         <View style={styles.container}>
             {/* Custom curved background */}
             <View style={[styles.tabBarBackground, { height: TAB_BAR_HEIGHT + insets.bottom }]}>
                 <Svg
-                    width="100%"
+                    width={screenWidth}
                     height={TAB_BAR_HEIGHT}
                     style={StyleSheet.absoluteFill}
                 >
                     <Path
                         d={`
               M 0,0
-              L ${(100 - CURVE_WIDTH) / 2}%,0
-              Q ${50 - CURVE_WIDTH / 4}%,0 ${50 - CURVE_WIDTH / 4}%,${TAB_BAR_HEIGHT / 2}
-              Q 50%,${TAB_BAR_HEIGHT + 10} ${50 + CURVE_WIDTH / 4}%,${TAB_BAR_HEIGHT / 2}
-              Q ${50 + CURVE_WIDTH / 4}%,0 ${(100 + CURVE_WIDTH) / 2}%,0
-              L 100%,0
-              L 100%,${TAB_BAR_HEIGHT}
+              L ${curveStart},0
+              Q ${curveStart + 10},0 ${curveStart + 20},${CURVE_DEPTH}
+              Q ${curveCenter},${TAB_BAR_HEIGHT / 2} ${curveEnd - 20},${CURVE_DEPTH}
+              Q ${curveEnd - 10},0 ${curveEnd},0
+              L ${screenWidth},0
+              L ${screenWidth},${TAB_BAR_HEIGHT}
               L 0,${TAB_BAR_HEIGHT}
               Z
             `}
@@ -57,11 +64,6 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                             }
                         };
 
-                        // Skip middle tab (index 2) to make room for FAB
-                        if (index === 2) {
-                            return <View key={route.key} style={{ flex: 1 }} />;
-                        }
-
                         const iconName = options.tabBarIcon
                             ? (options.tabBarIcon as any)({ color: isFocused ? colors.navActive : colors.navInactive, focused: isFocused })?.props?.name
                             : 'ellipse-outline';
@@ -84,6 +86,9 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                         );
                     })}
                 </View>
+
+                {/* Spacer for FAB in the center */}
+                <View style={[styles.fabSpacer, { height: TAB_BAR_HEIGHT }]} />
 
                 {/* Floating Action Button */}
                 <TouchableOpacity
@@ -132,6 +137,13 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    fabSpacer: {
+        position: 'absolute',
+        width: 80,
+        left: '50%',
+        marginLeft: -40,
+        pointerEvents: 'none',
     },
     fab: {
         position: 'absolute',

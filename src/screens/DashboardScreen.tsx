@@ -92,7 +92,7 @@ export const DashboardScreen = () => {
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <SectionHeader title="Recent Transactions" action="View All" onActionPress={() => { }} />
-                <TransactionList transactions={mockTransactions.slice(0, 5)} />
+                <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={true} />
             </View>
         </ScrollView>
     );
