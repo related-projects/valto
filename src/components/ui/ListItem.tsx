@@ -48,21 +48,21 @@ export const ListItem: React.FC<ListItemProps> = ({
                     >
                         {title}
                     </Text>
-                    {subtitle && (
-                        <Text
-                            style={{
-                                color: colors.mutedForeground,
-                                fontSize: typography.sizes.sm,
-                                marginTop: 2,
-                            }}
-                        >
-                            {subtitle}
-                        </Text>
-                    )}
                 </View>
             </View>
             <View style={styles.rightContent}>
                 {rightIcon}
+                {subtitle && showChevron && (
+                    <Text
+                        style={{
+                            color: colors.mutedForeground,
+                            fontSize: typography.sizes.sm,
+                            marginRight: spacing.xs,
+                        }}
+                    >
+                        {subtitle}
+                    </Text>
+                )}
                 {showChevron && onPress && !rightIcon && (
                     <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                 )}

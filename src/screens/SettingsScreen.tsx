@@ -33,7 +33,7 @@ export const SettingsScreen = () => {
             {/* User Info Card */}
             <View style={{
                 backgroundColor: colors.card,
-                borderRadius: 12,
+                borderRadius: 16,
                 padding: spacing.md,
                 marginBottom: spacing.lg,
                 shadowColor: '#000',
@@ -48,7 +48,7 @@ export const SettingsScreen = () => {
                     width: 48,
                     height: 48,
                     borderRadius: 24,
-                    backgroundColor: colors.primary,
+                    backgroundColor: colors.accent,
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginRight: spacing.md,
