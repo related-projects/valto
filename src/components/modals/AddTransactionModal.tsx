@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
+    Dimensions,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -11,30 +12,22 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../theme/theme';
 
 interface AddTransactionModalProps {
     visible: boolean;
     onClose: () => void;
 }
 
-const CATEGORIES = [
-    { emoji: '🍔', label: 'Food & Dining' },
-    { emoji: '🚗', label: 'Transportation' },
-    { emoji: '🏠', label: 'Housing' },
-    { emoji: '🎬', label: 'Entertainment' },
-    { emoji: '🛒', label: 'Shopping' },
-    { emoji: '💊', label: 'Healthcare' },
-    { emoji: '📚', label: 'Education' },
-    { emoji: '✈️', label: 'Travel' },
-];
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose }) => {
-    const insets = useSafeAreaInsets();
-    const [transactionType, setTransactionType] = useState<'Expense' | 'Income' | 'Transfer'>('Expense');
+    const { colors, spacing, typography } = useTheme();
     const [amount, setAmount] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('Food & Dining');
-    const [note, setNote] = useState('');
+    const [category, setCategory] = useState('Food & Dining');
+    const [date, setDate] = useState('Today');
+    const [notes, setNotes] = useState('');
 
     const handleSave = () => {
         // Handle save logic here
@@ -52,104 +45,112 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.overlay}
             >
-                <View style={styles.overlay}>
-                    <View style={[styles.modalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-                        {/* Header */}
-                        <View style={styles.header}>
-                            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                <Ionicons name="close" size={24} color="#000" />
-                            </TouchableOpacity>
-                            <Text style={styles.headerTitle}>Add Transaction</Text>
-                            <TouchableOpacity onPress={handleSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                <Text style={styles.saveButton}>Save</Text>
-                            </TouchableOpacity>
-                        </View>
+                <TouchableOpacity
+                    style={styles.overlayTouchable}
+                    activeOpacity={1}
+                    onPress={onClose}
+                />
+                <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={onClose}>
+                            <Ionicons name="close" size={28} color={colors.foreground} />
+                        </TouchableOpacity>
+                        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>
+                            Add Transaction
+                        </Text>
+                        <View style={{ width: 28 }} />
+                    </View>
 
-                        {/* Transaction Type Tabs */}
-                        <View style={styles.tabsContainer}>
-                            <View style={styles.tabsBackground}>
-                                {(['Expense', 'Income', 'Transfer'] as const).map((type) => (
-                                    <TouchableOpacity
-                                        key={type}
-                                        style={[
-                                            styles.tab,
-                                            transactionType === type && styles.activeTab,
-                                        ]}
-                                        onPress={() => setTransactionType(type)}
-                                    >
-                                        <Text style={[
-                                            styles.tabText,
-                                            transactionType === type && styles.activeTabText,
-                                        ]}>
-                                            {type}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                    <ScrollView
+                        style={styles.scrollContent}
+                        contentContainerStyle={styles.scrollContentContainer}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {/* Amount */}
+                        <View style={{ marginBottom: spacing.lg }}>
+                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
+                                Amount
+                            </Text>
+                            <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                <Text style={{ color: colors.foreground, fontSize: 18, marginRight: 8 }}>$</Text>
+                                <TextInput
+                                    style={[styles.input, { color: colors.foreground }]}
+                                    placeholder="0.00"
+                                    placeholderTextColor={colors.mutedForeground}
+                                    keyboardType="decimal-pad"
+                                    value={amount}
+                                    onChangeText={setAmount}
+                                />
                             </View>
                         </View>
 
-                        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                            {/* Amount Input */}
-                            <View style={styles.amountContainer}>
-                                <Text style={styles.amountLabel}>Amount</Text>
-                                <View style={styles.amountInputContainer}>
-                                    <Text style={styles.currencySymbol}>$</Text>
-                                    <TextInput
-                                        style={styles.amountInput}
-                                        placeholder="0"
-                                        placeholderTextColor="#8E8E93"
-                                        keyboardType="decimal-pad"
-                                        value={amount}
-                                        onChangeText={setAmount}
-                                        autoFocus
-                                    />
+                        {/* Category */}
+                        <View style={{ marginBottom: spacing.lg }}>
+                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
+                                Category
+                            </Text>
+                            <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <View style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 16,
+                                        backgroundColor: 'rgba(139, 92, 72, 0.085)',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginRight: spacing.sm,
+                                    }}>
+                                        <Ionicons name="restaurant-outline" size={18} color={colors.primary} />
+                                    </View>
+                                    <Text style={{ color: colors.foreground, fontSize: 16 }}>{category}</Text>
                                 </View>
-                            </View>
+                                <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
+                            </TouchableOpacity>
+                        </View>
 
-                            {/* Category Section */}
-                            <View style={styles.categorySection}>
-                                <Text style={styles.sectionLabel}>Category</Text>
-                                <View style={styles.categoryChips}>
-                                    {CATEGORIES.map((category) => (
-                                        <TouchableOpacity
-                                            key={category.label}
-                                            style={[
-                                                styles.categoryChip,
-                                                selectedCategory === category.label && styles.selectedChip,
-                                            ]}
-                                            onPress={() => setSelectedCategory(category.label)}
-                                        >
-                                            <Text style={styles.chipText}>
-                                                {category.emoji} {category.label}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
+                        {/* Date */}
+                        <View style={{ marginBottom: spacing.lg }}>
+                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
+                                Date
+                            </Text>
+                            <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
+                                    <Text style={{ color: colors.foreground, fontSize: 16 }}>{date}</Text>
                                 </View>
-                            </View>
+                                <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
+                            </TouchableOpacity>
+                        </View>
 
-                            {/* Wallet Selector */}
-                            <View style={styles.inputSection}>
-                                <Text style={styles.sectionLabel}>Wallet</Text>
-                                <TouchableOpacity style={styles.inputContainer}>
-                                    <Text style={styles.inputText}>Main Wallet</Text>
-                                    <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-                                </TouchableOpacity>
+                        {/* Notes */}
+                        <View style={{ marginBottom: spacing.xl }}>
+                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
+                                Notes (Optional)
+                            </Text>
+                            <View style={[styles.textAreaContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                <TextInput
+                                    style={[styles.textArea, { color: colors.foreground }]}
+                                    placeholder="Add a note..."
+                                    placeholderTextColor={colors.mutedForeground}
+                                    multiline
+                                    numberOfLines={4}
+                                    value={notes}
+                                    onChangeText={setNotes}
+                                />
                             </View>
+                        </View>
+                    </ScrollView>
 
-                            {/* Note Input */}
-                            <View style={styles.inputSection}>
-                                <Text style={styles.sectionLabel}>Note</Text>
-                                <View style={styles.inputContainer}>
-                                    <TextInput
-                                        style={styles.noteInput}
-                                        placeholder="Add a note..."
-                                        placeholderTextColor="#8E8E93"
-                                        value={note}
-                                        onChangeText={setNote}
-                                    />
-                                </View>
-                            </View>
-                        </ScrollView>
+                    {/* Action Buttons */}
+                    <View style={styles.footer}>
+                        <TouchableOpacity
+                            style={[styles.button, { backgroundColor: colors.accent }]}
+                            onPress={handleSave}
+                        >
+                            <Text style={styles.buttonText}>Add Transaction</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </KeyboardAvoidingView>
@@ -163,136 +164,65 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
+    overlayTouchable: {
+        flex: 1,
+    },
     modalContainer: {
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '90%',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 16,
     },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#000',
-    },
-    saveButton: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#A09090',
-    },
-    tabsContainer: {
-        paddingHorizontal: 16,
-        marginTop: 20,
-    },
-    tabsBackground: {
-        backgroundColor: '#F0F0F0',
-        borderRadius: 12,
-        padding: 4,
-        flexDirection: 'row',
-    },
-    tab: {
-        flex: 1,
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderRadius: 10,
-    },
-    activeTab: {
-        backgroundColor: '#FFFFFF',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    tabText: {
-        fontSize: 14,
-        color: '#8E8E93',
-    },
-    activeTabText: {
-        color: '#000',
-        fontWeight: '600',
-    },
-    content: {
+    scrollContent: {
         flex: 1,
     },
-    amountContainer: {
-        alignItems: 'center',
-        paddingVertical: 32,
-    },
-    amountLabel: {
-        fontSize: 14,
-        color: '#8E8E93',
-        marginBottom: 8,
-    },
-    amountInputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    currencySymbol: {
-        fontSize: 24,
-        color: '#8E8E93',
-        marginRight: 4,
-    },
-    amountInput: {
-        fontSize: 48,
-        fontWeight: '700',
-        color: '#000',
-        minWidth: 100,
-        textAlign: 'left',
-    },
-    categorySection: {
-        paddingHorizontal: 16,
-        marginBottom: 24,
-    },
-    sectionLabel: {
-        fontSize: 13,
-        color: '#8E8E93',
-        marginBottom: 10,
-    },
-    categoryChips: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-    },
-    categoryChip: {
-        backgroundColor: '#F0F0F0',
-        borderRadius: 20,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-    },
-    selectedChip: {
-        backgroundColor: '#E0E0E0',
-    },
-    chipText: {
-        fontSize: 14,
-        color: '#000',
-    },
-    inputSection: {
-        paddingHorizontal: 16,
-        marginBottom: 16,
+    scrollContentContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
     },
     inputContainer: {
-        backgroundColor: '#F0F0F0',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 16,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
     },
-    inputText: {
-        fontSize: 16,
-        color: '#000',
-    },
-    noteInput: {
-        fontSize: 16,
-        color: '#000',
+    input: {
         flex: 1,
+        fontSize: 16,
+    },
+    textAreaContainer: {
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    textArea: {
+        fontSize: 16,
+        minHeight: 80,
+        textAlignVertical: 'top',
+    },
+    footer: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0, 0, 0, 0.05)',
+    },
+    button: {
+        borderRadius: 12,
+        paddingVertical: 16,
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });
