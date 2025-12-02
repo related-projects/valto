@@ -61,20 +61,20 @@ export const WalletsScreen = () => {
                         key={wallet.id}
                         activeOpacity={0.9}
                     >
-                        <Card
+                        <View
                             style={{
                                 backgroundColor: wallet.color,
-                                height: 180,
-                                justifyContent: 'space-between',
+                                height: 200,
                                 borderRadius: 24,
                                 shadowColor: wallet.color,
                                 shadowOffset: { width: 0, height: 8 },
                                 shadowOpacity: 0.25,
                                 shadowRadius: 16,
                                 elevation: 8,
-                                padding: 24, // Increased padding
+                                padding: 24,
+                                justifyContent: 'space-between',
+                                overflow: 'hidden',
                             }}
-                            padding="none" // Use manual padding
                         >
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <View style={{
@@ -92,11 +92,11 @@ export const WalletsScreen = () => {
                                 </TouchableOpacity>
                             </View>
 
-                            <View>
+                            <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                                 <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '500', marginBottom: 8 }}>
                                     {wallet.name}
                                 </Text>
-                                <Text style={{ color: '#fff', fontSize: 32, fontWeight: '700', letterSpacing: -1, marginBottom: 16 }}>
+                                <Text style={{ color: '#fff', fontSize: 32, fontWeight: '700', letterSpacing: -1, marginBottom: 12 }}>
                                     ${wallet.balance.toLocaleString()}
                                 </Text>
                                 <View style={{
@@ -111,12 +111,12 @@ export const WalletsScreen = () => {
                                     </Text>
                                 </View>
                             </View>
-                        </Card>
+                        </View>
                     </TouchableOpacity>
                 ))}
             </View>
 
-            <View>
+            <View style={{ paddingHorizontal: 0, marginBottom: spacing.lg }}>
                 <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', marginBottom: 16, letterSpacing: -0.5 }}>
                     Recent Activities
                 </Text>
