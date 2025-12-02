@@ -47,7 +47,7 @@ export const WalletsScreen = () => {
                         backgroundColor: colors.accent,
                         paddingHorizontal: 16,
                         paddingVertical: 8,
-                        borderRadius: 16,
+                        borderRadius: 8,
                         gap: 4,
                     }}
                 >
