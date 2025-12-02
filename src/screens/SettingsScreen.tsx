@@ -82,21 +82,33 @@ export const SettingsScreen = () => {
                     <ListItem
                         title="Currency"
                         subtitle="USD ($)"
-                        leftIcon={<Ionicons name="cash-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="cash-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
                         title="Language"
                         subtitle="English"
-                        leftIcon={<Ionicons name="language-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="language-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
                         title="Theme"
                         subtitle="System"
-                        leftIcon={<Ionicons name="color-palette-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
@@ -118,20 +130,32 @@ export const SettingsScreen = () => {
                 }}>
                     <ListItem
                         title="Categories"
-                        leftIcon={<Ionicons name="grid-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="grid-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
                         title="Notifications"
-                        leftIcon={<Ionicons name="notifications-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="notifications-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
                         title="Securities"
                         subtitle="PIN enabled"
-                        leftIcon={<Ionicons name="lock-closed-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
@@ -153,13 +177,21 @@ export const SettingsScreen = () => {
                 }}>
                     <ListItem
                         title="Backup Data"
-                        leftIcon={<Ionicons name="cloud-upload-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="cloud-upload-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
                         title="Restore Data"
-                        leftIcon={<Ionicons name="cloud-download-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="cloud-download-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
@@ -181,14 +213,22 @@ export const SettingsScreen = () => {
                 }}>
                     <ListItem
                         title="Help & FAQ"
-                        leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
                         title="About Valto"
                         subtitle="1.0.0"
-                        leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.foreground} />}
+                        leftIcon={
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+                            </View>
+                        }
                         showChevron
                         onPress={() => { }}
                     />
