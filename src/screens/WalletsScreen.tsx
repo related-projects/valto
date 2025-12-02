@@ -119,7 +119,7 @@ export const WalletsScreen = () => {
 
             <View style={{ marginBottom: spacing.lg }}>
                 <Card>
-                    <SectionHeader title="Recent Activities" action="View All" onActionPress={() => { }} />
+                    <SectionHeader title="Recent Activities" />
                     <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={false} />
                 </Card>
             </View>
