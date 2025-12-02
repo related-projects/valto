@@ -7,7 +7,7 @@ import { InputField } from '../components/ui/InputField';
 import { mockTransactions } from '../data/mockData';
 import { useTheme } from '../theme/theme';
 
-type FilterType = 'all' | 'income' | 'expense';
+type FilterType = 'all' | 'income' | 'expense' | 'transfer';
 
 export const TransactionsScreen = () => {
     const { colors, spacing, typography, radius } = useTheme();
@@ -90,6 +90,7 @@ export const TransactionsScreen = () => {
                         <FilterPill label="All" value="all" />
                         <FilterPill label="Income" value="income" />
                         <FilterPill label="Expense" value="expense" />
+                        <FilterPill label="Transfer" value="transfer" />
                     </ScrollView>
                     <TouchableOpacity
                         style={{
