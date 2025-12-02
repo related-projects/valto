@@ -72,8 +72,9 @@ export const WalletsScreen = () => {
                                 shadowOpacity: 0.25,
                                 shadowRadius: 16,
                                 elevation: 8,
+                                padding: 24, // Increased padding
                             }}
-                            padding="lg"
+                            padding="none" // Use manual padding
                         >
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <View style={{
@@ -92,10 +93,10 @@ export const WalletsScreen = () => {
                             </View>
 
                             <View>
-                                <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '500', marginBottom: 4 }}>
+                                <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '500', marginBottom: 8 }}>
                                     {wallet.name}
                                 </Text>
-                                <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700', letterSpacing: -0.5, marginBottom: 12 }}>
+                                <Text style={{ color: '#fff', fontSize: 32, fontWeight: '700', letterSpacing: -1, marginBottom: 16 }}>
                                     ${wallet.balance.toLocaleString()}
                                 </Text>
                                 <View style={{
