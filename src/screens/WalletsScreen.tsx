@@ -14,12 +14,12 @@ export const WalletsScreen = () => {
         <ScrollView
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
-                paddingTop: insets.top + spacing.md,
+                paddingTop: insets.top + 16,
                 paddingBottom: 100,
                 paddingHorizontal: 20,
             }}
         >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <Text
                     style={{
                         color: colors.foreground,
@@ -31,52 +31,61 @@ export const WalletsScreen = () => {
                     Wallets
                 </Text>
                 <TouchableOpacity>
-                    <Ionicons name="add-circle" size={32} color={colors.primary} />
+                    <Ionicons name="add-circle" size={28} color={colors.accent} />
                 </TouchableOpacity>
             </View>
 
-            <View style={{ gap: 16 }}>
+            <View style={{ gap: 20 }}>
                 {mockWallets.map((wallet) => (
-                    <Card
+                    <TouchableOpacity
                         key={wallet.id}
-                        style={{
-                            backgroundColor: wallet.color,
-                            height: 160,
-                            justifyContent: 'space-between',
-                            borderRadius: 24,
-                            shadowColor: wallet.color,
-                            shadowOffset: { width: 0, height: 8 },
-                            shadowOpacity: 0.3,
-                            shadowRadius: 16,
-                            elevation: 8,
-                        }}
-                        padding="lg"
+                        activeOpacity={0.9}
                     >
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '600' }}>
-                                {wallet.name}
-                            </Text>
-                            <View style={{
-                                width: 40,
-                                height: 40,
+                        <Card
+                            style={{
+                                backgroundColor: wallet.color,
+                                height: 180,
+                                justifyContent: 'space-between',
                                 borderRadius: 20,
-                                backgroundColor: 'rgba(255,255,255,0.2)',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                <Ionicons name="card-outline" size={20} color="#fff" />
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.15,
+                                shadowRadius: 12,
+                                elevation: 5,
+                            }}
+                            padding="lg"
+                        >
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <View>
+                                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+                                        {wallet.name}
+                                    </Text>
+                                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textTransform: 'capitalize' }}>
+                                        {wallet.type}
+                                    </Text>
+                                </View>
+                                <View style={{
+                                    width: 44,
+                                    height: 44,
+                                    borderRadius: 22,
+                                    backgroundColor: 'rgba(255,255,255,0.25)',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <Ionicons name="card-outline" size={22} color="#fff" />
+                                </View>
                             </View>
-                        </View>
 
-                        <View>
-                            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginBottom: 4 }}>
-                                Balance
-                            </Text>
-                            <Text style={{ color: '#fff', fontSize: 32, fontWeight: '700', letterSpacing: -1 }}>
-                                ${wallet.balance.toLocaleString()}
-                            </Text>
-                        </View>
-                    </Card>
+                            <View>
+                                <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginBottom: 6 }}>
+                                    Total Balance
+                                </Text>
+                                <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700', letterSpacing: -0.5 }}>
+                                    ${wallet.balance.toLocaleString()}
+                                </Text>
+                            </View>
+                        </Card>
+                    </TouchableOpacity>
                 ))}
             </View>
         </ScrollView>
