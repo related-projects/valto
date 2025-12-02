@@ -47,12 +47,12 @@ export const WalletsScreen = () => {
                         backgroundColor: colors.accent,
                         paddingHorizontal: 16,
                         paddingVertical: 8,
-                        borderRadius: 20,
+                        borderRadius: 16,
                         gap: 4,
                     }}
                 >
-                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add</Text>
                     <Ionicons name="add" size={18} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add</Text>
                 </TouchableOpacity>
             </View>
 
