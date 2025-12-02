@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ListItem } from '../components/ui/ListItem';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -30,8 +30,45 @@ export const SettingsScreen = () => {
                 Settings
             </Text>
 
+            {/* User Info Card */}
+            <View style={{
+                backgroundColor: colors.card,
+                borderRadius: 12,
+                padding: spacing.md,
+                marginBottom: spacing.lg,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 3,
+                flexDirection: 'row',
+                alignItems: 'center',
+            }}>
+                <View style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: colors.primary,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: spacing.md,
+                }}>
+                    <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>V</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '600' }}>
+                        Valto User
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
+                        Premium Account
+                    </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
+            </View>
+
+            {/* References */}
             <View style={{ marginBottom: spacing.xl }}>
-                <SectionHeader title="Preferences" />
+                <SectionHeader title="References" />
                 <View style={{
                     backgroundColor: colors.card,
                     borderRadius: 12,
@@ -43,10 +80,47 @@ export const SettingsScreen = () => {
                     elevation: 3,
                 }}>
                     <ListItem
-                        title="Dark Mode"
-                        leftIcon={<Ionicons name="moon-outline" size={22} color={colors.foreground} />}
-                        rightIcon={<Switch value={false} onValueChange={() => { }} />}
-                        showChevron={false}
+                        title="Currency"
+                        subtitle="USD ($)"
+                        leftIcon={<Ionicons name="cash-outline" size={22} color={colors.foreground} />}
+                        showChevron
+                        onPress={() => { }}
+                    />
+                    <ListItem
+                        title="Language"
+                        subtitle="English"
+                        leftIcon={<Ionicons name="language-outline" size={22} color={colors.foreground} />}
+                        showChevron
+                        onPress={() => { }}
+                    />
+                    <ListItem
+                        title="Theme"
+                        subtitle="System"
+                        leftIcon={<Ionicons name="color-palette-outline" size={22} color={colors.foreground} />}
+                        showChevron
+                        onPress={() => { }}
+                    />
+                </View>
+            </View>
+
+            {/* App Settings */}
+            <View style={{ marginBottom: spacing.xl }}>
+                <SectionHeader title="App Settings" />
+                <View style={{
+                    backgroundColor: colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: spacing.md,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    elevation: 3,
+                }}>
+                    <ListItem
+                        title="Categories"
+                        leftIcon={<Ionicons name="grid-outline" size={22} color={colors.foreground} />}
+                        showChevron
+                        onPress={() => { }}
                     />
                     <ListItem
                         title="Notifications"
@@ -55,17 +129,18 @@ export const SettingsScreen = () => {
                         onPress={() => { }}
                     />
                     <ListItem
-                        title="Currency"
-                        subtitle="USD ($)"
-                        leftIcon={<Ionicons name="cash-outline" size={22} color={colors.foreground} />}
+                        title="Securities"
+                        subtitle="PIN enabled"
+                        leftIcon={<Ionicons name="lock-closed-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
                     />
                 </View>
             </View>
 
+            {/* Data */}
             <View style={{ marginBottom: spacing.xl }}>
-                <SectionHeader title="Account" />
+                <SectionHeader title="Data" />
                 <View style={{
                     backgroundColor: colors.card,
                     borderRadius: 12,
@@ -77,26 +152,21 @@ export const SettingsScreen = () => {
                     elevation: 3,
                 }}>
                     <ListItem
-                        title="Profile"
-                        leftIcon={<Ionicons name="person-outline" size={22} color={colors.foreground} />}
+                        title="Backup Data"
+                        leftIcon={<Ionicons name="cloud-upload-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
-                        title="Security"
-                        leftIcon={<Ionicons name="lock-closed-outline" size={22} color={colors.foreground} />}
-                        showChevron
-                        onPress={() => { }}
-                    />
-                    <ListItem
-                        title="Data & Privacy"
-                        leftIcon={<Ionicons name="shield-checkmark-outline" size={22} color={colors.foreground} />}
+                        title="Restore Data"
+                        leftIcon={<Ionicons name="cloud-download-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
                     />
                 </View>
             </View>
 
+            {/* Support */}
             <View style={{ marginBottom: spacing.xl }}>
                 <SectionHeader title="Support" />
                 <View style={{
@@ -110,23 +180,20 @@ export const SettingsScreen = () => {
                     elevation: 3,
                 }}>
                     <ListItem
-                        title="Help Center"
+                        title="Help & FAQ"
                         leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
                     />
                     <ListItem
                         title="About Valto"
+                        subtitle="1.0.0"
                         leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
                     />
                 </View>
             </View>
-
-            <Text style={{ textAlign: 'center', color: colors.mutedForeground, marginTop: spacing.lg }}>
-                Version 1.0.0
-            </Text>
         </ScrollView>
     );
 };
