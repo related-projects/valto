@@ -32,7 +32,16 @@ export const SettingsScreen = () => {
 
             <View style={{ marginBottom: spacing.xl }}>
                 <SectionHeader title="Preferences" />
-                <View style={{ backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: spacing.md }}>
+                <View style={{
+                    backgroundColor: colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: spacing.md,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    elevation: 3,
+                }}>
                     <ListItem
                         title="Dark Mode"
                         leftIcon={<Ionicons name="moon-outline" size={22} color={colors.foreground} />}
@@ -51,14 +60,22 @@ export const SettingsScreen = () => {
                         leftIcon={<Ionicons name="cash-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
-                        style={{ borderBottomWidth: 0 }}
                     />
                 </View>
             </View>
 
             <View style={{ marginBottom: spacing.xl }}>
                 <SectionHeader title="Account" />
-                <View style={{ backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: spacing.md }}>
+                <View style={{
+                    backgroundColor: colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: spacing.md,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    elevation: 3,
+                }}>
                     <ListItem
                         title="Profile"
                         leftIcon={<Ionicons name="person-outline" size={22} color={colors.foreground} />}
@@ -76,14 +93,22 @@ export const SettingsScreen = () => {
                         leftIcon={<Ionicons name="shield-checkmark-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
-                        style={{ borderBottomWidth: 0 }}
                     />
                 </View>
             </View>
 
             <View style={{ marginBottom: spacing.xl }}>
                 <SectionHeader title="Support" />
-                <View style={{ backgroundColor: colors.card, borderRadius: 12, paddingHorizontal: spacing.md }}>
+                <View style={{
+                    backgroundColor: colors.card,
+                    borderRadius: 12,
+                    paddingHorizontal: spacing.md,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 8,
+                    elevation: 3,
+                }}>
                     <ListItem
                         title="Help Center"
                         leftIcon={<Ionicons name="help-circle-outline" size={22} color={colors.foreground} />}
@@ -95,7 +120,6 @@ export const SettingsScreen = () => {
                         leftIcon={<Ionicons name="information-circle-outline" size={22} color={colors.foreground} />}
                         showChevron
                         onPress={() => { }}
-                        style={{ borderBottomWidth: 0 }}
                     />
                 </View>
             </View>

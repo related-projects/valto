@@ -32,8 +32,6 @@ export const ListItem: React.FC<ListItemProps> = ({
                 styles.container,
                 {
                     paddingVertical: spacing.md,
-                    borderBottomWidth: 1,
-                    borderBottomColor: colors.border,
                 },
                 style,
             ]}
