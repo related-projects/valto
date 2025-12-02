@@ -107,9 +107,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             style={[
                                 styles.transactionItem,
                                 {
-                                    padding: spacing.sm,
-                                    borderBottomWidth: 1,
-                                    borderBottomColor: colors.border,
+                                    paddingVertical: spacing.sm,
+                                    paddingHorizontal: 0,
                                 },
                             ]}
                         >
