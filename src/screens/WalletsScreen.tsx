@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { Card } from '../components/ui/Card';
+import { SectionHeader } from '../components/ui/SectionHeader';
 import { mockTransactions, mockWallets } from '../data/mockData';
 import { useTheme } from '../theme/theme';
 
@@ -116,11 +117,9 @@ export const WalletsScreen = () => {
                 ))}
             </View>
 
-            <View style={{ paddingHorizontal: 0, marginBottom: spacing.lg }}>
-                <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700', marginBottom: 16, letterSpacing: -0.5 }}>
-                    Recent Activities
-                </Text>
-                <Card padding="none" style={{ overflow: 'hidden' }}>
+            <View style={{ marginBottom: spacing.lg }}>
+                <Card>
+                    <SectionHeader title="Recent Activities" action="View All" onActionPress={() => { }} />
                     <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={false} />
                 </Card>
             </View>
