@@ -18,30 +18,23 @@ interface AddTransactionModalProps {
     onClose: () => void;
 }
 
+const CATEGORIES = [
+    { emoji: '🍔', label: 'Food & Dining' },
+    { emoji: '🚗', label: 'Transportation' },
+    { emoji: '🏠', label: 'Housing' },
+    { emoji: '🎬', label: 'Entertainment' },
+    { emoji: '🛒', label: 'Shopping' },
+    { emoji: '💊', label: 'Healthcare' },
+    { emoji: '📚', label: 'Education' },
+    { emoji: '✈️', label: 'Travel' },
+];
+
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose }) => {
     const insets = useSafeAreaInsets();
     const [transactionType, setTransactionType] = useState<'Expense' | 'Income' | 'Transfer'>('Expense');
     const [amount, setAmount] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Food & Dining');
     const [note, setNote] = useState('');
-
-    const handleAmountChange = (text: string) => {
-        // Remove non-numeric characters except decimal point
-        const cleaned = text.replace(/[^0-9.]/g, '');
-
-        // Ensure only one decimal point
-        const parts = cleaned.split('.');
-        if (parts.length > 2) {
-            return;
-        }
-
-        // Limit to 10 digits before decimal and 2 after
-        const beforeDecimal = parts[0].slice(0, 10);
-        const afterDecimal = parts[1] ? parts[1].slice(0, 2) : '';
-
-        const newAmount = parts.length === 2 ? `${beforeDecimal}.${afterDecimal}` : beforeDecimal;
-        setAmount(newAmount);
-    };
 
     const handleSave = () => {
         // Handle save logic here
@@ -55,11 +48,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             animationType="slide"
             onRequestClose={onClose}
         >
-            <View style={styles.overlay}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={styles.keyboardView}
-                >
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.overlay}
+            >
+                <View style={styles.overlay}>
                     <View style={[styles.modalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
                         {/* Header */}
                         <View style={styles.header}>
@@ -71,9 +64,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 <Text style={styles.saveButton}>Save</Text>
                             </TouchableOpacity>
                         </View>
-
-                        {/* Divider */}
-                        <View style={styles.divider} />
 
                         {/* Transaction Type Tabs */}
                         <View style={styles.tabsContainer}>
@@ -100,29 +90,41 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
 
                         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                             {/* Amount Input */}
-                            <View style={styles.inputSection}>
-                                <Text style={styles.sectionLabel}>Amount</Text>
-                                <View style={styles.inputContainer}>
+                            <View style={styles.amountContainer}>
+                                <Text style={styles.amountLabel}>Amount</Text>
+                                <View style={styles.amountInputContainer}>
                                     <Text style={styles.currencySymbol}>$</Text>
                                     <TextInput
                                         style={styles.amountInput}
-                                        placeholder="0.00"
+                                        placeholder="0"
                                         placeholderTextColor="#8E8E93"
                                         keyboardType="decimal-pad"
                                         value={amount}
-                                        onChangeText={handleAmountChange}
-                                        maxLength={13} // 10 digits + 1 decimal + 2 decimals
+                                        onChangeText={setAmount}
+                                        autoFocus
                                     />
                                 </View>
                             </View>
 
-                            {/* Category Selector */}
-                            <View style={styles.inputSection}>
+                            {/* Category Section */}
+                            <View style={styles.categorySection}>
                                 <Text style={styles.sectionLabel}>Category</Text>
-                                <TouchableOpacity style={styles.inputContainer}>
-                                    <Text style={styles.inputText}>{selectedCategory}</Text>
-                                    <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-                                </TouchableOpacity>
+                                <View style={styles.categoryChips}>
+                                    {CATEGORIES.map((category) => (
+                                        <TouchableOpacity
+                                            key={category.label}
+                                            style={[
+                                                styles.categoryChip,
+                                                selectedCategory === category.label && styles.selectedChip,
+                                            ]}
+                                            onPress={() => setSelectedCategory(category.label)}
+                                        >
+                                            <Text style={styles.chipText}>
+                                                {category.emoji} {category.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
                             </View>
 
                             {/* Wallet Selector */}
@@ -144,24 +146,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         placeholderTextColor="#8E8E93"
                                         value={note}
                                         onChangeText={setNote}
-                                        multiline
                                     />
                                 </View>
                             </View>
                         </ScrollView>
-
-                        {/* Save Button */}
-                        <View style={styles.footer}>
-                            <TouchableOpacity
-                                style={styles.saveButtonContainer}
-                                onPress={handleSave}
-                            >
-                                <Text style={styles.saveButtonText}>Add Transaction</Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
-                </KeyboardAvoidingView>
-            </View>
+                </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 };
@@ -170,10 +161,6 @@ const styles = StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
-    },
-    keyboardView: {
-        flex: 1,
         justifyContent: 'flex-end',
     },
     modalContainer: {
@@ -198,11 +185,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#A09090',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#E5E5E5',
-        width: '100%',
     },
     tabsContainer: {
         paddingHorizontal: 16,
@@ -238,16 +220,62 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        paddingTop: 24,
     },
-    inputSection: {
+    amountContainer: {
+        alignItems: 'center',
+        paddingVertical: 32,
+    },
+    amountLabel: {
+        fontSize: 14,
+        color: '#8E8E93',
+        marginBottom: 8,
+    },
+    amountInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    currencySymbol: {
+        fontSize: 24,
+        color: '#8E8E93',
+        marginRight: 4,
+    },
+    amountInput: {
+        fontSize: 48,
+        fontWeight: '700',
+        color: '#000',
+        minWidth: 100,
+        textAlign: 'left',
+    },
+    categorySection: {
         paddingHorizontal: 16,
-        marginBottom: 20,
+        marginBottom: 24,
     },
     sectionLabel: {
         fontSize: 13,
         color: '#8E8E93',
         marginBottom: 10,
+    },
+    categoryChips: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    categoryChip: {
+        backgroundColor: '#F0F0F0',
+        borderRadius: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    selectedChip: {
+        backgroundColor: '#E0E0E0',
+    },
+    chipText: {
+        fontSize: 14,
+        color: '#000',
+    },
+    inputSection: {
+        paddingHorizontal: 16,
+        marginBottom: 16,
     },
     inputContainer: {
         backgroundColor: '#F0F0F0',
@@ -258,17 +286,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    currencySymbol: {
-        fontSize: 18,
-        color: '#000',
-        marginRight: 8,
-    },
-    amountInput: {
-        flex: 1,
-        fontSize: 18,
-        color: '#000',
-        fontWeight: '600',
-    },
     inputText: {
         fontSize: 16,
         color: '#000',
@@ -277,22 +294,5 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#000',
         flex: 1,
-        minHeight: 60,
-        textAlignVertical: 'top',
-    },
-    footer: {
-        paddingHorizontal: 16,
-        paddingVertical: 16,
-    },
-    saveButtonContainer: {
-        backgroundColor: '#8B5C48',
-        borderRadius: 12,
-        paddingVertical: 16,
-        alignItems: 'center',
-    },
-    saveButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '700',
     },
 });
