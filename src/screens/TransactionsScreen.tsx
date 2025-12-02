@@ -24,6 +24,16 @@ export const TransactionsScreen = () => {
         });
     }, [searchQuery, activeFilter]);
 
+    const { totalIncome, totalExpenses } = useMemo(() => {
+        const income = filteredTransactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+        const expenses = filteredTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+        return { totalIncome: income, totalExpenses: expenses };
+    }, [filteredTransactions]);
+
     const FilterPill = ({ label, value }: { label: string; value: FilterType }) => {
         const isActive = activeFilter === value;
         return (
@@ -96,6 +106,39 @@ export const TransactionsScreen = () => {
                     >
                         <Ionicons name="options-outline" size={20} color={colors.foreground} />
                     </TouchableOpacity>
+                </View>
+
+                {/* Income and Expenses Summary Cards */}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                    {/* Income Card */}
+                    <View style={{
+                        flex: 1,
+                        backgroundColor: '#E8F5E9',
+                        borderRadius: 16,
+                        padding: 16,
+                    }}>
+                        <Text style={{ color: '#2E7D32', fontSize: 14, marginBottom: 4 }}>
+                            Income
+                        </Text>
+                        <Text style={{ color: '#2E7D32', fontSize: 20, fontWeight: '700' }}>
+                            ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </Text>
+                    </View>
+
+                    {/* Expenses Card */}
+                    <View style={{
+                        flex: 1,
+                        backgroundColor: '#FFEBEE',
+                        borderRadius: 16,
+                        padding: 16,
+                    }}>
+                        <Text style={{ color: '#C62828', fontSize: 14, marginBottom: 4 }}>
+                            Expenses
+                        </Text>
+                        <Text style={{ color: '#C62828', fontSize: 20, fontWeight: '700' }}>
+                            ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </Text>
+                    </View>
                 </View>
             </View>
 
