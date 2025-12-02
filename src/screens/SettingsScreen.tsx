@@ -83,7 +83,7 @@ export const SettingsScreen = () => {
                         title="Currency"
                         subtitle="USD ($)"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="cash-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -94,7 +94,7 @@ export const SettingsScreen = () => {
                         title="Language"
                         subtitle="English"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="language-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -105,7 +105,7 @@ export const SettingsScreen = () => {
                         title="Theme"
                         subtitle="System"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -131,7 +131,7 @@ export const SettingsScreen = () => {
                     <ListItem
                         title="Categories"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="grid-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -141,7 +141,7 @@ export const SettingsScreen = () => {
                     <ListItem
                         title="Notifications"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="notifications-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -152,7 +152,7 @@ export const SettingsScreen = () => {
                         title="Securities"
                         subtitle="PIN enabled"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -178,7 +178,7 @@ export const SettingsScreen = () => {
                     <ListItem
                         title="Backup Data"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="cloud-upload-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -188,7 +188,7 @@ export const SettingsScreen = () => {
                     <ListItem
                         title="Restore Data"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="cloud-download-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -214,7 +214,7 @@ export const SettingsScreen = () => {
                     <ListItem
                         title="Help & FAQ"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
                             </View>
                         }
@@ -225,7 +225,7 @@ export const SettingsScreen = () => {
                         title="About Valto"
                         subtitle="1.0.0"
                         leftIcon={
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(139, 92, 72, 0.085)', alignItems: 'center', justifyContent: 'center' }}>
                                 <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
                             </View>
                         }

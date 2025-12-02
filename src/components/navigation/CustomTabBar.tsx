@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import React from 'react';
+import React, { useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../../theme/theme';
+import { AddTransactionModal } from '../modals/AddTransactionModal';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
     const insets = useSafeAreaInsets();
     const { colors, shadows } = useTheme();
     const { width: screenWidth } = Dimensions.get('window');
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const TAB_BAR_HEIGHT = 60;
     const FAB_SIZE = 56;
@@ -112,14 +114,17 @@ Z
                             ...shadows.elevated,
                         },
                     ]}
-                    onPress={() => {
-                        // Handle FAB press - could open a modal or navigate
-                        console.log('FAB pressed');
-                    }}
+                    onPress={() => setShowAddModal(true)}
                 >
                     <Ionicons name="add" size={32} color={colors.accentForeground} />
                 </TouchableOpacity>
             </View>
+
+            {/* Add Transaction Modal */}
+            <AddTransactionModal
+                visible={showAddModal}
+                onClose={() => setShowAddModal(false)}
+            />
         </View>
     );
 };
