@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -16,44 +18,29 @@ interface AddTransactionModalProps {
     onClose: () => void;
 }
 
-const CATEGORIES = [
-    { emoji: '🍔', label: 'Food & Dining' },
-    { emoji: '🚗', label: 'Transportation' },
-    { emoji: '🏠', label: 'Housing' },
-    { emoji: '🎬', label: 'Entertainment' },
-    { emoji: '🛒', label: 'Shopping' },
-    { emoji: '💊', label: 'Healthcare' },
-    { emoji: '📚', label: 'Education' },
-    { emoji: '✈️', label: 'Travel' },
-];
-
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose }) => {
     const insets = useSafeAreaInsets();
     const [transactionType, setTransactionType] = useState<'Expense' | 'Income' | 'Transfer'>('Expense');
-    const [amount, setAmount] = useState('0');
+    const [amount, setAmount] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Food & Dining');
     const [note, setNote] = useState('');
 
-    const handleNumberPress = (num: string) => {
-        if (amount === '0') {
-            setAmount(num);
-        } else {
-            setAmount(amount + num);
-        }
-    };
+    const handleAmountChange = (text: string) => {
+        // Remove non-numeric characters except decimal point
+        const cleaned = text.replace(/[^0-9.]/g, '');
 
-    const handleDecimalPress = () => {
-        if (!amount.includes('.')) {
-            setAmount(amount + '.');
+        // Ensure only one decimal point
+        const parts = cleaned.split('.');
+        if (parts.length > 2) {
+            return;
         }
-    };
 
-    const handleBackspace = () => {
-        if (amount.length > 1) {
-            setAmount(amount.slice(0, -1));
-        } else {
-            setAmount('0');
-        }
+        // Limit to 10 digits before decimal and 2 after
+        const beforeDecimal = parts[0].slice(0, 10);
+        const afterDecimal = parts[1] ? parts[1].slice(0, 2) : '';
+
+        const newAmount = parts.length === 2 ? `${beforeDecimal}.${afterDecimal}` : beforeDecimal;
+        setAmount(newAmount);
     };
 
     const handleSave = () => {
@@ -69,132 +56,111 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
-                <View style={[styles.modalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                            <Ionicons name="close" size={24} color="#000" />
-                        </TouchableOpacity>
-                        <Text style={styles.headerTitle}>Add Transaction</Text>
-                        <TouchableOpacity onPress={handleSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                            <Text style={styles.saveButton}>Save</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Transaction Type Tabs */}
-                    <View style={styles.tabsContainer}>
-                        <View style={styles.tabsBackground}>
-                            {(['Expense', 'Income', 'Transfer'] as const).map((type) => (
-                                <TouchableOpacity
-                                    key={type}
-                                    style={[
-                                        styles.tab,
-                                        transactionType === type && styles.activeTab,
-                                    ]}
-                                    onPress={() => setTransactionType(type)}
-                                >
-                                    <Text style={[
-                                        styles.tabText,
-                                        transactionType === type && styles.activeTabText,
-                                    ]}>
-                                        {type}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                        {/* Amount Display */}
-                        <View style={styles.amountContainer}>
-                            <Text style={styles.amountLabel}>Amount</Text>
-                            <View style={styles.amountDisplay}>
-                                <Text style={styles.currencySymbol}>$</Text>
-                                <Text style={styles.amountValue}>{amount}</Text>
-                            </View>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.keyboardView}
+                >
+                    <View style={[styles.modalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+                        {/* Header */}
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                <Ionicons name="close" size={24} color="#000" />
+                            </TouchableOpacity>
+                            <Text style={styles.headerTitle}>Add Transaction</Text>
+                            <TouchableOpacity onPress={handleSave} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                <Text style={styles.saveButton}>Save</Text>
+                            </TouchableOpacity>
                         </View>
 
-                        {/* Category Section */}
-                        <View style={styles.categorySection}>
-                            <Text style={styles.sectionLabel}>Category</Text>
-                            <View style={styles.categoryChips}>
-                                {CATEGORIES.map((category) => (
+                        {/* Divider */}
+                        <View style={styles.divider} />
+
+                        {/* Transaction Type Tabs */}
+                        <View style={styles.tabsContainer}>
+                            <View style={styles.tabsBackground}>
+                                {(['Expense', 'Income', 'Transfer'] as const).map((type) => (
                                     <TouchableOpacity
-                                        key={category.label}
+                                        key={type}
                                         style={[
-                                            styles.categoryChip,
-                                            selectedCategory === category.label && styles.selectedChip,
+                                            styles.tab,
+                                            transactionType === type && styles.activeTab,
                                         ]}
-                                        onPress={() => setSelectedCategory(category.label)}
+                                        onPress={() => setTransactionType(type)}
                                     >
-                                        <Text style={styles.chipText}>
-                                            {category.emoji} {category.label}
+                                        <Text style={[
+                                            styles.tabText,
+                                            transactionType === type && styles.activeTabText,
+                                        ]}>
+                                            {type}
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
                         </View>
 
-                        {/* Wallet Selector */}
-                        <View style={styles.inputSection}>
-                            <Text style={styles.sectionLabel}>Wallet</Text>
-                            <TouchableOpacity style={styles.inputContainer}>
-                                <Text style={styles.inputText}>Main Wallet</Text>
-                                <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Note Input */}
-                        <View style={styles.inputSection}>
-                            <Text style={styles.sectionLabel}>Note</Text>
-                            <View style={styles.inputContainer}>
-                                <TextInput
-                                    style={styles.noteInput}
-                                    placeholder="Add a note..."
-                                    placeholderTextColor="#8E8E93"
-                                    value={note}
-                                    onChangeText={setNote}
-                                />
+                        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                            {/* Amount Input */}
+                            <View style={styles.inputSection}>
+                                <Text style={styles.sectionLabel}>Amount</Text>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.currencySymbol}>$</Text>
+                                    <TextInput
+                                        style={styles.amountInput}
+                                        placeholder="0.00"
+                                        placeholderTextColor="#8E8E93"
+                                        keyboardType="decimal-pad"
+                                        value={amount}
+                                        onChangeText={handleAmountChange}
+                                        maxLength={13} // 10 digits + 1 decimal + 2 decimals
+                                    />
+                                </View>
                             </View>
-                        </View>
-                    </ScrollView>
 
-                    {/* Numeric Keypad */}
-                    <View style={styles.keypad}>
-                        <View style={styles.keypadRow}>
-                            {['1', '2', '3'].map((num) => (
-                                <TouchableOpacity key={num} style={styles.key} onPress={() => handleNumberPress(num)}>
-                                    <Text style={styles.keyText}>{num}</Text>
+                            {/* Category Selector */}
+                            <View style={styles.inputSection}>
+                                <Text style={styles.sectionLabel}>Category</Text>
+                                <TouchableOpacity style={styles.inputContainer}>
+                                    <Text style={styles.inputText}>{selectedCategory}</Text>
+                                    <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
                                 </TouchableOpacity>
-                            ))}
-                        </View>
-                        <View style={styles.keypadRow}>
-                            {['4', '5', '6'].map((num) => (
-                                <TouchableOpacity key={num} style={styles.key} onPress={() => handleNumberPress(num)}>
-                                    <Text style={styles.keyText}>{num}</Text>
+                            </View>
+
+                            {/* Wallet Selector */}
+                            <View style={styles.inputSection}>
+                                <Text style={styles.sectionLabel}>Wallet</Text>
+                                <TouchableOpacity style={styles.inputContainer}>
+                                    <Text style={styles.inputText}>Main Wallet</Text>
+                                    <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
                                 </TouchableOpacity>
-                            ))}
-                        </View>
-                        <View style={styles.keypadRow}>
-                            {['7', '8', '9'].map((num) => (
-                                <TouchableOpacity key={num} style={styles.key} onPress={() => handleNumberPress(num)}>
-                                    <Text style={styles.keyText}>{num}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                        <View style={styles.keypadRow}>
-                            <TouchableOpacity style={styles.key} onPress={handleDecimalPress}>
-                                <Text style={styles.keyText}>.</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.key} onPress={() => handleNumberPress('0')}>
-                                <Text style={styles.keyText}>0</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.key} onPress={handleBackspace}>
-                                <Ionicons name="backspace-outline" size={24} color="#000" />
+                            </View>
+
+                            {/* Note Input */}
+                            <View style={styles.inputSection}>
+                                <Text style={styles.sectionLabel}>Note</Text>
+                                <View style={styles.inputContainer}>
+                                    <TextInput
+                                        style={styles.noteInput}
+                                        placeholder="Add a note..."
+                                        placeholderTextColor="#8E8E93"
+                                        value={note}
+                                        onChangeText={setNote}
+                                        multiline
+                                    />
+                                </View>
+                            </View>
+                        </ScrollView>
+
+                        {/* Save Button */}
+                        <View style={styles.footer}>
+                            <TouchableOpacity
+                                style={styles.saveButtonContainer}
+                                onPress={handleSave}
+                            >
+                                <Text style={styles.saveButtonText}>Add Transaction</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </View>
         </Modal>
     );
@@ -206,11 +172,15 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
+    keyboardView: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
     modalContainer: {
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        height: '90%',
+        maxHeight: '90%',
     },
     header: {
         flexDirection: 'row',
@@ -228,6 +198,11 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#A09090',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#E5E5E5',
+        width: '100%',
     },
     tabsContainer: {
         paddingHorizontal: 16,
@@ -263,60 +238,16 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+        paddingTop: 24,
     },
-    amountContainer: {
-        alignItems: 'center',
-        paddingVertical: 32,
-    },
-    amountLabel: {
-        fontSize: 14,
-        color: '#8E8E93',
-        marginBottom: 8,
-    },
-    amountDisplay: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    currencySymbol: {
-        fontSize: 24,
-        color: '#8E8E93',
-        marginRight: 4,
-    },
-    amountValue: {
-        fontSize: 48,
-        fontWeight: '700',
-        color: '#000',
-    },
-    categorySection: {
+    inputSection: {
         paddingHorizontal: 16,
-        marginBottom: 24,
+        marginBottom: 20,
     },
     sectionLabel: {
         fontSize: 13,
         color: '#8E8E93',
         marginBottom: 10,
-    },
-    categoryChips: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 10,
-    },
-    categoryChip: {
-        backgroundColor: '#F0F0F0',
-        borderRadius: 20,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-    },
-    selectedChip: {
-        backgroundColor: '#E0E0E0',
-    },
-    chipText: {
-        fontSize: 14,
-        color: '#000',
-    },
-    inputSection: {
-        paddingHorizontal: 16,
-        marginBottom: 16,
     },
     inputContainer: {
         backgroundColor: '#F0F0F0',
@@ -327,6 +258,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
+    currencySymbol: {
+        fontSize: 18,
+        color: '#000',
+        marginRight: 8,
+    },
+    amountInput: {
+        flex: 1,
+        fontSize: 18,
+        color: '#000',
+        fontWeight: '600',
+    },
     inputText: {
         fontSize: 16,
         color: '#000',
@@ -335,32 +277,22 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#000',
         flex: 1,
+        minHeight: 60,
+        textAlignVertical: 'top',
     },
-    keypad: {
-        backgroundColor: '#E5E5E5',
+    footer: {
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 16,
     },
-    keypadRow: {
-        flexDirection: 'row',
-        gap: 6,
-        marginBottom: 6,
-    },
-    key: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 8,
+    saveButtonContainer: {
+        backgroundColor: '#8B5C48',
+        borderRadius: 12,
         paddingVertical: 16,
         alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 1,
-        elevation: 1,
     },
-    keyText: {
-        fontSize: 24,
-        color: '#000',
+    saveButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
     },
 });
