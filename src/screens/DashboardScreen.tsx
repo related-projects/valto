@@ -51,15 +51,27 @@ export const DashboardScreen = () => {
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
                     Good morning
                 </Text>
-                <Text
-                    style={{
-                        color: colors.foreground,
-                        fontSize: typography.sizes['2xl'],
-                        fontWeight: 'bold',
-                    }}
-                >
-                    Dashboard
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text
+                        style={{
+                            color: colors.foreground,
+                            fontSize: typography.sizes['2xl'],
+                            fontWeight: 'bold',
+                        }}
+                    >
+                        Dashboard
+                    </Text>
+                    <View style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: colors.accent,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}>
+                        <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>V</Text>
+                    </View>
+                </View>
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
