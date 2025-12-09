@@ -59,7 +59,7 @@ export const InputField: React.FC<InputFieldProps> = ({
                     },
                 ]}
             >
-                {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
+                {leftIcon && <View style={{ marginRight: spacing.sm }}>{leftIcon}</View>}
                 <TextInput
                     style={[
                         styles.input,
@@ -76,7 +76,7 @@ export const InputField: React.FC<InputFieldProps> = ({
                 />
                 {rightIcon && (
                     <TouchableOpacity onPress={onRightIconPress} disabled={!onRightIconPress}>
-                        <View style={styles.rightIcon}>{rightIcon}</View>
+                        <View style={{ marginLeft: spacing.sm }}>{rightIcon}</View>
                     </TouchableOpacity>
                 )}
             </View>
@@ -115,10 +115,10 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     leftIcon: {
-        marginRight: 8,
+        // marginRight handled by spacing.sm in component
     },
     rightIcon: {
-        marginLeft: 8,
+        // marginLeft handled by spacing.sm in component
     },
     error: {
         fontWeight: '500',

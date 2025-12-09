@@ -7,6 +7,7 @@ import { QuickActions } from '../components/dashboard/QuickActions';
 import { SpendingChart } from '../components/dashboard/SpendingChart';
 import { WalletList } from '../components/dashboard/WalletList';
 import { TransactionList } from '../components/transactions/TransactionList';
+import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import {
@@ -41,7 +42,7 @@ export const DashboardScreen = () => {
         <ScrollView
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
-                paddingBottom: 100,
+                paddingBottom: spacing.tabBarOffset,
             }}
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -55,22 +56,13 @@ export const DashboardScreen = () => {
                     <Text
                         style={{
                             color: colors.foreground,
-                            fontSize: typography.sizes['2xl'],
-                            fontWeight: 'bold',
+                            fontSize: typography.sizes['3xl'],
+                            fontWeight: typography.weights.bold,
                         }}
                     >
                         Dashboard
                     </Text>
-                    <View style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: colors.accent,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}>
-                        <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>V</Text>
-                    </View>
+                    <Avatar label="V" size="sm" />
                 </View>
             </View>
 

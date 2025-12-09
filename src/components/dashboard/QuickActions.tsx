@@ -19,25 +19,25 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 
     const actions = [
         {
-            icon: 'arrow-down-outline' as const, // ArrowDownLeft approx
+            icon: 'arrow-down-outline' as const,
             label: 'Income',
             onPress: onAddIncome,
-            bg: 'rgba(74, 222, 128, 0.1)', // success/10
-            iconColor: '#4ade80', // success
+            bg: colors.successBackground,
+            iconColor: colors.successText,
         },
         {
-            icon: 'arrow-up-outline' as const, // ArrowUpRight approx
+            icon: 'arrow-up-outline' as const,
             label: 'Expense',
             onPress: onAddExpense,
-            bg: 'rgba(248, 113, 113, 0.1)', // destructive/10
-            iconColor: '#f87171', // destructive
+            bg: colors.destructiveBackground,
+            iconColor: colors.destructiveText,
         },
         {
             icon: 'swap-horizontal-outline' as const,
             label: 'Transfer',
             onPress: onTransfer,
-            bg: 'rgba(96, 57, 47, 0.1)', // accent/10
-            iconColor: '#60392F', // accent
+            bg: colors.iconBadgeBackground,
+            iconColor: colors.accent,
         },
     ];
 
@@ -66,8 +66,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
                                 {
                                     backgroundColor: action.bg,
                                     borderRadius: radius.full,
-                                    padding: 8,
-                                    marginBottom: 8,
+                                    padding: spacing.sm,
+                                    marginBottom: spacing.sm,
                                 },
                             ]}
                         >

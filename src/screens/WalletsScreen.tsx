@@ -9,7 +9,7 @@ import { mockTransactions, mockWallets } from '../data/mockData';
 import { useTheme } from '../theme/theme';
 
 export const WalletsScreen = () => {
-    const { colors, spacing, typography } = useTheme();
+    const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
 
     const totalBalance = mockWallets.reduce((sum, w) => sum + w.balance, 0);
@@ -18,25 +18,25 @@ export const WalletsScreen = () => {
         <ScrollView
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
-                paddingTop: insets.top + 16,
-                paddingBottom: 100,
-                paddingHorizontal: 20,
+                paddingTop: insets.top + spacing.md,
+                paddingBottom: spacing.tabBarOffset,
+                paddingHorizontal: spacing.lg,
             }}
         >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.xl }}>
                 <View>
                     <Text
                         style={{
                             color: colors.foreground,
-                            fontSize: 28,
-                            fontWeight: '700',
+                            fontSize: typography.sizes['3xl'],
+                            fontWeight: typography.weights.bold,
                             letterSpacing: -0.5,
-                            marginBottom: 4,
+                            marginBottom: spacing.xs,
                         }}
                     >
                         Wallets
                     </Text>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 15, fontWeight: '500' }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
                         Total: ${totalBalance.toLocaleString()}
                     </Text>
                 </View>
@@ -45,18 +45,18 @@ export const WalletsScreen = () => {
                         flexDirection: 'row',
                         alignItems: 'center',
                         backgroundColor: colors.accent,
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
-                        borderRadius: 12,
-                        gap: 4,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.sm,
+                        borderRadius: radius.md,
+                        gap: spacing.xs,
                     }}
                 >
-                    <Ionicons name="add" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Add</Text>
+                    <Ionicons name="add" size={18} color={colors.accentForeground} />
+                    <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>Add</Text>
                 </TouchableOpacity>
             </View>
 
-            <View style={{ gap: 20, marginBottom: 32 }}>
+            <View style={{ gap: spacing.lg, marginBottom: spacing['2xl'] }}>
                 {mockWallets.map((wallet) => (
                     <TouchableOpacity
                         key={wallet.id}
@@ -66,13 +66,13 @@ export const WalletsScreen = () => {
                             style={{
                                 backgroundColor: wallet.color,
                                 height: 225,
-                                borderRadius: 24,
+                                borderRadius: radius.xl,
                                 shadowColor: wallet.color,
-                                shadowOffset: { width: 0, height: 8 },
+                                shadowOffset: { width: 0, height: spacing.sm },
                                 shadowOpacity: 0.25,
-                                shadowRadius: 16,
+                                shadowRadius: spacing.md,
                                 elevation: 8,
-                                padding: 24,
+                                padding: spacing.xl,
                                 justifyContent: 'space-between',
                                 overflow: 'hidden',
                             }}
@@ -82,32 +82,34 @@ export const WalletsScreen = () => {
                                     width: 44,
                                     height: 44,
                                     borderRadius: 22,
-                                    backgroundColor: 'rgba(255,255,255,0.2)',
+                                    backgroundColor: colors.accentForeground,
+                                    opacity: 0.2,
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
-                                    <Ionicons name="card-outline" size={22} color="#fff" />
+                                    <Ionicons name="card-outline" size={22} color={colors.accentForeground} />
                                 </View>
                                 <TouchableOpacity>
-                                    <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+                                    <Ionicons name="ellipsis-vertical" size={20} color={colors.accentForeground} />
                                 </TouchableOpacity>
                             </View>
 
                             <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                                <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '500' }}>
+                                <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.md, fontWeight: typography.weights.medium, opacity: 0.9 }}>
                                     {wallet.name}
                                 </Text>
-                                <Text style={{ color: '#fff', fontSize: 32, fontWeight: '700', letterSpacing: -1, marginBottom: 16 }}>
+                                <Text style={{ color: colors.accentForeground, fontSize: typography.sizes['4xl'], fontWeight: typography.weights.bold, letterSpacing: -1, marginBottom: spacing.md }}>
                                     ${wallet.balance.toLocaleString()}
                                 </Text>
                                 <View style={{
-                                    backgroundColor: 'rgba(255,255,255,0.2)',
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 20,
+                                    backgroundColor: colors.accentForeground,
+                                    opacity: 0.2,
+                                    paddingHorizontal: spacing.md,
+                                    paddingVertical: spacing.xs + 2,
+                                    borderRadius: spacing.lg,
                                     alignSelf: 'flex-start',
                                 }}>
-                                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600', textTransform: 'capitalize' }}>
+                                    <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, textTransform: 'capitalize' }}>
                                         {wallet.type}
                                     </Text>
                                 </View>

@@ -6,14 +6,15 @@ export const typography = {
         mono: Platform.select({ ios: 'Courier New', android: 'monospace', default: 'monospace' }),
     },
     sizes: {
-        xs: 12,
+        xs: 11,
         sm: 14,
         md: 16,
         lg: 18,
         xl: 20,
         '2xl': 24,
-        '3xl': 30,
-        '4xl': 36,
+        '3xl': 28,
+        '4xl': 32,
+        '5xl': 36,
     },
     weights: {
         regular: '400',

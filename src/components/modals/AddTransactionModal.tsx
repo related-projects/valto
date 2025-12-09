@@ -13,6 +13,7 @@ import {
     View,
 } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { IconBadge } from '../ui/IconBadge';
 
 interface AddTransactionModalProps {
     visible: boolean;
@@ -23,7 +24,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose }) => {
-    const { colors, spacing, typography } = useTheme();
+    const { colors, spacing, typography, radius } = useTheme();
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('Food & Dining');
     const [date, setDate] = useState('Today');
@@ -43,7 +44,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         >
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.overlay}
+                style={[styles.overlay, { backgroundColor: colors.overlay }]}
             >
                 <TouchableOpacity
                     style={styles.overlayTouchable}
@@ -56,7 +57,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={28} color={colors.foreground} />
                         </TouchableOpacity>
-                        <Text style={{ color: colors.foreground, fontSize: 20, fontWeight: '700' }}>
+                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.xl, fontWeight: typography.weights.bold }}>
                             Add Transaction
                         </Text>
                         <View style={{ width: 28 }} />
@@ -93,18 +94,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             </Text>
                             <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                    <View style={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: 16,
-                                        backgroundColor: 'rgba(139, 92, 72, 0.085)',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        marginRight: spacing.sm,
-                                    }}>
-                                        <Ionicons name="restaurant-outline" size={18} color={colors.primary} />
+                                    <IconBadge
+                                        icon={<Ionicons name="restaurant-outline" size={18} color={colors.primary} />}
+                                        size="sm"
+                                    />
+                                    <View style={{ marginLeft: spacing.sm }}>
+                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{category}</Text>
                                     </View>
-                                    <Text style={{ color: colors.foreground, fontSize: 16 }}>{category}</Text>
                                 </View>
                                 <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                             </TouchableOpacity>
@@ -118,7 +114,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                     <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-                                    <Text style={{ color: colors.foreground, fontSize: 16 }}>{date}</Text>
+                                    <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{date}</Text>
                                 </View>
                                 <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                             </TouchableOpacity>
@@ -144,12 +140,23 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                     </ScrollView>
 
                     {/* Action Buttons */}
-                    <View style={styles.footer}>
+                    <View style={[
+                        styles.footer,
+                        {
+                            paddingHorizontal: spacing.lg,
+                            paddingVertical: spacing.md,
+                            borderTopColor: colors.border,
+                        }
+                    ]}>
                         <TouchableOpacity
                             style={[styles.button, { backgroundColor: colors.accent }]}
                             onPress={handleSave}
                         >
-                            <Text style={styles.buttonText}>Add Transaction</Text>
+                            <Text style={{
+                                color: colors.accentForeground,
+                                fontSize: typography.sizes.md,
+                                fontWeight: typography.weights.bold,
+                            }}>Add Transaction</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -161,7 +168,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'flex-end',
     },
     overlayTouchable: {
@@ -210,19 +216,11 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top',
     },
     footer: {
-        paddingHorizontal: 20,
-        paddingVertical: 16,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0, 0, 0, 0.05)',
     },
     button: {
         borderRadius: 12,
         paddingVertical: 16,
         alignItems: 'center',
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
     },
 });

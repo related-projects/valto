@@ -48,7 +48,7 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
                 </TouchableOpacity>
             </View>
 
-            <View style={{ gap: 8 }}>
+            <View style={{ gap: spacing.sm }}>
                 {wallets.slice(0, 3).map((wallet) => (
                     <TouchableOpacity
                         key={wallet.id}
@@ -66,8 +66,8 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
                             style={[
                                 styles.iconContainer,
                                 {
-                                    backgroundColor: `${wallet.color}20`, // 20% opacity hex
-                                    borderRadius: 8,
+                                    backgroundColor: `${wallet.color}20`,
+                                    borderRadius: radius.sm,
                                 },
                             ]}
                         >

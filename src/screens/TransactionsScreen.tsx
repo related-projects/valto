@@ -3,14 +3,16 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionList } from '../components/transactions/TransactionList';
+import { FilterPill } from '../components/ui/FilterPill';
 import { InputField } from '../components/ui/InputField';
+import { StatCard } from '../components/ui/StatCard';
 import { mockTransactions } from '../data/mockData';
 import { useTheme } from '../theme/theme';
 
 type FilterType = 'all' | 'income' | 'expense' | 'transfer';
 
 export const TransactionsScreen = () => {
-    const { colors, spacing, typography, radius } = useTheme();
+    const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -34,43 +36,17 @@ export const TransactionsScreen = () => {
         return { totalIncome: income, totalExpenses: expenses };
     }, [filteredTransactions]);
 
-    const FilterPill = ({ label, value }: { label: string; value: FilterType }) => {
-        const isActive = activeFilter === value;
-        return (
-            <TouchableOpacity
-                onPress={() => setActiveFilter(value)}
-                style={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 8,
-                    borderRadius: 999,
-                    backgroundColor: isActive ? colors.accent : colors.card,
-                    borderWidth: 1,
-                    borderColor: isActive ? colors.accent : colors.border,
-                    marginRight: 8,
-                }}
-            >
-                <Text
-                    style={{
-                        color: isActive ? '#FFFFFF' : colors.foreground,
-                        fontWeight: isActive ? '600' : '400',
-                        fontSize: 14,
-                    }}
-                >
-                    {label}
-                </Text>
-            </TouchableOpacity>
-        );
-    };
+
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-            <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
+            <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.md }}>
                 <Text
                     style={{
                         color: colors.foreground,
-                        fontSize: 28,
-                        fontWeight: '700',
-                        marginBottom: 20,
+                        fontSize: typography.sizes['3xl'],
+                        fontWeight: typography.weights.bold,
+                        marginBottom: spacing.lg,
                         letterSpacing: -0.5,
                     }}
                 >
@@ -82,27 +58,27 @@ export const TransactionsScreen = () => {
                     onChangeText={setSearchQuery}
                     variant="pill"
                     leftIcon={<Ionicons name="search" size={20} color={colors.mutedForeground} />}
-                    style={{ fontSize: 15 }}
+                    style={{ fontSize: typography.sizes.sm }}
                 />
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
-                        <FilterPill label="All" value="all" />
-                        <FilterPill label="Income" value="income" />
-                        <FilterPill label="Expense" value="expense" />
-                        <FilterPill label="Transfer" value="transfer" />
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: spacing.sm }}>
+                        <FilterPill label="All" isActive={activeFilter === 'all'} onPress={() => setActiveFilter('all')} />
+                        <FilterPill label="Income" isActive={activeFilter === 'income'} onPress={() => setActiveFilter('income')} />
+                        <FilterPill label="Expense" isActive={activeFilter === 'expense'} onPress={() => setActiveFilter('expense')} />
+                        <FilterPill label="Transfer" isActive={activeFilter === 'transfer'} onPress={() => setActiveFilter('transfer')} />
                     </ScrollView>
                     <TouchableOpacity
                         style={{
                             width: 40,
                             height: 40,
-                            borderRadius: 20,
+                            borderRadius: spacing.lg,
                             backgroundColor: colors.card,
                             borderWidth: 1,
                             borderColor: colors.border,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            marginLeft: 8,
+                            marginLeft: spacing.sm,
                         }}
                     >
                         <Ionicons name="options-outline" size={20} color={colors.foreground} />
@@ -110,58 +86,24 @@ export const TransactionsScreen = () => {
                 </View>
 
                 {/* Income and Expenses Summary Cards */}
-                <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-                    {/* Income Card */}
-                    <View style={{
-                        flex: 1,
-                        backgroundColor: '#E8F5E9',
-                        borderRadius: 16,
-                        padding: 16,
-                    }}>
-                        <Text style={{ color: '#2E7D32', fontSize: 14, marginBottom: 4 }}>
-                            Income
-                        </Text>
-                        <Text style={{ color: '#2E7D32', fontSize: 20, fontWeight: '700' }}>
-                            ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                        </Text>
-                    </View>
-
-                    {/* Expenses Card */}
-                    <View style={{
-                        flex: 1,
-                        backgroundColor: '#FFEBEE',
-                        borderRadius: 16,
-                        padding: 16,
-                    }}>
-                        <Text style={{ color: '#C62828', fontSize: 14, marginBottom: 4 }}>
-                            Expenses
-                        </Text>
-                        <Text style={{ color: '#C62828', fontSize: 20, fontWeight: '700' }}>
-                            ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                        </Text>
-                    </View>
+                <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.md }}>
+                    <StatCard label="Income" amount={totalIncome} variant="success" />
+                    <StatCard label="Expenses" amount={totalExpenses} variant="destructive" />
                 </View>
             </View>
 
             <ScrollView
                 contentContainerStyle={{
-                    paddingHorizontal: 20,
-                    paddingBottom: 100 // Extra padding for tab bar + FAB
+                    paddingHorizontal: spacing.lg,
+                    paddingBottom: spacing.tabBarOffset,
                 }}
             >
                 <View style={{
-                    marginTop: 8,
+                    marginTop: spacing.sm,
                     backgroundColor: colors.card,
-                    borderRadius: 24,
+                    borderRadius: radius.xl,
                     overflow: 'hidden',
-                    shadowColor: "#000",
-                    shadowOffset: {
-                        width: 0,
-                        height: 2,
-                    },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 2,
+                    ...shadows.soft,
                 }}>
                     <TransactionList transactions={filteredTransactions} showDateHeaders={true} />
                 </View>

@@ -9,7 +9,7 @@ import { AddTransactionModal } from '../modals/AddTransactionModal';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
     const insets = useSafeAreaInsets();
-    const { colors, shadows } = useTheme();
+    const { colors, shadows, spacing, typography } = useTheme();
     const { width: screenWidth } = Dimensions.get('window');
     const [showAddModal, setShowAddModal] = useState(false);
 
@@ -86,8 +86,8 @@ Z
                                 />
                                 <Text
                                     style={{
-                                        fontSize: 11,
-                                        marginTop: 4,
+                                        fontSize: typography.sizes.xs,
+                                        marginTop: spacing.xs,
                                         color: isFocused ? colors.navActive : colors.navInactive,
                                     }}
                                 >

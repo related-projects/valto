@@ -32,6 +32,16 @@ export const palette = {
     navBackground: '#FFFFFF',
     navActive: '#60392F',
     navInactive: '#87918C',
+    // Semantic backgrounds for stat cards
+    successBackground: '#E8F5E9',
+    successText: '#2E7D32',
+    destructiveBackground: '#FFEBEE',
+    destructiveText: '#C62828',
+    warningBackground: '#FFF3E0',
+    warningText: '#E65100',
+    // Overlay and utility colors
+    overlay: 'rgba(0, 0, 0, 0.5)',
+    iconBadgeBackground: 'rgba(139, 92, 72, 0.085)',
   },
   dark: {
     background: '#09090b',
@@ -67,6 +77,16 @@ export const palette = {
     navBackground: '#241E1C',
     navActive: '#AC6655',
     navInactive: '#6F7C75',
+    // Semantic backgrounds for stat cards (dark mode)
+    successBackground: 'rgba(74, 222, 128, 0.15)',
+    successText: '#4ade80',
+    destructiveBackground: 'rgba(248, 113, 113, 0.15)',
+    destructiveText: '#f87171',
+    warningBackground: 'rgba(242, 169, 34, 0.15)',
+    warningText: '#F2A922',
+    // Overlay and utility colors (dark mode)
+    overlay: 'rgba(0, 0, 0, 0.7)',
+    iconBadgeBackground: 'rgba(173, 188, 179, 0.15)',
   },
 };
 

@@ -27,9 +27,9 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
     };
 
     const getStatusBg = () => {
-        if (isOverBudget) return 'rgba(248, 113, 113, 0.1)';
-        if (isNearLimit) return 'rgba(242, 169, 34, 0.1)';
-        return 'rgba(74, 222, 128, 0.1)';
+        if (isOverBudget) return colors.destructiveBackground;
+        if (isNearLimit) return colors.warningBackground;
+        return colors.successBackground;
     };
 
     const getStatusText = () => {
@@ -47,8 +47,8 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                 <View
                     style={{
                         backgroundColor: getStatusBg(),
-                        paddingHorizontal: 8,
-                        paddingVertical: 2,
+                        paddingHorizontal: spacing.sm,
+                        paddingVertical: spacing.xxs,
                         borderRadius: radius.full,
                     }}
                 >
@@ -64,9 +64,9 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                 </View>
             </View>
 
-            <View style={{ marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                    <Text style={{ fontSize: 24, fontWeight: '700', color: colors.foreground }}>
+            <View style={{ marginBottom: spacing.md }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing.sm }}>
+                    <Text style={{ fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: colors.foreground }}>
                         {currency}{spent.toLocaleString()}
                     </Text>
                     <Text style={{ fontSize: typography.sizes.sm, color: colors.mutedForeground }}>

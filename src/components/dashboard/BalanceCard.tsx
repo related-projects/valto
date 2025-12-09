@@ -41,14 +41,14 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         >
             <View style={styles.header}>
                 <View>
-                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: typography.sizes.sm, marginBottom: 4 }}>
+                    <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs, opacity: 0.8 }}>
                         Total Balance
                     </Text>
                     <Text
                         style={{
                             color: colors.accentForeground,
-                            fontSize: 32, // text-display approx
-                            fontWeight: '600',
+                            fontSize: typography.sizes['4xl'],
+                            fontWeight: typography.weights.semibold,
                             letterSpacing: -1,
                         }}
                     >
@@ -58,9 +58,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                 <TouchableOpacity
                     onPress={() => setHidden(!hidden)}
                     style={{
-                        padding: 8,
+                        padding: spacing.sm,
                         borderRadius: radius.full,
-                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        backgroundColor: colors.accentForeground,
+                        opacity: 0.1,
                     }}
                 >
                     <Ionicons
@@ -71,13 +72,14 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                 </TouchableOpacity>
             </View>
 
-            <View style={[styles.statsRow, { borderTopColor: 'rgba(255,255,255,0.2)' }]}>
+
+            <View style={[styles.statsRow, { borderTopColor: colors.accentForeground, opacity: 0.2 }]}>
                 <View style={styles.statItem}>
                     <View style={styles.statLabelRow}>
-                        <View style={[styles.iconBadge, { backgroundColor: 'rgba(74, 222, 128, 0.2)' }]}>
-                            <Ionicons name="trending-up" size={12} color="#4ade80" />
+                        <View style={[styles.iconBadge, { backgroundColor: colors.successBackground, opacity: 0.2 }]}>
+                            <Ionicons name="trending-up" size={12} color={colors.successText} />
                         </View>
-                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.xs }}>Income</Text>
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Income</Text>
                     </View>
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
                         {formatAmount(monthlyIncome)}
@@ -86,10 +88,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
                 <View style={styles.statItem}>
                     <View style={styles.statLabelRow}>
-                        <View style={[styles.iconBadge, { backgroundColor: 'rgba(248, 113, 113, 0.2)' }]}>
-                            <Ionicons name="trending-down" size={12} color="#f87171" />
+                        <View style={[styles.iconBadge, { backgroundColor: colors.destructiveBackground, opacity: 0.2 }]}>
+                            <Ionicons name="trending-down" size={12} color={colors.destructiveText} />
                         </View>
-                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: typography.sizes.xs }}>Expenses</Text>
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Expenses</Text>
                     </View>
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
                         {formatAmount(monthlyExpense)}
