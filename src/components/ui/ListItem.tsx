@@ -31,7 +31,7 @@ export const ListItem: React.FC<ListItemProps> = ({
             style={[
                 styles.container,
                 {
-                    paddingVertical: spacing.md,
+                    paddingVertical: spacing.sm,
                 },
                 style,
             ]}

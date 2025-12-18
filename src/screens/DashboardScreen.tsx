@@ -44,6 +44,7 @@ export const DashboardScreen = () => {
             contentContainerStyle={{
                 paddingBottom: spacing.tabBarOffset,
             }}
+            showsVerticalScrollIndicator={false}
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
@@ -96,7 +97,7 @@ export const DashboardScreen = () => {
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <Card>
-                    <SectionHeader title="Recent Transactions" action="View All" onActionPress={() => { }} />
+                    <SectionHeader title="Recent Transactions" />
                     <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={false} />
                 </Card>
             </View>

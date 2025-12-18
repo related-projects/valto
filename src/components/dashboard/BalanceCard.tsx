@@ -19,6 +19,14 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     const { colors, typography, spacing, radius, shadows } = useTheme();
     const [hidden, setHidden] = useState(false);
 
+    // Helper to convert hex color to rgba with opacity
+    const hexToRgba = (hex: string, opacity: number) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
     const formatAmount = (amount: number) => {
         if (hidden) return '••••••';
         return `${currency}${amount.toLocaleString('en-US', {
@@ -60,10 +68,23 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                     style={{
                         padding: spacing.sm,
                         borderRadius: radius.full,
-                        backgroundColor: colors.accentForeground,
-                        opacity: 0.1,
+                        position: 'relative',
                     }}
                 >
+                    {/* Background layer with opacity */}
+                    <View
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: colors.accentForeground,
+                            opacity: 0.1,
+                            borderRadius: radius.full,
+                        }}
+                    />
+                    {/* Icon layer at full opacity */}
                     <Ionicons
                         name={hidden ? 'eye-off-outline' : 'eye-outline'}
                         size={20}
@@ -73,10 +94,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             </View>
 
 
-            <View style={[styles.statsRow, { borderTopColor: colors.accentForeground, opacity: 0.2 }]}>
+            <View style={[styles.statsRow, { borderTopColor: hexToRgba(colors.accentForeground, 0.2) }]}>
                 <View style={styles.statItem}>
                     <View style={styles.statLabelRow}>
-                        <View style={[styles.iconBadge, { backgroundColor: colors.successBackground, opacity: 0.2 }]}>
+                        <View style={[styles.iconBadge, { backgroundColor: colors.successBackground }]}>
                             <Ionicons name="trending-up" size={12} color={colors.successText} />
                         </View>
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Income</Text>
@@ -88,7 +109,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
                 <View style={styles.statItem}>
                     <View style={styles.statLabelRow}>
-                        <View style={[styles.iconBadge, { backgroundColor: colors.destructiveBackground, opacity: 0.2 }]}>
+                        <View style={[styles.iconBadge, { backgroundColor: colors.destructiveBackground }]}>
                             <Ionicons name="trending-down" size={12} color={colors.destructiveText} />
                         </View>
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Expenses</Text>

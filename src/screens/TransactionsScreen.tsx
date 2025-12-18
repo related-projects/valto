@@ -97,13 +97,14 @@ export const TransactionsScreen = () => {
                     paddingHorizontal: spacing.lg,
                     paddingBottom: spacing.tabBarOffset,
                 }}
+                showsVerticalScrollIndicator={false}
             >
                 <View style={{
                     marginTop: spacing.sm,
                     backgroundColor: colors.card,
                     borderRadius: radius.xl,
                     overflow: 'hidden',
-                    ...shadows.soft,
+                    ...shadows.card,
                 }}>
                     <TransactionList transactions={filteredTransactions} showDateHeaders={true} />
                 </View>

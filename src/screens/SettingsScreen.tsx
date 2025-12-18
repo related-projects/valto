@@ -17,9 +17,10 @@ export const SettingsScreen = () => {
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
                 paddingTop: insets.top + spacing.md,
-                paddingBottom: spacing['3xl'],
+                paddingBottom: spacing.tabBarOffset,
                 paddingHorizontal: spacing.md,
             }}
+            showsVerticalScrollIndicator={false}
         >
             <Text
                 style={{
@@ -43,7 +44,7 @@ export const SettingsScreen = () => {
                 alignItems: 'center',
             }}>
                 <Avatar label="V" size="md" />
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '600' }}>
                         Valto User
                     </Text>

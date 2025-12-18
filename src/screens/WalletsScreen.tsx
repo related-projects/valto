@@ -12,6 +12,14 @@ export const WalletsScreen = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
 
+    // Helper to convert hex color to rgba with opacity
+    const hexToRgba = (hex: string, opacity: number) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
     const totalBalance = mockWallets.reduce((sum, w) => sum + w.balance, 0);
 
     return (
@@ -22,6 +30,7 @@ export const WalletsScreen = () => {
                 paddingBottom: spacing.tabBarOffset,
                 paddingHorizontal: spacing.lg,
             }}
+            showsVerticalScrollIndicator={false}
         >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.xl }}>
                 <View>
@@ -82,8 +91,7 @@ export const WalletsScreen = () => {
                                     width: 44,
                                     height: 44,
                                     borderRadius: 22,
-                                    backgroundColor: colors.accentForeground,
-                                    opacity: 0.2,
+                                    backgroundColor: hexToRgba(colors.accentForeground, 0.2),
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
@@ -102,8 +110,7 @@ export const WalletsScreen = () => {
                                     ${wallet.balance.toLocaleString()}
                                 </Text>
                                 <View style={{
-                                    backgroundColor: colors.accentForeground,
-                                    opacity: 0.2,
+                                    backgroundColor: hexToRgba(colors.accentForeground, 0.2),
                                     paddingHorizontal: spacing.md,
                                     paddingVertical: spacing.xs + 2,
                                     borderRadius: spacing.lg,

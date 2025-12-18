@@ -15,7 +15,7 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({ data, currency = '
 
     // Simple Donut Chart Logic
     const size = 120;
-    const strokeWidth = 16;
+    const strokeWidth = 24;
     const center = size / 2;
     const radiusChart = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radiusChart;

@@ -29,7 +29,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
             <View style={[styles.tabBarBackground, { height: TAB_BAR_HEIGHT + insets.bottom }]}>
                 <Svg
                     width={screenWidth}
-                    height={TAB_BAR_HEIGHT}
+                    height={TAB_BAR_HEIGHT + insets.bottom}
                     style={StyleSheet.absoluteFill}
                 >
                     <Path
@@ -40,8 +40,8 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
               Q ${curveCenter},${TAB_BAR_HEIGHT / 2} ${curveEnd - 20},${CURVE_DEPTH}
               Q ${curveEnd - 10}, 0 ${curveEnd}, 0
               L ${screenWidth}, 0
-              L ${screenWidth},${TAB_BAR_HEIGHT}
-              L 0, ${TAB_BAR_HEIGHT}
+              L ${screenWidth},${TAB_BAR_HEIGHT + insets.bottom}
+              L 0, ${TAB_BAR_HEIGHT + insets.bottom}
 Z
     `}
                         fill={colors.navBackground}
