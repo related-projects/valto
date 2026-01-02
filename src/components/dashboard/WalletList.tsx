@@ -2,16 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Wallet } from '../../domain/entities';
 import { useTheme } from '../../theme/theme';
 import { Card } from '../ui/Card';
-
-interface Wallet {
-    id: string;
-    name: string;
-    balance: number;
-    type: string;
-    color: string;
-}
 
 interface WalletListProps {
     wallets: Wallet[];
@@ -66,12 +59,12 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
                             style={[
                                 styles.iconContainer,
                                 {
-                                    backgroundColor: `${wallet.color}20`,
+                                    backgroundColor: `${wallet.color || colors.accent}20`,
                                     borderRadius: radius.sm,
                                 },
                             ]}
                         >
-                            <Ionicons name={getIconName(wallet.type)} size={16} color={wallet.color} />
+                            <Ionicons name={getIconName(wallet.type)} size={16} color={wallet.color || colors.accent} />
                         </View>
 
                         <View style={{ flex: 1 }}>

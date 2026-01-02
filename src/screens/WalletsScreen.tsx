@@ -5,12 +5,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
-import { mockTransactions, mockWallets } from '../data/mockData';
+import { useTransactions } from '../hooks/useTransactions';
+import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
 
 export const WalletsScreen = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
+
+    // Get real data
+    const { wallets, getTotalBalance } = useWallets();
+    const { transactions } = useTransactions();
 
     // Helper to convert hex color to rgba with opacity
     const hexToRgba = (hex: string, opacity: number) => {
@@ -20,7 +25,7 @@ export const WalletsScreen = () => {
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     };
 
-    const totalBalance = mockWallets.reduce((sum, w) => sum + w.balance, 0);
+    const totalBalance = getTotalBalance();
 
     return (
         <ScrollView
@@ -66,17 +71,17 @@ export const WalletsScreen = () => {
             </View>
 
             <View style={{ gap: spacing.lg, marginBottom: spacing['2xl'] }}>
-                {mockWallets.map((wallet) => (
+                {wallets.map((wallet) => (
                     <TouchableOpacity
                         key={wallet.id}
                         activeOpacity={0.9}
                     >
                         <View
                             style={{
-                                backgroundColor: wallet.color,
+                                backgroundColor: wallet.color || colors.accent,
                                 height: 225,
                                 borderRadius: radius.xl,
-                                shadowColor: wallet.color,
+                                shadowColor: wallet.color || colors.accent,
                                 shadowOffset: { width: 0, height: spacing.sm },
                                 shadowOpacity: 0.25,
                                 shadowRadius: spacing.md,
@@ -129,7 +134,7 @@ export const WalletsScreen = () => {
             <View style={{ marginBottom: spacing.lg }}>
                 <Card>
                     <SectionHeader title="Recent Activities" />
-                    <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={false} />
+                    <TransactionList transactions={transactions.slice(0, 5)} showDateHeaders={false} />
                 </Card>
             </View>
         </ScrollView>

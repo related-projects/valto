@@ -1,16 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Transaction } from '../../domain/entities';
+import { useCategories } from '../../hooks/useCategories';
+import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
-
-interface Transaction {
-    id: string;
-    title: string;
-    category: string;
-    amount: number;
-    type: string;
-    date: string;
-}
 
 interface TransactionListProps {
     transactions: Transaction[];
@@ -22,7 +16,7 @@ const groupByDate = (transactions: Transaction[]) => {
     const groups: Record<string, Transaction[]> = {};
 
     transactions.forEach((transaction) => {
-        const date = new Date(transaction.date);
+        const date = transaction.date instanceof Date ? transaction.date : new Date(transaction.date);
         const today = new Date();
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
@@ -55,29 +49,45 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     currency = '$',
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
+    const { categories } = useCategories();
+    const { wallets } = useWallets();
 
-    const getIconName = (category: string): keyof typeof Ionicons.glyphMap => {
-        switch (category) {
-            case 'shopping': return 'cart-outline';
-            case 'food': return 'fast-food-outline';
-            case 'transport': return 'car-outline';
-            case 'entertainment': return 'film-outline';
-            case 'utilities': return 'flash-outline';
-            case 'salary': return 'cash-outline';
-            default: return 'card-outline';
-        }
+    // Helper to get category name from ID
+    const getCategoryName = (categoryId: string): string => {
+        const category = categories.find(c => c.id === categoryId);
+        return category?.name || 'Unknown';
     };
 
-    const getCategoryColor = (category: string) => {
-        const colorMap: Record<string, string> = {
-            shopping: '#8B5CF6',
-            food: '#F59E0B',
-            transport: '#3B82F6',
-            entertainment: '#EC4899',
-            utilities: '#10B981',
-            salary: '#4ade80',
-        };
-        return colorMap[category] || colors.accent;
+    // Helper to get wallet name from ID
+    const getWalletName = (walletId: string): string => {
+        const wallet = wallets.find(w => w.id === walletId);
+        return wallet?.name || 'Unknown';
+    };
+
+    const getIconName = (categoryName: string): keyof typeof Ionicons.glyphMap => {
+        const lowerName = categoryName.toLowerCase();
+        if (lowerName.includes('food') || lowerName.includes('dining')) return 'restaurant-outline';
+        if (lowerName.includes('shopping')) return 'cart-outline';
+        if (lowerName.includes('transport')) return 'car-outline';
+        if (lowerName.includes('entertainment')) return 'film-outline';
+        if (lowerName.includes('utilities')) return 'flash-outline';
+        if (lowerName.includes('salary') || lowerName.includes('income')) return 'cash-outline';
+        if (lowerName.includes('health')) return 'medical-outline';
+        if (lowerName.includes('education')) return 'school-outline';
+        return 'card-outline';
+    };
+
+    const getCategoryColor = (categoryName: string) => {
+        const lowerName = categoryName.toLowerCase();
+        if (lowerName.includes('shopping')) return '#8B5CF6';
+        if (lowerName.includes('food') || lowerName.includes('dining')) return '#F59E0B';
+        if (lowerName.includes('transport')) return '#3B82F6';
+        if (lowerName.includes('entertainment')) return '#EC4899';
+        if (lowerName.includes('utilities')) return '#10B981';
+        if (lowerName.includes('salary') || lowerName.includes('income')) return '#4ade80';
+        if (lowerName.includes('health')) return '#14B8A6';
+        if (lowerName.includes('education')) return '#8B5CF6';
+        return colors.accent;
     };
 
     if (transactions.length === 0) {
@@ -100,7 +110,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         return (
             <View style={{ gap: 4 }}>
                 {transactions.map((transaction) => {
-                    const categoryColor = getCategoryColor(transaction.category);
+                    const categoryName = getCategoryName(transaction.categoryId);
+                    const categoryColor = getCategoryColor(categoryName);
                     return (
                         <TouchableOpacity
                             key={transaction.id}
@@ -122,17 +133,17 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                 ]}
                             >
                                 <Ionicons
-                                    name={getIconName(transaction.category)}
+                                    name={getIconName(categoryName)}
                                     size={20}
                                     color={categoryColor}
                                 />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
-                                    {transaction.title}
+                                    {transaction.note || getWalletName(transaction.walletId)}
                                 </Text>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, textTransform: 'capitalize' }}>
-                                    {transaction.category}
+                                    {categoryName}
                                 </Text>
                             </View>
                             <Text
@@ -172,7 +183,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     </View>
                     <View>
                         {items.map((transaction) => {
-                            const categoryColor = getCategoryColor(transaction.category);
+                            const categoryName = getCategoryName(transaction.categoryId);
+                            const categoryColor = getCategoryColor(categoryName);
                             return (
                                 <TouchableOpacity
                                     key={transaction.id}
@@ -197,17 +209,17 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                         ]}
                                     >
                                         <Ionicons
-                                            name={getIconName(transaction.category)}
+                                            name={getIconName(categoryName)}
                                             size={22}
                                             color={categoryColor}
                                         />
                                     </View>
                                     <View style={{ flex: 1 }}>
                                         <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '600', marginBottom: 2 }}>
-                                            {transaction.title}
+                                            {transaction.note || getWalletName(transaction.walletId)}
                                         </Text>
                                         <Text style={{ color: colors.mutedForeground, fontSize: 13, textTransform: 'capitalize' }}>
-                                            {transaction.category}
+                                            {categoryName}
                                         </Text>
                                     </View>
                                     <Text

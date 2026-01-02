@@ -6,37 +6,50 @@ import { BudgetProgress } from '../components/dashboard/BudgetProgress';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { SpendingChart } from '../components/dashboard/SpendingChart';
 import { WalletList } from '../components/dashboard/WalletList';
+import { AddTransactionModal } from '../components/modals/AddTransactionModal';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
-import {
-    mockBudget,
-    mockSpendingData,
-    mockTransactions,
-    mockWallets,
-} from '../data/mockData';
+import { mockBudget, mockSpendingData } from '../data/mockData';
+import { useTransactions } from '../hooks/useTransactions';
+import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
 
 export const DashboardScreen = () => {
     const { colors, spacing, typography } = useTheme();
     const insets = useSafeAreaInsets();
     const [refreshing, setRefreshing] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalType, setModalType] = useState<'expense' | 'income'>('expense');
 
-    const onRefresh = React.useCallback(() => {
+    // Hooks for real data
+    const { transactions, refreshTransactions } = useTransactions();
+    const { wallets, getTotalBalance, refreshWallets } = useWallets();
+
+    const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 2000);
-    }, []);
+        await Promise.all([refreshTransactions(), refreshWallets()]);
+        setRefreshing(false);
+    }, [refreshTransactions, refreshWallets]);
 
-    const totalBalance = mockWallets.reduce((sum, w) => sum + w.balance, 0);
-    const monthlyIncome = mockTransactions
+    const totalBalance = getTotalBalance();
+    const monthlyIncome = transactions
         .filter((t) => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
-    const monthlyExpense = mockTransactions
+    const monthlyExpense = transactions
         .filter((t) => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
+
+    const handleAddExpense = () => {
+        setModalType('expense');
+        setModalVisible(true);
+    };
+
+    const handleAddIncome = () => {
+        setModalType('income');
+        setModalVisible(true);
+    };
 
     return (
         <ScrollView
@@ -85,22 +98,30 @@ export const DashboardScreen = () => {
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <QuickActions
-                    onAddExpense={() => { }}
-                    onAddIncome={() => { }}
+                    onAddExpense={handleAddExpense}
+                    onAddIncome={handleAddIncome}
                     onTransfer={() => { }}
                 />
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
-                <WalletList wallets={mockWallets} />
+                <WalletList wallets={wallets} />
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <Card>
                     <SectionHeader title="Recent Transactions" />
-                    <TransactionList transactions={mockTransactions.slice(0, 5)} showDateHeaders={false} />
+                    <TransactionList transactions={transactions.slice(0, 5)} showDateHeaders={false} />
                 </Card>
             </View>
+
+            <AddTransactionModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                onSuccess={async () => {
+                    await Promise.all([refreshTransactions(), refreshWallets()]);
+                }}
+            />
         </ScrollView>
     );
 };

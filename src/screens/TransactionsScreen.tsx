@@ -6,7 +6,7 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { FilterPill } from '../components/ui/FilterPill';
 import { InputField } from '../components/ui/InputField';
 import { StatCard } from '../components/ui/StatCard';
-import { mockTransactions } from '../data/mockData';
+import { useTransactions } from '../hooks/useTransactions';
 import { useTheme } from '../theme/theme';
 
 type FilterType = 'all' | 'income' | 'expense' | 'transfer';
@@ -17,14 +17,17 @@ export const TransactionsScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
+    // Get real transactions
+    const { transactions } = useTransactions();
+
     const filteredTransactions = useMemo(() => {
-        return mockTransactions.filter((t) => {
-            const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                t.category.toLowerCase().includes(searchQuery.toLowerCase());
+        return transactions.filter((t) => {
+            // Search by note field instead of title (since our domain model uses note)
+            const matchesSearch = (t.note || '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesFilter = activeFilter === 'all' || t.type === activeFilter;
             return matchesSearch && matchesFilter;
         });
-    }, [searchQuery, activeFilter]);
+    }, [transactions, searchQuery, activeFilter]);
 
     const { totalIncome, totalExpenses } = useMemo(() => {
         const income = filteredTransactions

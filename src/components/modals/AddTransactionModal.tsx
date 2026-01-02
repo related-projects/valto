@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     Dimensions,
     KeyboardAvoidingView,
     Modal,
@@ -13,7 +15,10 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { mockWallets } from '../../data/mockData';
+import { TransactionType } from '../../domain/entities';
+import { useCategories } from '../../hooks/useCategories';
+import { useTransactions } from '../../hooks/useTransactions';
+import { useWallets } from '../../hooks/useWallets';
 import { radius } from '../../theme/radius';
 import { shadows } from '../../theme/shadows';
 import { spacing } from '../../theme/spacing';
@@ -24,21 +29,48 @@ import { IconBadge } from '../ui/IconBadge';
 interface AddTransactionModalProps {
     visible: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 
-export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose }) => {
+export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const scrollViewRef = React.useRef<ScrollView>(null);
+
+    // Hooks
+    const { wallets } = useWallets();
+    const { categories, expenseCategories, incomeCategories } = useCategories();
+    const { createTransaction } = useTransactions();
+
+    // Form state
     const [amount, setAmount] = useState('');
-    const [category, setCategory] = useState('Food & Dining');
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [notes, setNotes] = useState('');
     const [transactionType, setTransactionType] = useState<'expense' | 'income' | 'transfer'>('expense');
-    const [selectedWallet, setSelectedWallet] = useState(mockWallets[0]?.name || 'Cash');
+    const [selectedWalletId, setSelectedWalletId] = useState<string>('');
+    const [saving, setSaving] = useState(false);
+
+    // Initialize default selections when data loads
+    useEffect(() => {
+        if (wallets.length > 0 && !selectedWalletId) {
+            setSelectedWalletId(wallets[0].id);
+        }
+    }, [wallets, selectedWalletId]);
+
+    useEffect(() => {
+        const defaultCategories = transactionType === 'expense' ? expenseCategories : incomeCategories;
+        if (defaultCategories.length > 0 && !selectedCategoryId) {
+            setSelectedCategoryId(defaultCategories[0].id);
+        }
+    }, [transactionType, expenseCategories, incomeCategories, selectedCategoryId]);
+
+    // Get selected wallet and category for display
+    const selectedWallet = wallets.find(w => w.id === selectedWalletId);
+    const selectedCategory = categories.find(c => c.id === selectedCategoryId);
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
@@ -57,9 +89,61 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    const handleSave = () => {
-        // Handle save logic here
-        onClose();
+    const handleSave = async () => {
+        // Validation
+        const amountNum = parseFloat(amount);
+
+        if (!amount || isNaN(amountNum) || amountNum <= 0) {
+            Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0');
+            return;
+        }
+
+        if (!selectedWalletId) {
+            Alert.alert('No Wallet Selected', 'Please select a wallet');
+            return;
+        }
+
+        if (!selectedCategoryId) {
+            Alert.alert('No Category Selected', 'Please select a category');
+            return;
+        }
+
+        if (transactionType === 'transfer') {
+            Alert.alert('Not Supported', 'Transfer functionality is not yet implemented');
+            return;
+        }
+
+        try {
+            setSaving(true);
+
+            // Create transaction
+            await createTransaction({
+                type: transactionType === 'expense' ? TransactionType.EXPENSE : TransactionType.INCOME,
+                amount: amountNum,
+                categoryId: selectedCategoryId,
+                walletId: selectedWalletId,
+                date: date,
+                note: notes || undefined,
+            });
+
+            // Reset form
+            setAmount('');
+            setNotes('');
+            setDate(new Date());
+
+            // Call success callback
+            onSuccess?.();
+
+            // Close modal
+            onClose();
+        } catch (error) {
+            Alert.alert(
+                'Error',
+                error instanceof Error ? error.message : 'Failed to save transaction'
+            );
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -84,10 +168,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
                             Add Transaction
                         </Text>
-                        <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
-                            <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                Save
-                            </Text>
+                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
+                            {saving ? (
+                                <ActivityIndicator size="small" color={colors.accent} />
+                            ) : (
+                                <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
+                                    Save
+                                </Text>
+                            )}
                         </TouchableOpacity>
                     </View>
 
@@ -153,14 +241,25 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
                                     Category
                                 </Text>
-                                <TouchableOpacity style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                                <TouchableOpacity
+                                    style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
+                                    onPress={() => {
+                                        // Cycle through categories for now (simple implementation)
+                                        const availableCategories = transactionType === 'expense' ? expenseCategories : incomeCategories;
+                                        const currentIndex = availableCategories.findIndex(c => c.id === selectedCategoryId);
+                                        const nextIndex = (currentIndex + 1) % availableCategories.length;
+                                        setSelectedCategoryId(availableCategories[nextIndex].id);
+                                    }}
+                                >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                         <IconBadge
                                             icon={<Ionicons name="restaurant-outline" size={18} color={colors.primary} />}
                                             size="sm"
                                         />
                                         <View style={{ marginLeft: spacing.sm }}>
-                                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{category}</Text>
+                                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
+                                                {selectedCategory?.name || 'Select category'}
+                                            </Text>
                                         </View>
                                     </View>
                                     <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
@@ -175,15 +274,17 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 <TouchableOpacity
                                     style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
                                     onPress={() => {
-                                        // Basic alert for wallet selection stub
-                                        // In a real app, this would open a modal/bottom sheet
-                                        const nextWallet = mockWallets.find(w => w.name !== selectedWallet) || mockWallets[0];
-                                        if (nextWallet) setSelectedWallet(nextWallet.name);
+                                        // Cycle through wallets (simple implementation)
+                                        const currentIndex = wallets.findIndex(w => w.id === selectedWalletId);
+                                        const nextIndex = (currentIndex + 1) % wallets.length;
+                                        setSelectedWalletId(wallets[nextIndex].id);
                                     }}
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                         <Ionicons name="wallet-outline" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{selectedWallet}</Text>
+                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
+                                            {selectedWallet?.name || 'Select wallet'}
+                                        </Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                                 </TouchableOpacity>
