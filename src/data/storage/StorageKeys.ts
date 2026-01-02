@@ -1,0 +1,22 @@
+/**
+ * Storage Keys
+ * 
+ * Centralized constants for all AsyncStorage keys.
+ * Keys are namespaced with @valto: to avoid collisions with other apps or libraries.
+ */
+
+export const StorageKeys = {
+    /** Key for storing all transactions */
+    TRANSACTIONS: '@valto:transactions',
+
+    /** Key for storing all wallets */
+    WALLETS: '@valto:wallets',
+
+    /** Key for storing all categories */
+    CATEGORIES: '@valto:categories',
+
+    /** Key for tracking if seed data has been initialized */
+    SEED_INITIALIZED: '@valto:seed_initialized',
+} as const;
+
+export type StorageKey = typeof StorageKeys[keyof typeof StorageKeys];
