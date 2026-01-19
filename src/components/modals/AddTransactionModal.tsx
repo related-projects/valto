@@ -8,6 +8,7 @@ import {
     KeyboardAvoidingView,
     Modal,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
@@ -73,9 +74,20 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     const selectedCategory = categories.find(c => c.id === selectedCategoryId);
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
-        setShowDatePicker(false);
-        if (selectedDate) {
-            setDate(selectedDate);
+        if (Platform.OS === 'android') {
+            if (event.type === 'set' && selectedDate) {
+                setDate(selectedDate);
+            }
+            // Dismiss on both 'set' and 'dismissed' for Android
+            if (event.type === 'set' || event.type === 'dismissed') {
+                setShowDatePicker(false);
+            }
+        } else {
+            // iOS spinner: continuous updates, never dismiss here
+            // Picker closes via overlay tap or existing close controls
+            if (selectedDate) {
+                setDate(selectedDate);
+            }
         }
     };
 
@@ -246,6 +258,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                     onPress={() => {
                                         // Cycle through categories for now (simple implementation)
                                         const availableCategories = transactionType === 'expense' ? expenseCategories : incomeCategories;
+                                        if (availableCategories.length === 0) return;
                                         const currentIndex = availableCategories.findIndex(c => c.id === selectedCategoryId);
                                         const nextIndex = (currentIndex + 1) % availableCategories.length;
                                         setSelectedCategoryId(availableCategories[nextIndex].id);
@@ -275,6 +288,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                     style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
                                     onPress={() => {
                                         // Cycle through wallets (simple implementation)
+                                        if (wallets.length === 0) return;
                                         const currentIndex = wallets.findIndex(w => w.id === selectedWalletId);
                                         const nextIndex = (currentIndex + 1) % wallets.length;
                                         setSelectedWalletId(wallets[nextIndex].id);
@@ -306,12 +320,36 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                     <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                                 </TouchableOpacity>
                                 {showDatePicker && (
-                                    <DateTimePicker
-                                        value={date}
-                                        mode="date"
-                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'} // Or 'inline' for iOS 14+ style if preferred, usually spinner inside modal or just default
-                                        onChange={handleDateChange}
-                                    />
+                                    Platform.OS === 'ios' ? (
+                                        <>
+                                            <Pressable
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    zIndex: 1,
+                                                }}
+                                                onPress={() => setShowDatePicker(false)}
+                                            />
+                                            <View style={{ zIndex: 2 }}>
+                                                <DateTimePicker
+                                                    value={date}
+                                                    mode="date"
+                                                    display="spinner"
+                                                    onChange={handleDateChange}
+                                                />
+                                            </View>
+                                        </>
+                                    ) : (
+                                        <DateTimePicker
+                                            value={date}
+                                            mode="date"
+                                            display="default"
+                                            onChange={handleDateChange}
+                                        />
+                                    )
                                 )}
                             </View>
 
