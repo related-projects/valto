@@ -25,6 +25,37 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
         }
     };
 
+    // Handle empty state
+    if (wallets.length === 0) {
+        return (
+            <Card>
+                <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '600', marginBottom: spacing.md }}>
+                    Wallets
+                </Text>
+                <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
+                    <Ionicons name="wallet-outline" size={32} color={colors.mutedForeground} style={{ marginBottom: spacing.sm }} />
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
+                        No wallets yet
+                    </Text>
+                    <TouchableOpacity
+                        style={{
+                            marginTop: spacing.md,
+                            paddingHorizontal: spacing.lg,
+                            paddingVertical: spacing.sm,
+                            backgroundColor: colors.accent,
+                            borderRadius: radius.md,
+                        }}
+                        onPress={() => { /* Navigation to be implemented */ }}
+                    >
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
+                            Create your first wallet
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </Card>
+        );
+    }
+
     return (
         <Card>
             <View style={styles.header}>

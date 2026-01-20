@@ -11,6 +11,26 @@ interface SpendingChartProps {
 
 export const SpendingChart: React.FC<SpendingChartProps> = ({ data, currency = '$' }) => {
     const { colors, typography, spacing, radius } = useTheme();
+
+    // Handle empty state
+    if (data.length === 0) {
+        return (
+            <Card>
+                <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: typography.sizes.sm, marginBottom: spacing.md }}>
+                    Spending by Category
+                </Text>
+                <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
+                        No expense data yet
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, textAlign: 'center', marginTop: spacing.xs }}>
+                        Add transactions to see your spending breakdown
+                    </Text>
+                </View>
+            </Card>
+        );
+    }
+
     const total = data.reduce((sum, item) => sum + item.value, 0);
 
     // Simple Donut Chart Logic
