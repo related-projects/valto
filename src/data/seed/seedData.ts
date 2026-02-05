@@ -28,12 +28,12 @@ export const defaultWallets: CreateWalletDTO[] = [
         type: WalletType.BANK,
         color: '#4A5568',
     },
-    {
-        name: 'Mobile Money',
-        balance: 0,
-        type: WalletType.MOBILE,
-        color: '#6B7280',
-    },
+    // {
+    //     name: 'Mobile Money',
+    //     balance: 0,
+    //     type: WalletType.MOBILE,
+    //     color: '#6B7280',
+    // },
     {
         name: 'Savings',
         balance: 0,
@@ -55,7 +55,7 @@ export const defaultExpenseCategories: CreateCategoryDTO[] = [
     {
         name: 'Shopping',
         type: CategoryType.EXPENSE,
-        icon: 'shopping-bag',
+        icon: 'cart',
         color: '#E57373',
     },
     {
@@ -67,7 +67,7 @@ export const defaultExpenseCategories: CreateCategoryDTO[] = [
     {
         name: 'Entertainment',
         type: CategoryType.EXPENSE,
-        icon: 'movie',
+        icon: 'film-outline',
         color: '#4DD0E1',
     },
     {

@@ -1,20 +1,53 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
 import { Card } from '../ui/Card';
 
 interface BudgetProgressProps {
-    spent: number;
-    budget: number;
+    spent?: number;
+    budget?: number;
     currency?: string;
+    isEmpty?: boolean;
 }
 
 export const BudgetProgress: React.FC<BudgetProgressProps> = ({
-    spent,
-    budget,
+    spent = 0,
+    budget = 0,
     currency = '$',
+    isEmpty = false,
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
+
+    // Handle empty state
+    if (isEmpty || budget === 0) {
+        return (
+            <Card>
+                <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: typography.sizes.sm, marginBottom: spacing.md }}>
+                    Monthly Budget
+                </Text>
+                <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
+                        No budget set yet
+                    </Text>
+                    <TouchableOpacity
+                        style={{
+                            marginTop: spacing.md,
+                            paddingHorizontal: spacing.lg,
+                            paddingVertical: spacing.sm,
+                            backgroundColor: colors.accent,
+                            borderRadius: radius.md,
+                        }}
+                        onPress={() => { /* Navigation to be implemented */ }}
+                    >
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
+                            Create a budget
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </Card>
+        );
+    }
+
     const percentage = Math.min((spent / budget) * 100, 100);
     const remaining = budget - spent;
     const isOverBudget = spent > budget;
@@ -116,3 +149,4 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
 });
+

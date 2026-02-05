@@ -11,7 +11,7 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
-import { mockBudget, mockSpendingData } from '../data/mockData';
+import { useDashboard } from '../hooks/useDashboard';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
@@ -26,6 +26,7 @@ export const DashboardScreen = () => {
     // Hooks for real data
     const { transactions, refreshTransactions } = useTransactions();
     const { wallets, getTotalBalance, refreshWallets } = useWallets();
+    const { spendingByCategory } = useDashboard();
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -89,11 +90,11 @@ export const DashboardScreen = () => {
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
-                <BudgetProgress spent={mockBudget.spent} budget={mockBudget.budget} />
+                <BudgetProgress isEmpty />
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
-                <SpendingChart data={mockSpendingData} />
+                <SpendingChart data={spendingByCategory} />
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
