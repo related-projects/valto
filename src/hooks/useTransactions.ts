@@ -3,10 +3,12 @@
  * 
  * React hook for managing transactions with the repository layer.
  * Provides CRUD operations and loading states for UI components.
+ * Subscribes to transaction/wallet data events for cross-component reactivity.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 import { getTransactionRepository, getWalletRepository } from '../core/di';
+import { dataEvents } from '../core/events';
 import {
     CreateTransactionDTO,
     Transaction,
@@ -67,6 +69,9 @@ export function useTransactions(): UseTransactionsResult {
             // Refresh transactions list
             await loadTransactions();
 
+            // Emit events for cross-component reactivity
+            dataEvents.emitMultiple(['transactions', 'wallets']);
+
             return transaction;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to create transaction';
@@ -94,6 +99,9 @@ export function useTransactions(): UseTransactionsResult {
 
             // Refresh transactions list
             await loadTransactions();
+
+            // Emit events for cross-component reactivity
+            dataEvents.emitMultiple(['transactions', 'wallets']);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete transaction';
             setError(errorMessage);
@@ -108,9 +116,16 @@ export function useTransactions(): UseTransactionsResult {
         await loadTransactions();
     }, [loadTransactions]);
 
-    // Load transactions on mount
+    // Load transactions on mount and subscribe to events
     useEffect(() => {
         loadTransactions();
+
+        // Subscribe to transaction change events from other components
+        const unsubscribe = dataEvents.subscribe('transactions', () => {
+            loadTransactions();
+        });
+
+        return unsubscribe;
     }, [loadTransactions]);
 
     return {
@@ -122,3 +137,4 @@ export function useTransactions(): UseTransactionsResult {
         refreshTransactions,
     };
 }
+

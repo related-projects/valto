@@ -7,6 +7,7 @@ import { QuickActions } from '../components/dashboard/QuickActions';
 import { SpendingChart } from '../components/dashboard/SpendingChart';
 import { WalletList } from '../components/dashboard/WalletList';
 import { AddTransactionModal } from '../components/modals/AddTransactionModal';
+import { TransferModal } from '../components/modals/TransferModal';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
@@ -22,6 +23,7 @@ export const DashboardScreen = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [modalType, setModalType] = useState<'expense' | 'income'>('expense');
+    const [transferModalVisible, setTransferModalVisible] = useState(false);
 
     // Hooks for real data
     const { transactions, refreshTransactions } = useTransactions();
@@ -50,6 +52,10 @@ export const DashboardScreen = () => {
     const handleAddIncome = () => {
         setModalType('income');
         setModalVisible(true);
+    };
+
+    const handleTransfer = () => {
+        setTransferModalVisible(true);
     };
 
     return (
@@ -101,7 +107,7 @@ export const DashboardScreen = () => {
                 <QuickActions
                     onAddExpense={handleAddExpense}
                     onAddIncome={handleAddIncome}
-                    onTransfer={() => { }}
+                    onTransfer={handleTransfer}
                 />
             </View>
 
@@ -121,6 +127,14 @@ export const DashboardScreen = () => {
                 onClose={() => setModalVisible(false)}
                 onSuccess={async () => {
                     await Promise.all([refreshTransactions(), refreshWallets()]);
+                }}
+            />
+
+            <TransferModal
+                visible={transferModalVisible}
+                onClose={() => setTransferModalVisible(false)}
+                onSuccess={async () => {
+                    await refreshWallets();
                 }}
             />
         </ScrollView>
