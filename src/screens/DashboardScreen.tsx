@@ -6,12 +6,14 @@ import { BudgetProgress } from '../components/dashboard/BudgetProgress';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { SpendingChart } from '../components/dashboard/SpendingChart';
 import { WalletList } from '../components/dashboard/WalletList';
+import { AddBudgetModal } from '../components/modals/AddBudgetModal';
 import { AddTransactionModal } from '../components/modals/AddTransactionModal';
 import { TransferModal } from '../components/modals/TransferModal';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { useBudgets } from '../hooks/useBudgets';
 import { useDashboard } from '../hooks/useDashboard';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
@@ -24,17 +26,27 @@ export const DashboardScreen = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalType, setModalType] = useState<'expense' | 'income'>('expense');
     const [transferModalVisible, setTransferModalVisible] = useState(false);
+    const [budgetModalVisible, setBudgetModalVisible] = useState(false);
 
     // Hooks for real data
     const { transactions, refreshTransactions } = useTransactions();
     const { wallets, getTotalBalance, refreshWallets } = useWallets();
     const { spendingByCategory } = useDashboard();
+    const {
+        budgetSummaries,
+        totalBudgetLimit,
+        totalBudgetSpent,
+        hasBudgets,
+        createBudget,
+        refreshBudgets,
+        budgetedCategoryIds,
+    } = useBudgets();
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
-        await Promise.all([refreshTransactions(), refreshWallets()]);
+        await Promise.all([refreshTransactions(), refreshWallets(), refreshBudgets()]);
         setRefreshing(false);
-    }, [refreshTransactions, refreshWallets]);
+    }, [refreshTransactions, refreshWallets, refreshBudgets]);
 
     const totalBalance = getTotalBalance();
     const monthlyIncome = transactions
@@ -96,7 +108,13 @@ export const DashboardScreen = () => {
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
-                <BudgetProgress isEmpty />
+                <BudgetProgress
+                    budgetSummaries={budgetSummaries}
+                    totalSpent={totalBudgetSpent}
+                    totalLimit={totalBudgetLimit}
+                    hasBudgets={hasBudgets}
+                    onCreateBudget={() => setBudgetModalVisible(true)}
+                />
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
@@ -136,6 +154,15 @@ export const DashboardScreen = () => {
                 onSuccess={async () => {
                     await refreshWallets();
                 }}
+            />
+
+            <AddBudgetModal
+                visible={budgetModalVisible}
+                onClose={() => setBudgetModalVisible(false)}
+                onCreateBudget={async (dto) => {
+                    await createBudget(dto);
+                }}
+                budgetedCategoryIds={budgetedCategoryIds}
             />
         </ScrollView>
     );

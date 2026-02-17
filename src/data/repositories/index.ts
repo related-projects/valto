@@ -9,6 +9,7 @@ export {
     RepositoryErrorType, type IRepository
 } from './IRepository';
 
+export { BudgetRepository } from './BudgetRepository';
 export { CategoryRepository } from './CategoryRepository';
 export { TransactionRepository } from './TransactionRepository';
 export { WalletRepository } from './WalletRepository';

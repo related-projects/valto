@@ -6,7 +6,7 @@
  */
 
 type EventCallback = () => void;
-type EventType = 'wallets' | 'transactions' | 'categories';
+type EventType = 'wallets' | 'transactions' | 'categories' | 'budgets';
 
 class DataEventEmitter {
     private listeners: Map<EventType, Set<EventCallback>> = new Map();
