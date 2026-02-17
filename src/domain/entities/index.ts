@@ -22,3 +22,9 @@ export {
     type CreateCategoryDTO, type SerializableCategory, type UpdateCategoryDTO
 } from './Category';
 
+// Budget exports
+export {
+    deserializeBudget, getCurrentMonth, isValidBudgetMonth, serializeBudget,
+    type Budget, type CreateBudgetDTO, type SerializableBudget, type UpdateBudgetDTO
+} from './Budget';
+

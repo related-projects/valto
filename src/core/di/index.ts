@@ -5,7 +5,7 @@
  */
 
 export {
-    container, getCategoryRepository, getTransactionRepository,
+    container, getBudgetRepository, getCategoryRepository, getTransactionRepository,
     getWalletRepository
 } from './container';
 

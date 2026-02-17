@@ -10,6 +10,7 @@
  * instances, maintaining data consistency.
  */
 
+import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
@@ -22,6 +23,7 @@ class DIContainer {
     private _transactionRepository: TransactionRepository | null = null;
     private _walletRepository: WalletRepository | null = null;
     private _categoryRepository: CategoryRepository | null = null;
+    private _budgetRepository: BudgetRepository | null = null;
 
     /**
      * Get or create TransactionRepository instance
@@ -54,12 +56,23 @@ class DIContainer {
     }
 
     /**
+     * Get or create BudgetRepository instance
+     */
+    get budgetRepository(): BudgetRepository {
+        if (!this._budgetRepository) {
+            this._budgetRepository = new BudgetRepository(asyncStorageAdapter);
+        }
+        return this._budgetRepository;
+    }
+
+    /**
      * Reset all repository instances (useful for testing)
      */
     reset(): void {
         this._transactionRepository = null;
         this._walletRepository = null;
         this._categoryRepository = null;
+        this._budgetRepository = null;
     }
 }
 
@@ -74,3 +87,4 @@ export const container = new DIContainer();
 export const getTransactionRepository = () => container.transactionRepository;
 export const getWalletRepository = () => container.walletRepository;
 export const getCategoryRepository = () => container.categoryRepository;
+export const getBudgetRepository = () => container.budgetRepository;
