@@ -6,8 +6,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { getCategoryRepository } from '../core/di';
-import { Category, CategoryType } from '../domain/entities';
+import { getCategoryRepository, getTransactionRepository } from '../core/di';
+import { dataEvents } from '../core/events';
+import { Category, CategoryType, CreateCategoryDTO, UpdateCategoryDTO } from '../domain/entities';
 
 interface UseCategoriesResult {
     categories: Category[];
@@ -16,6 +17,9 @@ interface UseCategoriesResult {
     loading: boolean;
     error: string | null;
     refreshCategories: () => Promise<void>;
+    createCategory: (dto: CreateCategoryDTO) => Promise<Category>;
+    updateCategory: (dto: UpdateCategoryDTO) => Promise<Category>;
+    deleteCategory: (id: string) => Promise<void>;
 }
 
 /**
@@ -46,6 +50,67 @@ export function useCategories(): UseCategoriesResult {
     }, [categoryRepo]);
 
     /**
+     * Create a new category
+     */
+    const createCategory = useCallback(async (dto: CreateCategoryDTO): Promise<Category> => {
+        try {
+            const category = await categoryRepo.create(dto);
+            await loadCategories();
+
+            // Emit event so other components (like Add Transaction Modal) update
+            dataEvents.emit('categories');
+
+            return category;
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Failed to create category';
+            setError(msg);
+            throw new Error(msg);
+        }
+    }, [categoryRepo, loadCategories]);
+
+    /**
+     * Update a category
+     */
+    const updateCategory = useCallback(async (dto: UpdateCategoryDTO): Promise<Category> => {
+        try {
+            const category = await categoryRepo.updateFromDTO(dto);
+            await loadCategories();
+
+            dataEvents.emit('categories');
+
+            return category;
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Failed to update category';
+            setError(msg);
+            throw new Error(msg);
+        }
+    }, [categoryRepo, loadCategories]);
+
+    /**
+     * Delete a category
+     */
+    const deleteCategory = useCallback(async (id: string): Promise<void> => {
+        try {
+            // Check if used in transactions
+            const transactionRepo = getTransactionRepository();
+            const transactions = await transactionRepo.getByCategoryId(id);
+
+            if (transactions.length > 0) {
+                throw new Error(`Cannot delete category. It is used in ${transactions.length} transactions.`);
+            }
+
+            await categoryRepo.delete(id);
+            await loadCategories();
+
+            dataEvents.emit('categories');
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Failed to delete category';
+            // Propagate the specific error message (e.g. usage check)
+            throw new Error(msg);
+        }
+    }, [categoryRepo, loadCategories]);
+
+    /**
      * Get expense categories
      */
     const expenseCategories = categories.filter(
@@ -69,6 +134,10 @@ export function useCategories(): UseCategoriesResult {
     // Load categories on mount
     useEffect(() => {
         loadCategories();
+
+        // Subscribe to external changes
+        const unsubscribe = dataEvents.subscribe('categories', loadCategories);
+        return unsubscribe;
     }, [loadCategories]);
 
     return {
@@ -78,5 +147,8 @@ export function useCategories(): UseCategoriesResult {
         loading,
         error,
         refreshCategories,
+        createCategory,
+        updateCategory,
+        deleteCategory,
     };
 }

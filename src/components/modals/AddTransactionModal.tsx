@@ -26,6 +26,7 @@ import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
 import { typography } from '../../theme/typography';
 import { IconBadge } from '../ui/IconBadge';
+import { SegmentControl } from '../ui/SegmentControl';
 
 interface AddTransactionModalProps {
     visible: boolean;
@@ -262,31 +263,16 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             keyboardShouldPersistTaps="handled"
                         >
                             {/* Transaction Type Segmented Control */}
-                            <View style={[styles.segmentContainer, { backgroundColor: colors.background, marginBottom: spacing.xl }]}>
-                                {(['expense', 'income', 'transfer'] as const).map((type) => {
-                                    const isActive = transactionType === type;
-                                    return (
-                                        <TouchableOpacity
-                                            key={type}
-                                            style={[
-                                                styles.segmentButton,
-                                                isActive && { backgroundColor: colors.card, ...styles.activeSegmentShadow }
-                                            ]}
-                                            onPress={() => setTransactionType(type)}
-                                            activeOpacity={0.8}
-                                        >
-                                            <Text style={{
-                                                color: isActive ? colors.foreground : colors.mutedForeground,
-                                                fontSize: typography.sizes.sm,
-                                                fontWeight: isActive ? '600' : '500',
-                                                textTransform: 'capitalize'
-                                            }}>
-                                                {type}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
+                            <SegmentControl
+                                segments={[
+                                    { key: 'expense', label: 'Expense', value: 'expense' as const },
+                                    { key: 'income', label: 'Income', value: 'income' as const },
+                                    { key: 'transfer', label: 'Transfer', value: 'transfer' as const },
+                                ]}
+                                selectedValue={transactionType}
+                                onSelect={setTransactionType}
+                                style={{ marginBottom: spacing.xl }}
+                            />
                             {/* Amount */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
