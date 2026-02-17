@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +11,7 @@ import { useTheme } from '../theme/theme';
 
 export const SettingsScreen = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
+    const router = useRouter();
     const insets = useSafeAreaInsets();
 
     return (
@@ -109,7 +111,7 @@ export const SettingsScreen = () => {
                             <IconBadge icon={<Ionicons name="grid-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={() => router.push('/categories')}
                     />
                     <ListItem
                         title="Notifications"
