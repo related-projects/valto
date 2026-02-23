@@ -7,6 +7,10 @@ interface BalanceCardProps {
     totalBalance: number;
     monthlyIncome: number;
     monthlyExpense: number;
+    netBalance?: number;
+    incomeChange?: number | null;
+    expenseChange?: number | null;
+    netBalanceChange?: number | null;
     currency?: string;
 }
 
@@ -14,6 +18,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     totalBalance,
     monthlyIncome,
     monthlyExpense,
+    netBalance,
+    incomeChange,
+    expenseChange,
+    netBalanceChange,
     currency = '$',
 }) => {
     const { colors, typography, spacing, radius, shadows } = useTheme();
@@ -29,10 +37,30 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
     const formatAmount = (amount: number) => {
         if (hidden) return '••••••';
-        return `${currency}${amount.toLocaleString('en-US', {
+        return `${amount < 0 ? '-' : ''}${currency}${Math.abs(amount).toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         })}`;
+    };
+
+    const renderChangeBadge = (change?: number | null, isExpense?: boolean) => {
+        if (change === undefined || change === null) return null;
+
+        // For expenses, an increase is bad (red), decrease is good (green)
+        // For income/net, an increase is good (green), decrease is bad (red)
+        const isPositiveChange = change >= 0;
+        const isGood = isExpense ? !isPositiveChange : isPositiveChange;
+
+        const bgColor = isGood ? colors.successBackground : colors.destructiveBackground;
+        const textColor = isGood ? colors.successText : colors.destructiveText;
+        const iconName = isPositiveChange ? 'arrow-up' : 'arrow-down';
+
+        return (
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: bgColor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.full, marginTop: 4, alignSelf: 'flex-start' }}>
+                <Ionicons name={iconName} size={10} color={textColor} />
+                <Text style={{ color: textColor, fontSize: typography.sizes.xs - 2, fontWeight: '600', marginLeft: 2 }}>{Math.abs(change).toFixed(1)}%</Text>
+            </View>
+        );
     };
 
     return (
@@ -42,7 +70,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                 {
                     backgroundColor: colors.accent,
                     borderRadius: radius.xl,
-                    padding: spacing.lg, // p-6 = 24px = lg
+                    padding: spacing.lg,
                     ...shadows.card,
                 },
             ]}
@@ -71,7 +99,6 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                         position: 'relative',
                     }}
                 >
-                    {/* Background layer with opacity */}
                     <View
                         style={{
                             position: 'absolute',
@@ -84,7 +111,6 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                             borderRadius: radius.full,
                         }}
                     />
-                    {/* Icon layer at full opacity */}
                     <Ionicons
                         name={hidden ? 'eye-off-outline' : 'eye-outline'}
                         size={20}
@@ -92,7 +118,6 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                     />
                 </TouchableOpacity>
             </View>
-
 
             <View style={[styles.statsRow, { borderTopColor: hexToRgba(colors.accentForeground, 0.2) }]}>
                 <View style={styles.statItem}>
@@ -105,6 +130,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
                         {formatAmount(monthlyIncome)}
                     </Text>
+                    {renderChangeBadge(incomeChange, false)}
                 </View>
 
                 <View style={styles.statItem}>
@@ -117,7 +143,23 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
                         {formatAmount(monthlyExpense)}
                     </Text>
+                    {renderChangeBadge(expenseChange, true)}
                 </View>
+
+                {netBalance !== undefined && (
+                    <View style={styles.statItem}>
+                        <View style={styles.statLabelRow}>
+                            <View style={[styles.iconBadge, { backgroundColor: colors.accentForeground, opacity: 0.2 }]}>
+                                <Ionicons name="swap-vertical" size={12} color={colors.accent} />
+                            </View>
+                            <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Net</Text>
+                        </View>
+                        <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
+                            {formatAmount(netBalance)}
+                        </Text>
+                        {renderChangeBadge(netBalanceChange, false)}
+                    </View>
+                )}
             </View>
         </View>
     );

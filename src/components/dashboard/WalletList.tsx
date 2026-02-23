@@ -114,7 +114,7 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
                                 fontWeight: '600',
                             }}
                         >
-                            {currency}{wallet.balance.toLocaleString()}
+                            {currency}{(wallet.balance / 100).toLocaleString()}
                         </Text>
                     </TouchableOpacity>
                 ))}

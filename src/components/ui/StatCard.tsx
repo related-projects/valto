@@ -61,7 +61,7 @@ export const StatCard: React.FC<StatCardProps> = ({ label, amount, variant, curr
                     fontWeight: typography.weights.bold,
                 }}
             >
-                {currency}{amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                {currency}{(amount / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Text>
         </View>
     );

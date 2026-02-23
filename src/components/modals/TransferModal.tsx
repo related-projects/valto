@@ -85,10 +85,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
     };
 
     const handleTransfer = async () => {
-        // Validation
-        const amountNum = parseFloat(amount);
+        // Convert to cents
+        const parsedAmount = parseFloat(amount);
+        const amountNum = Math.round(parsedAmount * 100);
 
-        if (!amount || isNaN(amountNum) || amountNum <= 0) {
+        if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
             Alert.alert('Invalid Amount', 'Please enter an amount greater than 0');
             return;
         }
@@ -109,7 +110,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
         }
 
         if (sourceWallet && amountNum > sourceWallet.balance) {
-            Alert.alert('Insufficient Balance', `Source wallet only has $${sourceWallet.balance.toLocaleString()}`);
+            Alert.alert('Insufficient Balance', `Source wallet only has $${(sourceWallet.balance / 100).toLocaleString()}`);
             return;
         }
 
@@ -160,7 +161,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                     {wallet.name}
                 </Text>
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                    ${wallet.balance.toLocaleString()}
+                    ${(wallet.balance / 100).toLocaleString()}
                 </Text>
             </View>
             {isSelected && (
@@ -252,7 +253,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                     </Text>
                                                     {sourceWallet && (
                                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                            Balance: ${sourceWallet.balance.toLocaleString()}
+                                                            Balance: ${(sourceWallet.balance / 100).toLocaleString()}
                                                         </Text>
                                                     )}
                                                 </View>
@@ -316,7 +317,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                     </Text>
                                                     {destWallet && (
                                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                            Balance: ${destWallet.balance.toLocaleString()}
+                                                            Balance: ${(destWallet.balance / 100).toLocaleString()}
                                                         </Text>
                                                     )}
                                                 </View>
@@ -376,7 +377,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 fontSize: typography.sizes.xs,
                                                 marginTop: spacing.xs
                                             }}>
-                                                Available: ${sourceWallet.balance.toLocaleString()}
+                                                Available: ${(sourceWallet.balance / 100).toLocaleString()}
                                             </Text>
                                         )}
                                     </View>

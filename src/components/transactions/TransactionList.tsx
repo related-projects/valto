@@ -148,12 +148,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             </View>
                             <Text
                                 style={{
-                                    color: transaction.type === 'income' ? colors.success : colors.foreground,
+                                    color: transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? colors.success : colors.foreground,
                                     fontWeight: '600',
                                     fontSize: typography.sizes.sm,
                                 }}
                             >
-                                {transaction.type === 'income' ? '+' : '-'}{currency}{transaction.amount.toFixed(2)}
+                                {transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? '+' : '-'}{currency}{(transaction.amount / 100).toFixed(2)}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -224,12 +224,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     </View>
                                     <Text
                                         style={{
-                                            color: transaction.type === 'income' ? colors.success : colors.foreground,
+                                            color: transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? colors.success : colors.foreground,
                                             fontWeight: '600',
                                             fontSize: 16,
                                         }}
                                     >
-                                        {transaction.type === 'income' ? '+' : '-'}{currency}{transaction.amount.toFixed(2)}
+                                        {transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? '+' : '-'}{currency}{(transaction.amount / 100).toFixed(2)}
                                     </Text>
                                 </TouchableOpacity>
                             );

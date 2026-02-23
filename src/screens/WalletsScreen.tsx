@@ -73,7 +73,7 @@ export const WalletsScreen = () => {
                             Wallets
                         </Text>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
-                            Total: ${totalBalance.toLocaleString()}
+                            Total: ${(totalBalance / 100).toLocaleString()}
                         </Text>
                     </View>
                     <TouchableOpacity
@@ -153,11 +153,11 @@ export const WalletsScreen = () => {
                                     </View>
 
                                     <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.md, fontWeight: typography.weights.medium, opacity: 0.9 }}>
-                                            {wallet.name}
+                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
+                                            ${(wallet.balance / 100).toLocaleString()}
                                         </Text>
                                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes['4xl'], fontWeight: typography.weights.bold, letterSpacing: -1, marginBottom: spacing.md }}>
-                                            ${wallet.balance.toLocaleString()}
+                                            ${(wallet.balance / 100).toLocaleString()}
                                         </Text>
                                         <View style={{
                                             backgroundColor: hexToRgba(colors.accentForeground, 0.2),

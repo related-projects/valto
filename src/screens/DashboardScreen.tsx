@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../components/dashboard/BalanceCard';
 import { BudgetProgress } from '../components/dashboard/BudgetProgress';
 import { QuickActions } from '../components/dashboard/QuickActions';
-import { SpendingChart } from '../components/dashboard/SpendingChart';
+import { SpendingBreakdown } from '../components/dashboard/SpendingBreakdown';
 import { WalletList } from '../components/dashboard/WalletList';
 import { AddBudgetModal } from '../components/modals/AddBudgetModal';
 import { AddTransactionModal } from '../components/modals/AddTransactionModal';
@@ -31,7 +31,15 @@ export const DashboardScreen = () => {
     // Hooks for real data
     const { transactions, refreshTransactions } = useTransactions();
     const { wallets, getTotalBalance, refreshWallets } = useWallets();
-    const { spendingByCategory } = useDashboard();
+    const {
+        spendingByCategory,
+        currentMonthIncome,
+        currentMonthExpense,
+        netBalance,
+        incomeChange,
+        expenseChange,
+        netBalanceChange,
+    } = useDashboard();
     const {
         budgetSummaries,
         totalBudgetLimit,
@@ -49,12 +57,6 @@ export const DashboardScreen = () => {
     }, [refreshTransactions, refreshWallets, refreshBudgets]);
 
     const totalBalance = getTotalBalance();
-    const monthlyIncome = transactions
-        .filter((t) => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-    const monthlyExpense = transactions
-        .filter((t) => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
 
     const handleAddExpense = () => {
         setModalType('expense');
@@ -102,8 +104,12 @@ export const DashboardScreen = () => {
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <BalanceCard
                     totalBalance={totalBalance}
-                    monthlyIncome={monthlyIncome}
-                    monthlyExpense={monthlyExpense}
+                    monthlyIncome={currentMonthIncome}
+                    monthlyExpense={currentMonthExpense}
+                    netBalance={netBalance}
+                    incomeChange={incomeChange}
+                    expenseChange={expenseChange}
+                    netBalanceChange={netBalanceChange}
                 />
             </View>
 
@@ -118,7 +124,7 @@ export const DashboardScreen = () => {
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
-                <SpendingChart data={spendingByCategory} />
+                <SpendingBreakdown data={spendingByCategory} />
             </View>
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>

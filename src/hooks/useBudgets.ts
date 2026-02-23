@@ -95,7 +95,7 @@ export function useBudgets(): UseBudgetsResult {
         transactions.forEach(t => {
             if (t.type !== 'expense') return;
 
-            const txMonth = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
+            const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
             if (txMonth !== currentMonth) return;
 
             const current = spending.get(t.categoryId) || 0;
@@ -113,8 +113,8 @@ export function useBudgets(): UseBudgetsResult {
 
         return budgets.map(budget => {
             const category = categoryMap.get(budget.categoryId);
-            const spentAmount = monthlySpendingByCategory.get(budget.categoryId) || 0;
-            const remainingAmount = budget.limitAmount - spentAmount;
+            const spentAmount = Math.abs(monthlySpendingByCategory.get(budget.categoryId) || 0);
+            const remainingAmount = Math.max(0, budget.limitAmount - spentAmount);
             const percentageUsed = budget.limitAmount > 0
                 ? (spentAmount / budget.limitAmount) * 100
                 : 0;

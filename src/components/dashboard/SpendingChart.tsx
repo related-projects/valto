@@ -91,8 +91,8 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({ data, currency = '
                             <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, flex: 1 }} numberOfLines={1}>
                                 {item.name}
                             </Text>
-                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.xs, fontWeight: '500' }}>
-                                {currency}{item.value.toLocaleString()}
+                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>
+                                {currency}{(item.value / 100).toLocaleString()}
                             </Text>
                         </View>
                     ))}
