@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BudgetSummary } from '../../hooks/useBudgets';
 import { useTheme } from '../../theme/theme';
+import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface BudgetProgressProps {
@@ -123,10 +124,10 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
             <View style={{ marginBottom: spacing.md }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing.sm }}>
                     <Text style={{ fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: colors.foreground }}>
-                        {currency}{(totalSpent / 100).toLocaleString()}
+                        {formatAmount(totalSpent, currency)}
                     </Text>
                     <Text style={{ fontSize: typography.sizes.sm, color: colors.mutedForeground }}>
-                        of {currency}{(totalLimit / 100).toLocaleString()}
+                        of {formatAmount(totalLimit, currency)}
                     </Text>
                 </View>
 
@@ -150,7 +151,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 
                 {overallOverAmount > 0 && (
                     <Text style={{ fontSize: typography.sizes.xs, color: colors.destructive, marginTop: spacing.xs }}>
-                        {currency}{(overallOverAmount / 100).toLocaleString()} over budget
+                        {formatAmount(overallOverAmount, currency)} over budget
                     </Text>
                 )}
             </View>
@@ -192,7 +193,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                                         </Text>
                                     </View>
                                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                        {currency}{(summary.spentAmount / 100).toLocaleString()} / {currency}{(summary.budget.limitAmount / 100).toLocaleString()}
+                                        {formatAmount(summary.spentAmount, currency)} / {formatAmount(summary.budget.limitAmount, currency)}
                                     </Text>
                                 </View>
 
@@ -217,7 +218,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 
                                 {summary.isOverBudget && (
                                     <Text style={{ color: colors.destructive, fontSize: typography.sizes.xs - 1, marginTop: 2 }}>
-                                        {currency}{((summary.spentAmount - summary.budget.limitAmount) / 100).toLocaleString()} over
+                                        {formatAmount(summary.spentAmount - summary.budget.limitAmount, currency)} over
                                     </Text>
                                 )}
                             </View>

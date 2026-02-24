@@ -11,6 +11,7 @@ import { Wallet } from '../domain/entities';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
+import { formatAmount } from '../utils/formatAmount';
 
 export const WalletsScreen = () => {
     const { colors, spacing, typography, radius } = useTheme();
@@ -73,7 +74,7 @@ export const WalletsScreen = () => {
                             Wallets
                         </Text>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
-                            Total: ${(totalBalance / 100).toLocaleString()}
+                            Total: {formatAmount(totalBalance)}
                         </Text>
                     </View>
                     <TouchableOpacity
@@ -154,10 +155,10 @@ export const WalletsScreen = () => {
 
                                     <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
-                                            ${(wallet.balance / 100).toLocaleString()}
+                                            {formatAmount(wallet.balance)}
                                         </Text>
                                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes['4xl'], fontWeight: typography.weights.bold, letterSpacing: -1, marginBottom: spacing.md }}>
-                                            ${(wallet.balance / 100).toLocaleString()}
+                                            {formatAmount(wallet.balance)}
                                         </Text>
                                         <View style={{
                                             backgroundColor: hexToRgba(colors.accentForeground, 0.2),

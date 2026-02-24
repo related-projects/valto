@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface SpendingBreakdownProps {
@@ -67,7 +68,7 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data, curr
                                     {item.percentage.toFixed(0)}%
                                 </Text>
                                 <Text style={{ fontSize: typography.sizes.md, fontWeight: '600', color: colors.foreground }}>
-                                    {currency}{(item.value / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {formatAmount(item.value, currency)}
                                 </Text>
                             </View>
                         </View>

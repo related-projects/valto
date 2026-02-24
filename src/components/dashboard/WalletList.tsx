@@ -4,6 +4,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Wallet } from '../../domain/entities';
 import { useTheme } from '../../theme/theme';
+import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface WalletListProps {
@@ -114,7 +115,7 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
                                 fontWeight: '600',
                             }}
                         >
-                            {currency}{(wallet.balance / 100).toLocaleString()}
+                            {formatAmount(wallet.balance, currency)}
                         </Text>
                     </TouchableOpacity>
                 ))}

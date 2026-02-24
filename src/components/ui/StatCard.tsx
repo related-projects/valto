@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { formatAmountWhole } from '../../utils/formatAmount';
 
 interface StatCardProps {
     label: string;
@@ -61,7 +62,7 @@ export const StatCard: React.FC<StatCardProps> = ({ label, amount, variant, curr
                     fontWeight: typography.weights.bold,
                 }}
             >
-                {currency}{(amount / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                {formatAmountWhole(amount, currency)}
             </Text>
         </View>
     );

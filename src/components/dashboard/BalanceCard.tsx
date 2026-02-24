@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { formatAmount as formatAmountUtil } from '../../utils/formatAmount';
 
 interface BalanceCardProps {
     totalBalance: number;
@@ -35,12 +36,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     };
 
-    const formatAmount = (amount: number) => {
+    // Use centralized formatting utility; respect hidden balance mode
+    const displayAmount = (amount: number) => {
         if (hidden) return '••••••';
-        return `${amount < 0 ? '-' : ''}${currency}${Math.abs(amount).toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        })}`;
+        return formatAmountUtil(amount, currency);
     };
 
     const renderChangeBadge = (change?: number | null, isExpense?: boolean) => {
@@ -88,7 +87,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                             letterSpacing: -1,
                         }}
                     >
-                        {formatAmount(totalBalance)}
+                        {displayAmount(totalBalance)}
                     </Text>
                 </View>
                 <TouchableOpacity
@@ -128,7 +127,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Income</Text>
                     </View>
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
-                        {formatAmount(monthlyIncome)}
+                        {displayAmount(monthlyIncome)}
                     </Text>
                     {renderChangeBadge(incomeChange, false)}
                 </View>
@@ -141,7 +140,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Expenses</Text>
                     </View>
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
-                        {formatAmount(monthlyExpense)}
+                        {displayAmount(monthlyExpense)}
                     </Text>
                     {renderChangeBadge(expenseChange, true)}
                 </View>
@@ -155,7 +154,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                             <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Net</Text>
                         </View>
                         <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
-                            {formatAmount(netBalance)}
+                            {displayAmount(netBalance)}
                         </Text>
                         {renderChangeBadge(netBalanceChange, false)}
                     </View>

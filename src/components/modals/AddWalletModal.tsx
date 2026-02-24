@@ -85,12 +85,15 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
             return;
         }
 
+        // Convert major units (dollars) to minor units (cents) for storage
+        const balanceMinor = Math.round(balanceNum * 100);
+
         try {
             setSaving(true);
 
             await createWallet({
                 name: name.trim(),
-                balance: balanceNum,
+                balance: balanceMinor,
                 type: walletType,
                 color: selectedColor,
             });

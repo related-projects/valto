@@ -70,7 +70,8 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
     useEffect(() => {
         if (wallet) {
             setName(wallet.name);
-            setBalance(wallet.balance.toString());
+            // Display balance in major units (dollars) for user editing
+            setBalance((wallet.balance / 100).toString());
             setWalletType(wallet.type);
             setSelectedColor(wallet.color || WALLET_COLORS[0]);
         }
@@ -92,13 +93,16 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
             return;
         }
 
+        // Convert major units (dollars) to minor units (cents) for storage
+        const balanceMinor = Math.round(balanceNum * 100);
+
         try {
             setSaving(true);
 
             await updateWallet({
                 id: wallet.id,
                 name: name.trim(),
-                balance: balanceNum,
+                balance: balanceMinor,
                 type: walletType,
                 color: selectedColor,
             });
