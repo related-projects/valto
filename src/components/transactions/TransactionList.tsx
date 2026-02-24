@@ -5,6 +5,7 @@ import { Transaction } from '../../domain/entities';
 import { useCategories } from '../../hooks/useCategories';
 import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
+import { formatAmount } from '../../utils/formatAmount';
 
 interface TransactionListProps {
     transactions: Transaction[];
@@ -54,6 +55,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
     // Helper to get category name from ID
     const getCategoryName = (categoryId: string): string => {
+        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') return 'Transfer';
         const category = categories.find(c => c.id === categoryId);
         return category?.name || 'Unknown';
     };
@@ -148,12 +150,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             </View>
                             <Text
                                 style={{
-                                    color: transaction.type === 'income' ? colors.success : colors.foreground,
+                                    color: transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? colors.success : colors.foreground,
                                     fontWeight: '600',
                                     fontSize: typography.sizes.sm,
                                 }}
                             >
-                                {transaction.type === 'income' ? '+' : '-'}{currency}{transaction.amount.toFixed(2)}
+                                {transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? '+' : '-'}{formatAmount(transaction.amount, currency).replace(/^\$/, '')}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -224,12 +226,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     </View>
                                     <Text
                                         style={{
-                                            color: transaction.type === 'income' ? colors.success : colors.foreground,
+                                            color: transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? colors.success : colors.foreground,
                                             fontWeight: '600',
                                             fontSize: 16,
                                         }}
                                     >
-                                        {transaction.type === 'income' ? '+' : '-'}{currency}{transaction.amount.toFixed(2)}
+                                        {transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? '+' : '-'}{formatAmount(transaction.amount, currency).replace(/^\$/, '')}
                                     </Text>
                                 </TouchableOpacity>
                             );

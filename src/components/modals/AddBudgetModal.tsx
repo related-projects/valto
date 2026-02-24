@@ -64,8 +64,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
             return;
         }
 
-        const amount = parseFloat(limitAmount);
-        if (!limitAmount || isNaN(amount) || amount <= 0) {
+        const parsedAmount = parseFloat(limitAmount);
+        const amountNum = Math.round(parsedAmount * 100);
+
+        if (!limitAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
             Alert.alert('Invalid Amount', 'Please enter a valid budget limit greater than 0');
             return;
         }
@@ -75,7 +77,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
             await onCreateBudget({
                 categoryId: selectedCategoryId,
                 month: getCurrentMonth(),
-                limitAmount: amount,
+                limitAmount: amountNum,
             });
             resetForm();
             onClose();

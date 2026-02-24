@@ -25,6 +25,7 @@ import { shadows } from '../../theme/shadows';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
 import { typography } from '../../theme/typography';
+import { formatAmount } from '../../utils/formatAmount';
 import { IconBadge } from '../ui/IconBadge';
 import { SegmentControl } from '../ui/SegmentControl';
 
@@ -122,10 +123,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     };
 
     const handleSave = async () => {
-        // Validation
-        const amountNum = parseFloat(amount);
+        // Convert to cents
+        const parsedAmount = parseFloat(amount);
+        const amountNum = Math.round(parsedAmount * 100);
 
-        if (!amount || isNaN(amountNum) || amountNum <= 0) {
+        if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
             Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0');
             return;
         }
@@ -148,7 +150,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             }
 
             if (selectedWallet && amountNum > selectedWallet.balance) {
-                Alert.alert('Insufficient Balance', `Source wallet only has $${selectedWallet.balance.toLocaleString()}`);
+                Alert.alert('Insufficient Balance', `Source wallet only has ${formatAmount(selectedWallet.balance)}`);
                 return;
             }
 
@@ -385,7 +387,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                             </Text>
                                             {transactionType === 'transfer' && selectedWallet && (
                                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                    Balance: ${selectedWallet.balance.toLocaleString()}
+                                                    Balance: {formatAmount(selectedWallet.balance)}
                                                 </Text>
                                             )}
                                         </View>
@@ -436,7 +438,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                                                 {wallet.name}
                                                             </Text>
                                                             <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                                ${wallet.balance.toLocaleString()}
+                                                                {formatAmount(wallet.balance)}
                                                             </Text>
                                                         </View>
                                                         {selectedWalletId === wallet.id && (
@@ -483,7 +485,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                                     </Text>
                                                     {destWallet && (
                                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                            Balance: ${destWallet.balance.toLocaleString()}
+                                                            Balance: {formatAmount(destWallet.balance)}
                                                         </Text>
                                                     )}
                                                 </View>
@@ -534,7 +536,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                                                         {wallet.name}
                                                                     </Text>
                                                                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                                        ${wallet.balance.toLocaleString()}
+                                                                        {formatAmount(wallet.balance)}
                                                                     </Text>
                                                                 </View>
                                                                 {destWalletId === wallet.id && (

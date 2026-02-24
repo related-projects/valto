@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 import { useTheme } from '../../theme/theme';
+import { formatAmount, formatAmountCompact } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface SpendingChartProps {
@@ -79,7 +80,7 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({ data, currency = '
                     </Svg>
                     <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, fontWeight: '500' }}>
-                            {currency}{(total / 1000).toFixed(1)}k
+                            {formatAmountCompact(total, currency)}
                         </Text>
                     </View>
                 </View>
@@ -91,8 +92,8 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({ data, currency = '
                             <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, flex: 1 }} numberOfLines={1}>
                                 {item.name}
                             </Text>
-                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.xs, fontWeight: '500' }}>
-                                {currency}{item.value.toLocaleString()}
+                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>
+                                {formatAmount(item.value, currency)}
                             </Text>
                         </View>
                     ))}

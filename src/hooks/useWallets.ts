@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getTransactionRepository, getWalletRepository } from '../core/di';
 import { dataEvents } from '../core/events';
-import { CreateWalletDTO, UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
+import { CreateWalletDTO, TransactionType, UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
 
 interface UseWalletsResult {
     wallets: Wallet[];
@@ -23,6 +23,7 @@ interface UseWalletsResult {
     deleteWallet: (id: string) => Promise<void>;
     transferBetweenWallets: (fromId: string, toId: string, amount: number) => Promise<void>;
     hasTransactions: (walletId: string) => Promise<boolean>;
+    verifyFinancialIntegrity: () => Promise<boolean>;
 }
 
 /**
@@ -203,6 +204,25 @@ export function useWallets(): UseWalletsResult {
             await walletRepo.updateBalance(fromId, -amount);
             await walletRepo.updateBalance(toId, amount);
 
+            // Double Entry Accounting: Create TRANSFER transactions
+            const now = new Date();
+            await transactionRepo.create({
+                type: TransactionType.TRANSFER,
+                amount: amount,
+                walletId: fromId,
+                categoryId: 'transfer-out',
+                date: now,
+                note: `Transfer to ${destWallet.name}`,
+            });
+            await transactionRepo.create({
+                type: TransactionType.TRANSFER,
+                amount: amount,
+                walletId: toId,
+                categoryId: 'transfer-in',
+                date: now,
+                note: `Transfer from ${sourceWallet.name}`,
+            });
+
             // Refresh wallets state
             await loadWallets();
 
@@ -214,6 +234,41 @@ export function useWallets(): UseWalletsResult {
             throw new Error(errorMessage);
         }
     }, [walletRepo, loadWallets]);
+
+    /**
+     * Dev-only validation function to sum all wallet balances 
+     * and check if they equal (Total Income - Total Expenses).
+     * Does not crash app, only logs warning.
+     */
+    const verifyFinancialIntegrity = useCallback(async (): Promise<boolean> => {
+        try {
+            const allWallets = await walletRepo.getAll();
+            const allTransactions = await transactionRepo.getAll();
+
+            const sumWallets = allWallets.reduce((acc, w) => acc + w.balance, 0);
+
+            let calculatedBalance = 0;
+            allTransactions.forEach(t => {
+                if (t.type === 'income') calculatedBalance += t.amount;
+                if (t.type === 'expense') calculatedBalance -= t.amount;
+                // Transfers cancel each other natively if handled double-entry
+            });
+
+            // Note: If users can create wallets with non-zero balances initially,
+            // sumWallets = calculatedBalance + sum(initial balances).
+            // Currently, Valto has no persistent 'initial balance' property on Wallet.
+            // So we'll trace divergence dynamically.
+            if (sumWallets !== calculatedBalance) {
+                console.warn(`[Financial Integrity] Mismatch! Real Wallets sum to ${sumWallets}, but Transactions state implies ${calculatedBalance}`);
+                return false;
+            }
+
+            return true;
+        } catch (err) {
+            console.error('Failed financial integrity check', err);
+            return false;
+        }
+    }, [walletRepo, transactionRepo]);
 
     // Load wallets on mount and subscribe to wallet events
     useEffect(() => {
@@ -239,6 +294,7 @@ export function useWallets(): UseWalletsResult {
         deleteWallet,
         transferBetweenWallets,
         hasTransactions,
+        verifyFinancialIntegrity,
     };
 }
 

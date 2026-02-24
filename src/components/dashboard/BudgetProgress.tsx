@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BudgetSummary } from '../../hooks/useBudgets';
 import { useTheme } from '../../theme/theme';
+import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface BudgetProgressProps {
@@ -64,7 +65,8 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 
     // Overall percentage
     const overallPercentage = totalLimit > 0 ? Math.min((totalSpent / totalLimit) * 100, 100) : 0;
-    const overallRemaining = totalLimit - totalSpent;
+    const overallRemaining = Math.max(0, totalLimit - totalSpent);
+    const overallOverAmount = Math.max(0, totalSpent - totalLimit);
     const isOverallOverBudget = totalSpent > totalLimit;
     const isOverallNearLimit = overallPercentage >= 80 && !isOverallOverBudget;
 
@@ -122,10 +124,10 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
             <View style={{ marginBottom: spacing.md }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing.sm }}>
                     <Text style={{ fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: colors.foreground }}>
-                        {currency}{totalSpent.toLocaleString()}
+                        {formatAmount(totalSpent, currency)}
                     </Text>
                     <Text style={{ fontSize: typography.sizes.sm, color: colors.mutedForeground }}>
-                        of {currency}{totalLimit.toLocaleString()}
+                        of {formatAmount(totalLimit, currency)}
                     </Text>
                 </View>
 
@@ -147,17 +149,11 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                     />
                 </View>
 
-                <Text style={{ fontSize: typography.sizes.xs, color: colors.mutedForeground, marginTop: spacing.xs }}>
-                    {isOverallOverBudget ? (
-                        <Text style={{ color: colors.destructive }}>
-                            {currency}{Math.abs(overallRemaining).toLocaleString()} over budget
-                        </Text>
-                    ) : (
-                        <Text>
-                            {currency}{overallRemaining.toLocaleString()} remaining this month
-                        </Text>
-                    )}
-                </Text>
+                {overallOverAmount > 0 && (
+                    <Text style={{ fontSize: typography.sizes.xs, color: colors.destructive, marginTop: spacing.xs }}>
+                        {formatAmount(overallOverAmount, currency)} over budget
+                    </Text>
+                )}
             </View>
 
             {/* Per-category breakdown */}
@@ -197,7 +193,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                                         </Text>
                                     </View>
                                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                        {currency}{summary.spentAmount.toLocaleString()} / {currency}{summary.budget.limitAmount.toLocaleString()}
+                                        {formatAmount(summary.spentAmount, currency)} / {formatAmount(summary.budget.limitAmount, currency)}
                                     </Text>
                                 </View>
 
@@ -222,7 +218,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 
                                 {summary.isOverBudget && (
                                     <Text style={{ color: colors.destructive, fontSize: typography.sizes.xs - 1, marginTop: 2 }}>
-                                        {currency}{Math.abs(summary.remainingAmount).toLocaleString()} over
+                                        {formatAmount(summary.spentAmount - summary.budget.limitAmount, currency)} over
                                     </Text>
                                 )}
                             </View>
