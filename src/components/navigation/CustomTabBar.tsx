@@ -1,53 +1,39 @@
+/**
+ * CustomTabBar Component
+ *
+ * Bottom tab bar with a floating action button positioned at the
+ * bottom-right corner, above the tab bar. The FAB opens the
+ * Add Transaction modal.
+ */
+
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useState } from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../../theme/theme';
 import { AddTransactionModal } from '../modals/AddTransactionModal';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
     const insets = useSafeAreaInsets();
     const { colors, shadows, spacing, typography } = useTheme();
-    const { width: screenWidth } = Dimensions.get('window');
     const [showAddModal, setShowAddModal] = useState(false);
 
     const TAB_BAR_HEIGHT = 60;
-    const FAB_SIZE = 56;
-    const CURVE_DEPTH = 20;
-    const CURVE_WIDTH = 100;
-
-    // Calculate absolute positions
-    const curveStart = (screenWidth - CURVE_WIDTH) / 2;
-    const curveEnd = (screenWidth + CURVE_WIDTH) / 2;
-    const curveCenter = screenWidth / 2;
+    const FAB_SIZE = 52;
 
     return (
         <View style={styles.container}>
-            {/* Custom curved background */}
-            <View style={[styles.tabBarBackground, { height: TAB_BAR_HEIGHT + insets.bottom }]}>
-                <Svg
-                    width={screenWidth}
-                    height={TAB_BAR_HEIGHT + insets.bottom}
-                    style={StyleSheet.absoluteFill}
-                >
-                    <Path
-                        d={`
-              M 0, 0
-              L ${curveStart}, 0
-              Q ${curveStart + 10}, 0 ${curveStart + 20},${CURVE_DEPTH}
-              Q ${curveCenter},${TAB_BAR_HEIGHT / 2} ${curveEnd - 20},${CURVE_DEPTH}
-              Q ${curveEnd - 10}, 0 ${curveEnd}, 0
-              L ${screenWidth}, 0
-              L ${screenWidth},${TAB_BAR_HEIGHT + insets.bottom}
-              L 0, ${TAB_BAR_HEIGHT + insets.bottom}
-Z
-    `}
-                        fill={colors.navBackground}
-                    />
-                </Svg>
-
+            {/* Tab bar background */}
+            <View
+                style={[
+                    styles.tabBarBackground,
+                    {
+                        height: TAB_BAR_HEIGHT + insets.bottom,
+                        backgroundColor: colors.navBackground,
+                    },
+                ]}
+            >
                 {/* Tab buttons */}
                 <View style={[styles.tabsContainer, { height: TAB_BAR_HEIGHT }]}>
                     {state.routes.map((route, index) => {
@@ -97,28 +83,28 @@ Z
                         );
                     })}
                 </View>
-
-                {/* Spacer for FAB in the center */}
-                <View style={[styles.fabSpacer, { height: TAB_BAR_HEIGHT }]} />
-
-                {/* Floating Action Button */}
-                <TouchableOpacity
-                    style={[
-                        styles.fab,
-                        {
-                            backgroundColor: colors.accent,
-                            width: FAB_SIZE,
-                            height: FAB_SIZE,
-                            borderRadius: FAB_SIZE / 2,
-                            bottom: TAB_BAR_HEIGHT - FAB_SIZE / 2 + 10,
-                            ...shadows.elevated,
-                        },
-                    ]}
-                    onPress={() => setShowAddModal(true)}
-                >
-                    <Ionicons name="add" size={32} color={colors.accentForeground} />
-                </TouchableOpacity>
             </View>
+
+            {/* Floating Action Button — bottom right, above the tab bar */}
+            <TouchableOpacity
+                style={[
+                    styles.fab,
+                    {
+                        backgroundColor: colors.accent,
+                        width: FAB_SIZE,
+                        height: FAB_SIZE,
+                        borderRadius: FAB_SIZE / 2,
+                        bottom: TAB_BAR_HEIGHT + insets.bottom + spacing.sm,
+                        right: spacing.md,
+                        ...shadows.elevated,
+                    },
+                ]}
+                onPress={() => setShowAddModal(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Add transaction"
+            >
+                <Ionicons name="add" size={28} color={colors.accentForeground} />
+            </TouchableOpacity>
 
             {/* Add Transaction Modal */}
             <AddTransactionModal
@@ -139,6 +125,8 @@ const styles = StyleSheet.create({
     tabBarBackground: {
         width: '100%',
         position: 'relative',
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: 'rgba(0,0,0,0.08)',
     },
     tabsContainer: {
         flexDirection: 'row',
@@ -152,17 +140,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    fabSpacer: {
-        position: 'absolute',
-        width: 80,
-        left: '50%',
-        marginLeft: -40,
-        pointerEvents: 'none',
-    },
     fab: {
         position: 'absolute',
-        left: '50%',
-        marginLeft: -28, // Half of FAB_SIZE
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 8,
