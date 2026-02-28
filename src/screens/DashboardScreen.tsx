@@ -158,7 +158,7 @@ export const DashboardScreen = () => {
                 visible={transferModalVisible}
                 onClose={() => setTransferModalVisible(false)}
                 onSuccess={async () => {
-                    await refreshWallets();
+                    await Promise.all([refreshTransactions(), refreshWallets()]);
                 }}
             />
 

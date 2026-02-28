@@ -226,8 +226,8 @@ export function useWallets(): UseWalletsResult {
             // Refresh wallets state
             await loadWallets();
 
-            // Emit wallet change event for other components
-            dataEvents.emit('wallets');
+            // Emit wallet + transaction change events for other components
+            dataEvents.emitMultiple(['wallets', 'transactions']);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to transfer between wallets';
             setError(errorMessage);
