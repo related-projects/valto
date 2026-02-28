@@ -9,7 +9,7 @@
  * It NEVER overwrites existing user data, making it safe to call on every app launch.
  */
 
-import { getCategoryRepository, getWalletRepository } from '../../core/di';
+import { getCategoryRepository, getTransactionRepository, getWalletRepository } from '../../core/di';
 import { asyncStorageAdapter } from '../storage';
 import { StorageKeys } from '../storage/StorageKeys';
 import { defaultCategories, defaultWallets } from './seedData';
@@ -135,6 +135,3 @@ export async function hasExistingData(): Promise<boolean> {
 
     return wallets.length > 0 || categories.length > 0 || transactions.length > 0;
 }
-
-// Import at the end to avoid circular dependency
-import { getTransactionRepository } from '../../core/di';

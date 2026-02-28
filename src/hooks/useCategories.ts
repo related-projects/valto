@@ -5,7 +5,7 @@
  * Provides category operations and filtering for UI components.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCategoryRepository, getTransactionRepository } from '../core/di';
 import { dataEvents } from '../core/events';
 import { Category, CategoryType, CreateCategoryDTO, UpdateCategoryDTO } from '../domain/entities';
@@ -113,15 +113,17 @@ export function useCategories(): UseCategoriesResult {
     /**
      * Get expense categories
      */
-    const expenseCategories = categories.filter(
-        cat => cat.type === CategoryType.EXPENSE
+    const expenseCategories = useMemo(
+        () => categories.filter(cat => cat.type === CategoryType.EXPENSE),
+        [categories]
     );
 
     /**
      * Get income categories
      */
-    const incomeCategories = categories.filter(
-        cat => cat.type === CategoryType.INCOME
+    const incomeCategories = useMemo(
+        () => categories.filter(cat => cat.type === CategoryType.INCOME),
+        [categories]
     );
 
     /**
