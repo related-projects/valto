@@ -3,6 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../components/dashboard/BalanceCard';
 import { BudgetProgress } from '../components/dashboard/BudgetProgress';
+import { InsightBanner, InsightVariant } from '../components/dashboard/InsightBanner';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { SpendingBreakdown } from '../components/dashboard/SpendingBreakdown';
 import { WalletList } from '../components/dashboard/WalletList';
@@ -13,11 +14,21 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { SavingsLevel } from '../domain/insights';
 import { useBudgets } from '../hooks/useBudgets';
 import { useDashboard } from '../hooks/useDashboard';
+import { useFinancialInsights } from '../hooks/useFinancialInsights';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
+
+/** Map savings-health level → visual variant */
+const SAVINGS_VARIANT: Record<SavingsLevel, InsightVariant> = {
+    deficit: 'destructive',
+    weak: 'warning',
+    acceptable: 'neutral',
+    strong: 'success',
+};
 
 export const DashboardScreen = () => {
     const { colors, spacing, typography } = useTheme();
@@ -49,6 +60,9 @@ export const DashboardScreen = () => {
         refreshBudgets,
         budgetedCategoryIds,
     } = useBudgets();
+
+    // Financial Insights
+    const { savingsHealth, categoryRisk, budgetPace } = useFinancialInsights();
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -113,6 +127,14 @@ export const DashboardScreen = () => {
                 />
             </View>
 
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                <InsightBanner
+                    message={savingsHealth.message}
+                    variant={SAVINGS_VARIANT[savingsHealth.level]}
+                    icon="pulse-outline"
+                />
+            </View>
+
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <BudgetProgress
                     budgetSummaries={budgetSummaries}
@@ -123,9 +145,29 @@ export const DashboardScreen = () => {
                 />
             </View>
 
+            {budgetPace && (
+                <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                    <InsightBanner
+                        message={budgetPace.message}
+                        variant={budgetPace.overBudgetPace ? 'warning' : 'success'}
+                        icon="speedometer-outline"
+                    />
+                </View>
+            )}
+
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <SpendingBreakdown data={spendingByCategory} />
             </View>
+
+            {categoryRisk.riskLevel !== 'low' && (
+                <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                    <InsightBanner
+                        message={`${categoryRisk.topCategory} accounts for ${categoryRisk.percentage.toFixed(0)}% of your spending.`}
+                        variant={categoryRisk.riskLevel === 'high' ? 'destructive' : 'warning'}
+                        icon="pie-chart-outline"
+                    />
+                </View>
+            )}
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <QuickActions

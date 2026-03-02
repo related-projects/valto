@@ -28,6 +28,7 @@ interface UseDashboardResult {
     // Monthly Overview
     currentMonthIncome: number;
     currentMonthExpense: number;
+    previousMonthExpense: number;
     netBalance: number;
 
     // Percentage Changes vs Previous Month
@@ -136,6 +137,7 @@ export function useDashboard(): UseDashboardResult {
             spendingByCategory: top5Categories,
             currentMonthIncome,
             currentMonthExpense,
+            previousMonthExpense: prevMonthExpense,
             netBalance,
             incomeChange,
             expenseChange,
