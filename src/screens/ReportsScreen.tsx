@@ -12,6 +12,7 @@ import { CategoryBreakdownTable } from '../components/reports/CategoryBreakdownT
 import { FinancialSummary } from '../components/reports/FinancialSummary';
 import { MonthNavigator } from '../components/reports/MonthNavigator';
 import { ReportDonutChart } from '../components/reports/ReportDonutChart';
+import { YtdSummaryCard } from '../components/reports/YtdSummaryCard';
 import { Avatar } from '../components/ui/Avatar';
 import { useReports } from '../hooks/useReports';
 import { useTheme } from '../theme/theme';
@@ -30,6 +31,8 @@ export const ReportsScreen = () => {
         savingsRate,
         categoryBreakdown,
         hasExpenseData,
+        ytdSummary,
+        ytdYear,
     } = useReports();
 
     // Transform breakdown for the donut chart
@@ -97,6 +100,17 @@ export const ReportsScreen = () => {
             {/* Category Breakdown Table */}
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <CategoryBreakdownTable data={categoryBreakdown} />
+            </View>
+
+            {/* Year-to-Date Summary */}
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <YtdSummaryCard
+                    totalIncome={ytdSummary.totalIncome}
+                    totalExpenses={ytdSummary.totalExpenses}
+                    net={ytdSummary.net}
+                    savingsRate={ytdSummary.savingsRate}
+                    year={ytdYear}
+                />
             </View>
         </ScrollView>
     );

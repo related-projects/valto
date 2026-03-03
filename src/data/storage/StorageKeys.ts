@@ -20,6 +20,9 @@ export const StorageKeys = {
 
     /** Key for tracking if seed data has been initialized */
     SEED_INITIALIZED: '@valto:seed_initialized',
+
+    /** Key for storing app settings */
+    SETTINGS: '@valto:settings',
 } as const;
 
 export type StorageKey = typeof StorageKeys[keyof typeof StorageKeys];

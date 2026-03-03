@@ -137,4 +137,3 @@ export function useTransactions(): UseTransactionsResult {
         refreshTransactions,
     };
 }
-

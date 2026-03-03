@@ -249,8 +249,8 @@ export function useWallets(): UseWalletsResult {
 
             let calculatedBalance = 0;
             allTransactions.forEach(t => {
-                if (t.type === 'income') calculatedBalance += t.amount;
-                if (t.type === 'expense') calculatedBalance -= t.amount;
+                if (t.type === TransactionType.INCOME) calculatedBalance += t.amount;
+                if (t.type === TransactionType.EXPENSE) calculatedBalance -= t.amount;
                 // Transfers cancel each other natively if handled double-entry
             });
 
@@ -297,4 +297,3 @@ export function useWallets(): UseWalletsResult {
         verifyFinancialIntegrity,
     };
 }
-
