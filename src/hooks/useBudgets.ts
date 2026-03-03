@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBudgetRepository } from '../core/di';
 import { dataEvents } from '../core/events';
-import { Budget, CreateBudgetDTO, getCurrentMonth } from '../domain/entities';
+import { Budget, CreateBudgetDTO, TransactionType, getCurrentMonth } from '../domain/entities';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
 
@@ -93,7 +93,7 @@ export function useBudgets(): UseBudgetsResult {
 
         // Filter transactions to current month expenses only
         transactions.forEach(t => {
-            if (t.type !== 'expense') return;
+            if (t.type !== TransactionType.EXPENSE) return;
 
             const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
             if (txMonth !== currentMonth) return;

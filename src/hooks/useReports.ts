@@ -9,7 +9,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getBudgetRepository } from '../core/di';
 import { dataEvents } from '../core/events';
-import { Budget, TransactionType, getCurrentMonth } from '../domain/entities';
+import { calculateYearToDateSummary, YearToDateSummary } from '../domain/calculations/ytdSummary';
+import { Budget, getCurrentMonth, TransactionType } from '../domain/entities';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
 
@@ -46,6 +47,11 @@ export interface UseReportsResult {
 
     // Category Breakdown
     categoryBreakdown: CategoryBreakdownItem[];
+
+    /** Year-to-date financial summary */
+    ytdSummary: YearToDateSummary;
+    /** Year for YTD summary */
+    ytdYear: number;
 
     /** Whether there is any expense data for the selected month */
     hasExpenseData: boolean;
@@ -172,12 +178,21 @@ export function useReports(): UseReportsResult {
         };
     }, [transactions, categories, budgets, selectedMonth]);
 
+    // ── YTD Summary ─────────────────────────────────────────────────────
+    const ytdYear = useMemo(() => new Date().getUTCFullYear(), []);
+    const ytdSummary = useMemo(
+        () => calculateYearToDateSummary(transactions, ytdYear),
+        [transactions, ytdYear],
+    );
+
     return {
         selectedMonth,
         monthLabel,
         goToPreviousMonth,
         goToNextMonth,
         ...aggregated,
+        ytdSummary,
+        ytdYear,
         hasExpenseData: aggregated.categoryBreakdown.length > 0,
         loading,
     };

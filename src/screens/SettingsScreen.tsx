@@ -1,18 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/ui/Avatar';
 import { IconBadge } from '../components/ui/IconBadge';
 import { ListItem } from '../components/ui/ListItem';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../theme/theme';
 
 export const SettingsScreen = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { exportCSV, createBackup, restoreBackup, resetAllData, loading } = useSettings();
 
     return (
         <ScrollView
@@ -34,6 +36,24 @@ export const SettingsScreen = () => {
             >
                 Settings
             </Text>
+
+            {/* Loading overlay */}
+            {loading && (
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: colors.card,
+                    borderRadius: radius.md,
+                    padding: spacing.sm,
+                    marginBottom: spacing.md,
+                    ...shadows.card,
+                }}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginLeft: spacing.sm }}>
+                        Processing…
+                    </Text>
+                </View>
+            )}
 
             {/* User Info Card */}
             <View style={{
@@ -143,12 +163,20 @@ export const SettingsScreen = () => {
                     ...shadows.card,
                 }}>
                     <ListItem
+                        title="Export CSV"
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="document-text-outline" size={20} color={colors.primary} />} />
+                        }
+                        showChevron
+                        onPress={exportCSV}
+                    />
+                    <ListItem
                         title="Backup Data"
                         leftIcon={
                             <IconBadge icon={<Ionicons name="cloud-upload-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={createBackup}
                     />
                     <ListItem
                         title="Restore Data"
@@ -156,7 +184,15 @@ export const SettingsScreen = () => {
                             <IconBadge icon={<Ionicons name="cloud-download-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={restoreBackup}
+                    />
+                    <ListItem
+                        title="Reset All Data"
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="trash-outline" size={20} color={colors.destructive} />} />
+                        }
+                        showChevron
+                        onPress={resetAllData}
                     />
                 </View>
             </View>
