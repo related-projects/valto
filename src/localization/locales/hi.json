@@ -1,0 +1,39 @@
+{
+    "settings": {
+        "title": "सेटिंग्स",
+        "processing": "प्रोसेसिंग…",
+        "userName": "Valto उपयोगकर्ता",
+        "premiumAccount": "प्रीमियम खाता",
+        "sections": {
+            "references": "संदर्भ",
+            "appSettings": "ऐप सेटिंग्स",
+            "dataManagement": "डेटा प्रबंधन",
+            "regional": "क्षेत्रीय",
+            "support": "सहायता"
+        },
+        "currency": "मुद्रा",
+        "language": "भाषा",
+        "theme": "थीम",
+        "categories": "श्रेणियाँ",
+        "notifications": "सूचनाएँ",
+        "security": "सुरक्षा",
+        "backupData": "बैकअप",
+        "restoreData": "रिस्टोर",
+        "resetAllData": "सब रीसेट करें",
+        "helpFaq": "सहायता और FAQ",
+        "aboutValto": "Valto के बारे में",
+        "dateFormat": "दिनांक प्रारूप",
+        "firstDayOfWeek": "सप्ताह का पहला दिन",
+        "decimalSeparator": "दशमलव विभाजक",
+        "monday": "सोमवार",
+        "sunday": "रविवार"
+    },
+    "alerts": {
+        "cancel": "रद्द करें",
+        "continue": "जारी रखें",
+        "error": "त्रुटि"
+    },
+    "common": {
+        "ok": "ठीक है"
+    }
+}

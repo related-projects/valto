@@ -1,0 +1,39 @@
+{
+    "settings": {
+        "title": "الإعدادات",
+        "processing": "جاري المعالجة…",
+        "userName": "مستخدم Valto",
+        "premiumAccount": "حساب مميز",
+        "sections": {
+            "references": "المراجع",
+            "appSettings": "إعدادات التطبيق",
+            "dataManagement": "إدارة البيانات",
+            "regional": "إقليمي",
+            "support": "الدعم"
+        },
+        "currency": "العملة",
+        "language": "اللغة",
+        "theme": "المظهر",
+        "categories": "الفئات",
+        "notifications": "الإشعارات",
+        "security": "الأمان",
+        "backupData": "نسخ احتياطي",
+        "restoreData": "استعادة",
+        "resetAllData": "إعادة تعيين الكل",
+        "helpFaq": "المساعدة",
+        "aboutValto": "حول Valto",
+        "dateFormat": "تنسيق التاريخ",
+        "firstDayOfWeek": "أول يوم في الأسبوع",
+        "decimalSeparator": "فاصل عشري",
+        "monday": "الاثنين",
+        "sunday": "الأحد"
+    },
+    "alerts": {
+        "cancel": "إلغاء",
+        "continue": "متابعة",
+        "error": "خطأ"
+    },
+    "common": {
+        "ok": "حسناً"
+    }
+}

@@ -1,0 +1,56 @@
+{
+    "settings": {
+        "title": "设置",
+        "processing": "处理中…",
+        "userName": "Valto 用户",
+        "premiumAccount": "高级账户",
+        "sections": {
+            "references": "参考",
+            "appSettings": "应用设置",
+            "dataManagement": "数据管理",
+            "regional": "区域",
+            "support": "支持"
+        },
+        "currency": "货币",
+        "currencyLocked": "{{symbol}} {{code}} (已锁定)",
+        "currencyUnlocked": "{{symbol}} {{code}}",
+        "language": "语言",
+        "theme": "主题",
+        "themeSystem": "系统",
+        "themeLight": "浅色",
+        "themeDark": "深色",
+        "categories": "类别",
+        "notifications": "通知",
+        "security": "安全",
+        "securityPinBiometrics": "PIN + 生物识别",
+        "securityPin": "已启用PIN",
+        "securityOff": "关闭",
+        "backupData": "备份数据",
+        "restoreData": "恢复数据",
+        "resetAllData": "重置所有数据",
+        "resetCurrency": "重置基础货币",
+        "resetCurrencySubtitle": "更改基础货币",
+        "helpFaq": "帮助与常见问题",
+        "aboutValto": "关于 Valto",
+        "dateFormat": "日期格式",
+        "firstDayOfWeek": "每周第一天",
+        "decimalSeparator": "小数分隔符",
+        "monday": "星期一",
+        "sunday": "星期日",
+        "dot": "点 (1,000.00)",
+        "comma": "逗号 (1.000,00)"
+    },
+    "alerts": {
+        "cancel": "取消",
+        "continue": "继续",
+        "error": "错误",
+        "chooseTheme": "选择主题",
+        "currencyLocked": "货币已锁定",
+        "currencyLockedMessage": "货币一旦选定后无法更改。",
+        "notificationsDenied": "通知被阻止",
+        "notificationsDeniedMessage": "请在设备设置中启用通知。"
+    },
+    "common": {
+        "ok": "确定"
+    }
+}

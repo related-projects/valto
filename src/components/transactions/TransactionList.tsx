@@ -1,19 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Transaction } from '../../domain/entities';
 import { useCategories } from '../../hooks/useCategories';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
-import { formatAmount } from '../../utils/formatAmount';
 
 interface TransactionListProps {
     transactions: Transaction[];
     showDateHeaders?: boolean;
-    currency?: string;
 }
 
-const groupByDate = (transactions: Transaction[]) => {
+const groupByDate = (transactions: Transaction[], todayLabel: string, yesterdayLabel: string, locale: string) => {
     const groups: Record<string, Transaction[]> = {};
 
     transactions.forEach((transaction) => {
@@ -24,11 +24,11 @@ const groupByDate = (transactions: Transaction[]) => {
 
         let dateKey: string;
         if (date.toDateString() === today.toDateString()) {
-            dateKey = 'Today';
+            dateKey = todayLabel;
         } else if (date.toDateString() === yesterday.toDateString()) {
-            dateKey = 'Yesterday';
+            dateKey = yesterdayLabel;
         } else {
-            dateKey = date.toLocaleDateString('en-US', {
+            dateKey = date.toLocaleDateString(locale, {
                 weekday: 'long',
                 month: 'short',
                 day: 'numeric',
@@ -47,23 +47,24 @@ const groupByDate = (transactions: Transaction[]) => {
 export const TransactionList: React.FC<TransactionListProps> = ({
     transactions,
     showDateHeaders = true,
-    currency = '$',
 }) => {
+    const { t, i18n } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
     const { categories } = useCategories();
     const { wallets } = useWallets();
+    const { formatAmount } = useFormatting();
 
     // Helper to get category name from ID
     const getCategoryName = (categoryId: string): string => {
-        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') return 'Transfer';
+        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') return t('transactions.transfer', 'Transfer');
         const category = categories.find(c => c.id === categoryId);
-        return category?.name || 'Unknown';
+        return category?.name || t('components.transactionList.unknown', 'Unknown');
     };
 
     // Helper to get wallet name from ID
     const getWalletName = (walletId: string): string => {
         const wallet = wallets.find(w => w.id === walletId);
-        return wallet?.name || 'Unknown';
+        return wallet?.name || t('components.transactionList.unknown');
     };
 
     const getIconName = (categoryName: string): keyof typeof Ionicons.glyphMap => {
@@ -92,6 +93,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         return colors.accent;
     };
 
+    // Format display amount — strip the currency symbol prefix for sign display
+    const displayTransactionAmount = (amount: number, type: string, categoryId: string) => {
+        const formatted = formatAmount(amount);
+        const isIncome = type === 'income' || categoryId === 'transfer-in';
+        const sign = isIncome ? '+' : '-';
+        return `${sign}${formatted}`;
+    };
+
     if (transactions.length === 0) {
         return (
             <View style={styles.emptyState}>
@@ -99,10 +108,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     <Text style={{ fontSize: 32 }}>📭</Text>
                 </View>
                 <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '500', marginBottom: 4 }}>
-                    No transactions yet
+                    {t('components.transactionList.empty')}
                 </Text>
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                    Tap the + button to add your first transaction
+                    {t('components.transactionList.emptyHint')}
                 </Text>
             </View>
         );
@@ -155,7 +164,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                     fontSize: typography.sizes.sm,
                                 }}
                             >
-                                {transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? '+' : '-'}{formatAmount(transaction.amount, currency).replace(/^\$/, '')}
+                                {displayTransactionAmount(transaction.amount, transaction.type, transaction.categoryId)}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -164,7 +173,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         );
     }
 
-    const grouped = groupByDate(transactions);
+    const grouped = groupByDate(
+        transactions,
+        t('components.transactionList.today', 'Today'),
+        t('components.transactionList.yesterday', 'Yesterday'),
+        i18n.language || 'en-US'
+    );
 
     return (
         <View style={{ gap: 0 }}>
@@ -231,7 +245,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                                             fontSize: 16,
                                         }}
                                     >
-                                        {transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? '+' : '-'}{formatAmount(transaction.amount, currency).replace(/^\$/, '')}
+                                        {displayTransactionAmount(transaction.amount, transaction.type, transaction.categoryId)}
                                     </Text>
                                 </TouchableOpacity>
                             );

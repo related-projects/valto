@@ -12,6 +12,9 @@ import { asyncStorageAdapter, StorageKeys } from '../storage';
 // ─── Types ────────────────────────────────────────────────────────────
 
 export type ThemePreference = 'light' | 'dark' | 'system';
+export type DateFormatPreference = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
+export type FirstDayOfWeek = 'monday' | 'sunday';
+export type DecimalSeparator = 'dot' | 'comma';
 
 export interface AppSettings {
     /** User's theme preference */
@@ -24,6 +27,12 @@ export interface AppSettings {
     notificationsEnabled: boolean;
     /** ISO 639-1 language code */
     language: string;
+    /** Date display format */
+    dateFormat: DateFormatPreference;
+    /** First day of the week for calendars and reports */
+    firstDayOfWeek: FirstDayOfWeek;
+    /** Decimal separator for monetary display */
+    decimalSeparator: DecimalSeparator;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────
@@ -35,8 +44,17 @@ export function getDefaultSettings(): AppSettings {
         currencyLocked: false,
         notificationsEnabled: false,
         language: getDeviceLanguage(),
+        dateFormat: 'MM/DD/YYYY',
+        firstDayOfWeek: 'monday',
+        decimalSeparator: 'dot',
     };
 }
+
+// ─── Validation Helpers ───────────────────────────────────────────────
+
+const VALID_DATE_FORMATS: DateFormatPreference[] = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
+const VALID_FIRST_DAYS: FirstDayOfWeek[] = ['monday', 'sunday'];
+const VALID_DECIMAL_SEPS: DecimalSeparator[] = ['dot', 'comma'];
 
 // ─── Load ─────────────────────────────────────────────────────────────
 
@@ -70,6 +88,17 @@ export async function loadSettings(): Promise<AppSettings> {
         }
         if (typeof merged.notificationsEnabled !== 'boolean') {
             merged.notificationsEnabled = false;
+        }
+
+        // Validate regional settings
+        if (!VALID_DATE_FORMATS.includes(merged.dateFormat)) {
+            merged.dateFormat = 'MM/DD/YYYY';
+        }
+        if (!VALID_FIRST_DAYS.includes(merged.firstDayOfWeek)) {
+            merged.firstDayOfWeek = 'monday';
+        }
+        if (!VALID_DECIMAL_SEPS.includes(merged.decimalSeparator)) {
+            merged.decimalSeparator = 'dot';
         }
 
         return merged;
@@ -123,6 +152,22 @@ export async function selectAndLockCurrency(code: string): Promise<AppSettings> 
     const updated: AppSettings = {
         ...current,
         currency: code,
+        currencyLocked: true,
+    };
+    await saveSettings(updated);
+    return updated;
+}
+
+/**
+ * Unlock the currency and set a new one, then re-lock.
+ * Used for the "Reset Base Currency" dangerous operation.
+ */
+export async function unlockAndResetCurrency(newCode: string): Promise<AppSettings> {
+    const current = await loadSettings();
+
+    const updated: AppSettings = {
+        ...current,
+        currency: newCode,
         currencyLocked: true,
     };
     await saveSettings(updated);

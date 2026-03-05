@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SecuritySetupModal } from '../components/security/SecuritySetupModal';
@@ -17,15 +18,10 @@ import { useTheme } from '../theme/theme';
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
-const THEME_LABELS: Record<string, string> = {
-    system: 'System',
-    light: 'Light',
-    dark: 'Dark',
-};
-
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export const SettingsScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -41,6 +37,10 @@ export const SettingsScreen = () => {
         handleCurrencySelect,
         handleLanguageSelect,
         toggleNotifications,
+        resetCurrency,
+        changeDateFormat,
+        changeFirstDayOfWeek,
+        changeDecimalSeparator,
         loading,
     } = useSettings();
     const { isSecurityEnabled, securityConfig, biometrics, disableSecurity } = useSecurity();
@@ -50,18 +50,21 @@ export const SettingsScreen = () => {
 
     // Security subtitle
     const securitySubtitle = isSecurityEnabled
-        ? (securityConfig?.biometricsEnabled ? 'PIN + Biometrics' : 'PIN enabled')
-        : 'Off';
+        ? (securityConfig?.biometricsEnabled ? t('settings.securityPinBiometrics') : t('settings.securityPin'))
+        : t('settings.securityOff');
+
+    // Theme label
+    const themeLabel = t(`settings.theme${settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1)}`);
 
     const handleSecurityPress = useCallback(() => {
         if (isSecurityEnabled) {
             Alert.alert(
-                'Disable Security',
-                'This will remove your PIN and biometric protection. Your data will be accessible without authentication.',
+                t('alerts.disableSecurity'),
+                t('alerts.disableSecurityMessage'),
                 [
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('alerts.cancel'), style: 'cancel' },
                     {
-                        text: 'Disable',
+                        text: t('alerts.disable'),
                         style: 'destructive',
                         onPress: () => disableSecurity(),
                     },
@@ -70,20 +73,25 @@ export const SettingsScreen = () => {
         } else {
             setSecuritySetupVisible(true);
         }
-    }, [isSecurityEnabled, disableSecurity]);
+    }, [isSecurityEnabled, disableSecurity, t]);
 
     const handleCurrencyPress = useCallback(() => {
         if (isCurrencyLocked) {
-            Alert.alert('Currency Locked', 'Currency cannot be changed once selected.');
+            Alert.alert(t('alerts.currencyLocked'), t('alerts.currencyLockedMessage'));
             return;
         }
         setCurrencyPickerVisible(true);
-    }, [isCurrencyLocked]);
+    }, [isCurrencyLocked, t]);
 
     const onCurrencySelected = useCallback(async (selected: any) => {
         await handleCurrencySelect(selected);
         setCurrencyPickerVisible(false);
     }, [handleCurrencySelect]);
+
+    // Date format display label
+    const dateFormatLabel = settings.dateFormat;
+    const firstDayLabel = t(`settings.${settings.firstDayOfWeek}`);
+    const decimalLabel = t(`settings.${settings.decimalSeparator}`);
 
     return (
         <ScrollView
@@ -97,7 +105,7 @@ export const SettingsScreen = () => {
         >
             {/* Screen Title */}
             <Text style={[styles.title, { color: colors.foreground, fontSize: typography.sizes['2xl'] }]}>
-                Settings
+                {t('settings.title')}
             </Text>
 
             {/* Loading Indicator */}
@@ -112,7 +120,7 @@ export const SettingsScreen = () => {
                 }}>
                     <ActivityIndicator size="small" color={colors.primary} />
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginLeft: spacing.sm }}>
-                        Processing…
+                        {t('settings.processing')}
                     </Text>
                 </View>
             )}
@@ -130,10 +138,10 @@ export const SettingsScreen = () => {
                 <Avatar label="V" size="md" />
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                        Valto User
+                        {t('settings.userName')}
                     </Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                        Premium Account
+                        {t('settings.premiumAccount')}
                     </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
@@ -141,7 +149,7 @@ export const SettingsScreen = () => {
 
             {/* References */}
             <View style={{ marginBottom: spacing.xl }}>
-                <SectionHeader title="References" />
+                <SectionHeader title={t('settings.sections.references')} />
                 <View style={{
                     backgroundColor: colors.card,
                     borderRadius: radius.md,
@@ -149,8 +157,10 @@ export const SettingsScreen = () => {
                     ...shadows.card,
                 }}>
                     <ListItem
-                        title="Currency"
-                        subtitle={isCurrencyLocked ? `${currency.symbol} ${currency.code} (locked)` : `${currency.symbol} ${currency.code}`}
+                        title={t('settings.currency')}
+                        subtitle={isCurrencyLocked
+                            ? t('settings.currencyLocked', { symbol: currency.symbol, code: currency.code })
+                            : t('settings.currencyUnlocked', { symbol: currency.symbol, code: currency.code })}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="cash-outline" size={20} color={colors.primary} />} />
                         }
@@ -158,7 +168,7 @@ export const SettingsScreen = () => {
                         onPress={handleCurrencyPress}
                     />
                     <ListItem
-                        title="Language"
+                        title={t('settings.language')}
                         subtitle={language.nativeName}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="language-outline" size={20} color={colors.primary} />} />
@@ -167,8 +177,8 @@ export const SettingsScreen = () => {
                         onPress={() => setLanguagePickerVisible(true)}
                     />
                     <ListItem
-                        title="Theme"
-                        subtitle={THEME_LABELS[settings.theme] ?? 'System'}
+                        title={t('settings.theme')}
+                        subtitle={themeLabel}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="color-palette-outline" size={20} color={colors.primary} />} />
                         }
@@ -180,7 +190,7 @@ export const SettingsScreen = () => {
 
             {/* App Settings */}
             <View style={{ marginBottom: spacing.xl }}>
-                <SectionHeader title="App Settings" />
+                <SectionHeader title={t('settings.sections.appSettings')} />
                 <View style={{
                     backgroundColor: colors.card,
                     borderRadius: radius.md,
@@ -188,7 +198,7 @@ export const SettingsScreen = () => {
                     ...shadows.card,
                 }}>
                     <ListItem
-                        title="Categories"
+                        title={t('settings.categories')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="grid-outline" size={20} color={colors.primary} />} />
                         }
@@ -196,7 +206,7 @@ export const SettingsScreen = () => {
                         onPress={() => router.push('/categories')}
                     />
                     <ListItem
-                        title="Notifications"
+                        title={t('settings.notifications')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="notifications-outline" size={20} color={colors.primary} />} />
                         }
@@ -210,7 +220,7 @@ export const SettingsScreen = () => {
                         }
                     />
                     <ListItem
-                        title="Security"
+                        title={t('settings.security')}
                         subtitle={securitySubtitle}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="lock-closed-outline" size={20} color={colors.primary} />} />
@@ -221,9 +231,9 @@ export const SettingsScreen = () => {
                 </View>
             </View>
 
-            {/* Data Management */}
+            {/* Regional */}
             <View style={{ marginBottom: spacing.xl }}>
-                <SectionHeader title="Data Management" />
+                <SectionHeader title={t('settings.sections.regional')} />
                 <View style={{
                     backgroundColor: colors.card,
                     borderRadius: radius.md,
@@ -231,7 +241,46 @@ export const SettingsScreen = () => {
                     ...shadows.card,
                 }}>
                     <ListItem
-                        title="Backup Data"
+                        title={t('settings.dateFormat')}
+                        subtitle={dateFormatLabel}
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="calendar-outline" size={20} color={colors.primary} />} />
+                        }
+                        showChevron
+                        onPress={changeDateFormat}
+                    />
+                    <ListItem
+                        title={t('settings.firstDayOfWeek')}
+                        subtitle={firstDayLabel}
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="today-outline" size={20} color={colors.primary} />} />
+                        }
+                        showChevron
+                        onPress={changeFirstDayOfWeek}
+                    />
+                    <ListItem
+                        title={t('settings.decimalSeparator')}
+                        subtitle={decimalLabel}
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="code-outline" size={20} color={colors.primary} />} />
+                        }
+                        showChevron
+                        onPress={changeDecimalSeparator}
+                    />
+                </View>
+            </View>
+
+            {/* Data Management */}
+            <View style={{ marginBottom: spacing.xl }}>
+                <SectionHeader title={t('settings.sections.dataManagement')} />
+                <View style={{
+                    backgroundColor: colors.card,
+                    borderRadius: radius.md,
+                    paddingHorizontal: spacing.md,
+                    ...shadows.card,
+                }}>
+                    <ListItem
+                        title={t('settings.backupData')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="cloud-upload-outline" size={20} color={colors.primary} />} />
                         }
@@ -239,15 +288,25 @@ export const SettingsScreen = () => {
                         onPress={createBackup}
                     />
                     <ListItem
-                        title="Restore Data"
+                        title={t('settings.restoreData')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="cloud-download-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
                         onPress={restoreBackup}
                     />
+                    {isCurrencyLocked && (
+                        <ListItem
+                            title={t('settings.resetCurrency')}
+                            leftIcon={
+                                <IconBadge icon={<Ionicons name="swap-horizontal-outline" size={20} color={colors.warning ?? colors.primary} />} />
+                            }
+                            showChevron
+                            onPress={resetCurrency}
+                        />
+                    )}
                     <ListItem
-                        title="Reset All Data"
+                        title={t('settings.resetAllData')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="trash-outline" size={20} color={colors.destructive} />} />
                         }
@@ -259,7 +318,7 @@ export const SettingsScreen = () => {
 
             {/* Support */}
             <View style={{ marginBottom: spacing.xl }}>
-                <SectionHeader title="Support" />
+                <SectionHeader title={t('settings.sections.support')} />
                 <View style={{
                     backgroundColor: colors.card,
                     borderRadius: radius.md,
@@ -267,7 +326,7 @@ export const SettingsScreen = () => {
                     ...shadows.card,
                 }}>
                     <ListItem
-                        title="Help & FAQ"
+                        title={t('settings.helpFaq')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="help-circle-outline" size={20} color={colors.primary} />} />
                         }
@@ -275,7 +334,7 @@ export const SettingsScreen = () => {
                         onPress={() => router.push('/help')}
                     />
                     <ListItem
-                        title="About Valto"
+                        title={t('settings.aboutValto')}
                         subtitle={`v${APP_VERSION}`}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="information-circle-outline" size={20} color={colors.primary} />} />

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -32,6 +33,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose, onSuccess }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
 
     // Hooks
@@ -54,14 +56,14 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
     const handleSave = async () => {
         // Validation
         if (!name.trim()) {
-            Alert.alert('Invalid Name', 'Please enter a wallet name');
+            Alert.alert(t('modals.addWallet.invalidName'), t('modals.addWallet.invalidNameMessage'));
             return;
         }
 
         const balanceNum = balance ? parseFloat(balance) : 0;
 
         if (isNaN(balanceNum) || balanceNum < 0) {
-            Alert.alert('Invalid Balance', 'Initial balance must be 0 or greater');
+            Alert.alert(t('modals.addWallet.invalidBalance'), t('modals.addWallet.invalidBalanceMessage'));
             return;
         }
 
@@ -83,8 +85,8 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
             onClose();
         } catch (error) {
             Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to create wallet'
+                t('modals.common.error'),
+                error instanceof Error ? error.message : t('modals.addWallet.errorCreate')
             );
         } finally {
             setSaving(false);
@@ -116,14 +118,14 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            Add Wallet
+                            {t('modals.addWallet.title')}
                         </Text>
                         <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    Save
+                                    {t('modals.common.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -142,12 +144,12 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Wallet Name */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Wallet Name *
+                                    {t('modals.addWallet.walletName')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
-                                        placeholder="e.g., Main Account"
+                                        placeholder={t('modals.addWallet.namePlaceholder')}
                                         placeholderTextColor={colors.mutedForeground}
                                         value={name}
                                         onChangeText={setName}
@@ -159,7 +161,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Initial Balance */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Initial Balance
+                                    {t('modals.addWallet.initialBalance')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
@@ -177,7 +179,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Wallet Type */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    Wallet Type
+                                    {t('modals.addWallet.walletType')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_TYPES.map((type) => {
@@ -208,7 +210,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                                         fontWeight: isSelected ? '600' : '500',
                                                     }}
                                                 >
-                                                    {type.label}
+                                                    {t(`wallets.type.${type.value}`)}
                                                 </Text>
                                             </TouchableOpacity>
                                         );
@@ -219,7 +221,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Color Picker */}
                             <View style={{ marginBottom: spacing.xl }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    Wallet Color
+                                    {t('modals.addWallet.walletColor')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_COLORS.map((color) => {

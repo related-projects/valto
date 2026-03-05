@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddWalletModal } from '../components/modals/AddWalletModal';
@@ -8,13 +9,15 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Wallet } from '../domain/entities';
+import { useFormatting } from '../hooks/useFormatting';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
-import { formatAmount } from '../utils/formatAmount';
 
 export const WalletsScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { formatAmount } = useFormatting();
     const insets = useSafeAreaInsets();
 
     // Get real data
@@ -71,10 +74,10 @@ export const WalletsScreen = () => {
                                 marginBottom: spacing.xs,
                             }}
                         >
-                            Wallets
+                            {t('wallets.title')}
                         </Text>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
-                            Total: {formatAmount(totalBalance)}
+                            {t('wallets.total', { amount: formatAmount(totalBalance) })}
                         </Text>
                     </View>
                     <TouchableOpacity
@@ -90,7 +93,7 @@ export const WalletsScreen = () => {
                         onPress={handleAddWallet}
                     >
                         <Ionicons name="add" size={18} color={colors.accentForeground} />
-                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>Add</Text>
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>{t('wallets.add')}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -98,7 +101,7 @@ export const WalletsScreen = () => {
                     <View style={{ alignItems: 'center', paddingVertical: spacing['2xl'] }}>
                         <Ionicons name="wallet-outline" size={48} color={colors.mutedForeground} style={{ marginBottom: spacing.md }} />
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md, marginBottom: spacing.lg }}>
-                            No wallets yet
+                            {t('wallets.noWallets')}
                         </Text>
                         <TouchableOpacity
                             style={{
@@ -110,7 +113,7 @@ export const WalletsScreen = () => {
                             onPress={handleAddWallet}
                         >
                             <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                                Create your first wallet
+                                {t('wallets.createFirst')}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -168,7 +171,7 @@ export const WalletsScreen = () => {
                                             alignSelf: 'flex-start',
                                         }}>
                                             <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold, textTransform: 'capitalize' }}>
-                                                {wallet.type}
+                                                {t(`wallets.type.${wallet.type}`)}
                                             </Text>
                                         </View>
                                     </View>
@@ -180,7 +183,7 @@ export const WalletsScreen = () => {
 
                 <View style={{ marginBottom: spacing.lg }}>
                     <Card>
-                        <SectionHeader title="Recent Activities" />
+                        <SectionHeader title={t('wallets.recentActivities')} />
                         <TransactionList transactions={transactions.slice(0, 5)} showDateHeaders={false} />
                     </Card>
                 </View>

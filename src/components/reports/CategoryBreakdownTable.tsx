@@ -6,9 +6,10 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface CategoryBreakdownItem {
@@ -22,14 +23,14 @@ interface CategoryBreakdownItem {
 
 interface CategoryBreakdownTableProps {
     data: CategoryBreakdownItem[];
-    currency?: string;
 }
 
 export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
     data,
-    currency = '$',
 }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
+    const { formatAmount } = useFormatting();
 
     if (data.length === 0) {
         return (
@@ -63,7 +64,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                     marginBottom: spacing.lg,
                 }}
             >
-                Category Breakdown
+                {t('reports.categoryBreakdown')}
             </Text>
 
             <View style={{ gap: spacing.md }}>
@@ -113,7 +114,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                             textAlign: 'right',
                                         }}
                                     >
-                                        {formatAmount(item.amount, currency)}
+                                        {formatAmount(item.amount)}
                                     </Text>
                                 </View>
                             </View>
@@ -155,8 +156,8 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                             }}
                                         >
                                             {item.isOverBudget
-                                                ? 'Over budget!'
-                                                : `${formatAmount(item.amount, currency)} of ${formatAmount(item.budgetLimit, currency)}`}
+                                                ? t('reports.overBudget')
+                                                : t('reports.ofBudget', { spent: formatAmount(item.amount), limit: formatAmount(item.budgetLimit) })}
                                         </Text>
                                     </View>
                                 </View>

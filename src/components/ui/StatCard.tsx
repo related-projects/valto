@@ -1,17 +1,17 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmountWhole } from '../../utils/formatAmount';
 
 interface StatCardProps {
     label: string;
     amount: number;
     variant: 'success' | 'destructive' | 'warning';
-    currency?: string;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ label, amount, variant, currency = '$' }) => {
+export const StatCard: React.FC<StatCardProps> = ({ label, amount, variant }) => {
     const { colors, typography, spacing, radius } = useTheme();
+    const { formatAmountWhole } = useFormatting();
 
     const getBackgroundColor = () => {
         switch (variant) {
@@ -62,7 +62,7 @@ export const StatCard: React.FC<StatCardProps> = ({ label, amount, variant, curr
                     fontWeight: typography.weights.bold,
                 }}
             >
-                {formatAmountWhole(amount, currency)}
+                {formatAmountWhole(amount)}
             </Text>
         </View>
     );

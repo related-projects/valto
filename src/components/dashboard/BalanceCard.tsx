@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount as formatAmountUtil } from '../../utils/formatAmount';
 
 interface BalanceCardProps {
     totalBalance: number;
@@ -12,7 +13,6 @@ interface BalanceCardProps {
     incomeChange?: number | null;
     expenseChange?: number | null;
     netBalanceChange?: number | null;
-    currency?: string;
     /** When true, eye toggle requires authentication before revealing */
     securityEnabled?: boolean;
     /** Called when user taps eye with security on. Return true to reveal. */
@@ -27,11 +27,12 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     incomeChange,
     expenseChange,
     netBalanceChange,
-    currency = '$',
     securityEnabled = false,
     onRequestAuth,
 }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing, radius, shadows } = useTheme();
+    const { formatAmount } = useFormatting();
     const [hidden, setHidden] = useState(false);
     const authInProgress = useRef(false);
 
@@ -70,7 +71,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     // Use centralized formatting utility; respect hidden balance mode
     const displayAmount = (amount: number) => {
         if (hidden) return '••••••';
-        return formatAmountUtil(amount, currency);
+        return formatAmount(amount);
     };
 
     const renderChangeBadge = (change?: number | null, isExpense?: boolean) => {
@@ -108,7 +109,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             <View style={styles.header}>
                 <View>
                     <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs, opacity: 0.8 }}>
-                        Total Balance
+                        {t('components.balanceCard.totalBalance')}
                     </Text>
                     <Text
                         style={{
@@ -155,7 +156,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                         <View style={[styles.iconBadge, { backgroundColor: colors.successBackground }]}>
                             <Ionicons name="trending-up" size={12} color={colors.successText} />
                         </View>
-                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Income</Text>
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>{t('components.balanceCard.income')}</Text>
                     </View>
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
                         {displayAmount(monthlyIncome)}
@@ -168,7 +169,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                         <View style={[styles.iconBadge, { backgroundColor: colors.destructiveBackground }]}>
                             <Ionicons name="trending-down" size={12} color={colors.destructiveText} />
                         </View>
-                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Expenses</Text>
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>{t('components.balanceCard.expenses')}</Text>
                     </View>
                     <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
                         {displayAmount(monthlyExpense)}
@@ -182,7 +183,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                             <View style={[styles.iconBadge, { backgroundColor: colors.accentForeground, opacity: 0.2 }]}>
                                 <Ionicons name="swap-vertical" size={12} color={colors.accent} />
                             </View>
-                            <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>Net</Text>
+                            <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }}>{t('components.balanceCard.net')}</Text>
                         </View>
                         <Text style={{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }}>
                             {displayAmount(netBalance)}

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -52,6 +53,7 @@ const TYPE_SEGMENTS: Segment<CategoryType>[] = Object.values(CategoryType).map(t
 }));
 
 export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, categoryToEdit }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
     const { createCategory, updateCategory } = useCategories();
 
@@ -79,7 +81,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert('Error', 'Please enter a category name');
+            Alert.alert(t('modals.common.error'), t('modals.category.invalidName'));
             return;
         }
 
@@ -103,7 +105,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
             }
             onClose();
         } catch (error) {
-            Alert.alert('Error', 'Failed to save category');
+            Alert.alert(t('modals.common.error'), t('modals.category.errorSave'));
             console.error(error);
         } finally {
             setSaving(false);
@@ -130,13 +132,13 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            {categoryToEdit ? 'Edit Category' : 'New Category'}
+                            {categoryToEdit ? t('modals.category.titleEdit') : t('modals.category.titleNew')}
                         </Text>
                         <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
-                                <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>Save</Text>
+                                <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>{t('modals.common.save')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -154,7 +156,11 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                         >
                             {/* Type Segmented Control */}
                             <SegmentControl
-                                segments={TYPE_SEGMENTS}
+                                segments={Object.values(CategoryType).map(typeRaw => ({
+                                    key: typeRaw,
+                                    label: typeRaw === CategoryType.INCOME ? t('transactions.income') : t('transactions.expenses'),
+                                    value: typeRaw,
+                                }))}
                                 selectedValue={type}
                                 onSelect={setType}
                                 style={{ marginBottom: spacing.xl }}
@@ -163,14 +169,14 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                             {/* Name */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Name
+                                    {t('modals.category.name')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
                                         value={name}
                                         onChangeText={setName}
-                                        placeholder="Category Name"
+                                        placeholder={t('modals.category.namePlaceholder')}
                                         placeholderTextColor={colors.mutedForeground}
                                     />
                                 </View>
@@ -179,7 +185,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                             {/* Color Picker */}
                             <View style={{ marginBottom: spacing.xl }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Color
+                                    {t('modals.category.color')}
                                 </Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                     {COLORS.map((c) => (
@@ -207,7 +213,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                             {/* Icon Picker */}
                             <View style={{ marginBottom: spacing.xl }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Icon
+                                    {t('modals.category.icon')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                                     {ICONS.map((i) => (

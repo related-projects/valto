@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -38,6 +39,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
     onCreateBudget,
     budgetedCategoryIds,
 }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
     const { expenseCategories } = useCategories();
 
@@ -60,7 +62,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
 
     const handleSave = async () => {
         if (!selectedCategoryId) {
-            Alert.alert('Select Category', 'Please select an expense category');
+            Alert.alert(t('modals.addBudget.selectCategory'), t('modals.addBudget.selectCategoryMessage'));
             return;
         }
 
@@ -68,7 +70,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
         const amountNum = Math.round(parsedAmount * 100);
 
         if (!limitAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
-            Alert.alert('Invalid Amount', 'Please enter a valid budget limit greater than 0');
+            Alert.alert(t('modals.addBudget.invalidAmount'), t('modals.addBudget.invalidAmountMessage'));
             return;
         }
 
@@ -83,8 +85,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
             onClose();
         } catch (error) {
             Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to create budget'
+                t('modals.common.error'),
+                error instanceof Error ? error.message : t('modals.addBudget.errorCreate')
             );
         } finally {
             setSaving(false);
@@ -156,14 +158,14 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            Add Budget
+                            {t('modals.addBudget.title')}
                         </Text>
                         <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    Save
+                                    {t('modals.common.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -182,7 +184,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                             {/* Budget Limit */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Monthly Limit *
+                                    {t('modals.addBudget.monthlyLimit')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
@@ -201,7 +203,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                             {/* Category Selection */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    Expense Category *
+                                    {t('modals.addBudget.expenseCategory')}
                                 </Text>
 
                                 {availableCategories.length === 0 ? (
@@ -209,8 +211,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                                         <Ionicons name="alert-circle-outline" size={32} color={colors.mutedForeground} />
                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center', marginTop: spacing.sm }}>
                                             {expenseCategories.length === 0
-                                                ? 'No expense categories found.\nCreate a category first.'
-                                                : 'All expense categories already have\na budget for this month.'}
+                                                ? t('modals.addBudget.noCategoriesEmpty')
+                                                : t('modals.addBudget.noCategoriesAll')}
                                         </Text>
                                     </View>
                                 ) : (

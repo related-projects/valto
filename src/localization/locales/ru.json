@@ -1,0 +1,39 @@
+{
+    "settings": {
+        "title": "Настройки",
+        "processing": "Обработка…",
+        "userName": "Пользователь Valto",
+        "premiumAccount": "Премиум аккаунт",
+        "sections": {
+            "references": "Ссылки",
+            "appSettings": "Настройки приложения",
+            "dataManagement": "Управление данными",
+            "regional": "Региональные",
+            "support": "Поддержка"
+        },
+        "currency": "Валюта",
+        "language": "Язык",
+        "theme": "Тема",
+        "categories": "Категории",
+        "notifications": "Уведомления",
+        "security": "Безопасность",
+        "backupData": "Резервная копия",
+        "restoreData": "Восстановить",
+        "resetAllData": "Сбросить всё",
+        "helpFaq": "Помощь и FAQ",
+        "aboutValto": "О Valto",
+        "dateFormat": "Формат даты",
+        "firstDayOfWeek": "Первый день недели",
+        "decimalSeparator": "Десятичный разделитель",
+        "monday": "Понедельник",
+        "sunday": "Воскресенье"
+    },
+    "alerts": {
+        "cancel": "Отмена",
+        "continue": "Продолжить",
+        "error": "Ошибка"
+    },
+    "common": {
+        "ok": "OK"
+    }
+}

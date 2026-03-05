@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/theme';
@@ -51,6 +52,7 @@ const InfoRow: React.FC<InfoRowProps> = React.memo(({ label, value }) => {
 // ─── Screen ───────────────────────────────────────────────────────────
 
 export const AboutScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -84,7 +86,7 @@ export const AboutScreen = () => {
                         marginLeft: spacing.sm,
                     }}
                 >
-                    About Valto
+                    {t('about.title')}
                 </Text>
             </View>
 
@@ -116,7 +118,7 @@ export const AboutScreen = () => {
                     opacity: 0.8,
                     marginTop: 2,
                 }}>
-                    Version {APP_VERSION}
+                    {t('about.version', { version: APP_VERSION })}
                 </Text>
             </View>
 
@@ -134,16 +136,14 @@ export const AboutScreen = () => {
                     fontWeight: '600',
                     marginBottom: spacing.sm,
                 }}>
-                    About
+                    {t('about.about')}
                 </Text>
                 <Text style={{
                     color: colors.mutedForeground,
                     fontSize: typography.sizes.sm,
                     lineHeight: 22,
                 }}>
-                    Valto is an offline-first personal budget tracking app designed for simplicity and privacy.
-                    All your financial data stays on your device, no accounts, no cloud sync, no tracking.
-                    Take control of your spending with wallets, budgets, categories, and intelligent financial insights.
+                    {t('about.description')}
                 </Text>
             </View>
 
@@ -155,11 +155,11 @@ export const AboutScreen = () => {
                 marginBottom: spacing.lg,
                 ...shadows.card,
             }]}>
-                <InfoRow label="App Version" value={APP_VERSION} />
-                <InfoRow label="Build Number" value={BUILD_NUMBER} />
-                <InfoRow label="SDK Version" value={SDK_VERSION} />
-                <InfoRow label="Architecture" value="Offline-first, Clean Architecture" />
-                <InfoRow label="Storage" value="On-device only" />
+                <InfoRow label={t('about.appVersion')} value={APP_VERSION} />
+                <InfoRow label={t('about.buildNumber')} value={BUILD_NUMBER} />
+                <InfoRow label={t('about.sdkVersion')} value={SDK_VERSION} />
+                <InfoRow label={t('about.architecture')} value={t('about.architectureValue')} />
+                <InfoRow label={t('about.storage')} value={t('about.storageValue')} />
             </View>
 
             {/* Contact */}
@@ -176,7 +176,7 @@ export const AboutScreen = () => {
                     fontWeight: '600',
                     marginBottom: spacing.sm,
                 }}>
-                    Contact
+                    {t('about.contact')}
                 </Text>
                 <TouchableOpacity onPress={handleEmailPress} style={styles.emailRow}>
                     <Ionicons name="mail-outline" size={18} color={colors.primary} />
@@ -198,7 +198,7 @@ export const AboutScreen = () => {
                 marginTop: spacing.md,
                 opacity: 0.6,
             }}>
-                Made with ❤️ for people who value financial awareness.
+                {t('about.footer')}
             </Text>
         </ScrollView>
     );

@@ -5,11 +5,14 @@ import { useEffect, useState } from 'react';
 import 'react-native-get-random-values';
 import 'react-native-reanimated';
 
+import i18n from '@/src/localization/i18n';
+
 import { AuthGate } from '@/src/components/security/AuthGate';
 import { ErrorBoundary } from '@/src/core/error/ErrorBoundary';
 import { SecurityProvider } from '@/src/core/security/SecurityContext';
 import { runMigrations } from '@/src/data/migrations';
 import { initializeSeedData } from '@/src/data/seed';
+import { loadSettings } from '@/src/data/services/settingsService';
 import { ThemeProvider, useThemeContext } from '@/src/theme/ThemeContext';
 
 export const unstable_settings = {
@@ -39,6 +42,12 @@ export default function RootLayout() {
         await runMigrations();
         const result = await initializeSeedData();
         console.log('Seed data initialized:', result);
+
+        // Sync i18n with persisted language preference
+        const settings = await loadSettings();
+        if (settings.language && settings.language !== i18n.language) {
+          await i18n.changeLanguage(settings.language);
+        }
       } catch (error) {
         console.error('Failed to initialize app:', error);
       } finally {

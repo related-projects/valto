@@ -8,6 +8,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     LayoutAnimation,
     Platform,
@@ -95,6 +96,7 @@ const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(({ item, expanded, on
 // ─── Screen ───────────────────────────────────────────────────────────
 
 export const HelpFAQScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography } = useTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
@@ -128,7 +130,7 @@ export const HelpFAQScreen = () => {
                         marginLeft: spacing.sm,
                     }}
                 >
-                    Help & FAQ
+                    {t('help.title')}
                 </Text>
             </View>
 
@@ -139,7 +141,7 @@ export const HelpFAQScreen = () => {
                     marginBottom: spacing.lg,
                 }}
             >
-                Find answers to frequently asked questions about Valto.
+                {t('help.subtitle')}
             </Text>
 
             {/* FAQ List */}
@@ -147,7 +149,7 @@ export const HelpFAQScreen = () => {
                 <View style={[styles.emptyState, { marginTop: spacing.xl }]}>
                     <Ionicons name="help-buoy-outline" size={48} color={colors.mutedForeground} />
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md, marginTop: spacing.md }}>
-                        No FAQs available yet.
+                        {t('help.noFaqs')}
                     </Text>
                 </View>
             ) : (

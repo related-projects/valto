@@ -1,11 +1,11 @@
 /**
  * Notification Service
  *
- * Abstraction for notification preferences.
- * Currently only persists the enabled/disabled preference.
- * Designed so adding expo-notifications scheduling later requires no refactor.
+ * Manages notification permissions and scheduling via expo-notifications.
+ * Persists enabled/disabled state via settings service.
  */
 
+import * as Notifications from 'expo-notifications';
 import { dataEvents } from '../../core/events/dataEvents';
 import { loadSettings, updateSetting } from './settingsService';
 
@@ -18,42 +18,80 @@ export async function isNotificationsEnabled(): Promise<boolean> {
 }
 
 /**
- * Toggle notification preference and emit event.
- * Idempotent: setting the same value twice is a no-op at the event level.
+ * Request notification permissions from the OS.
+ * Returns true if granted, false otherwise.
  */
-export async function setNotificationsEnabled(enabled: boolean): Promise<boolean> {
+export async function requestPermissions(): Promise<boolean> {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+
+    if (existingStatus === 'granted') {
+        return true;
+    }
+
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === 'granted';
+}
+
+/**
+ * Toggle notification preference.
+ * When enabling: requests permission first, only enables if granted.
+ * When disabling: cancels all scheduled notifications and updates setting.
+ *
+ * Returns { enabled, permissionDenied } to let the caller handle UI feedback.
+ */
+export async function setNotificationsEnabled(
+    enabled: boolean
+): Promise<{ enabled: boolean; permissionDenied: boolean }> {
     const current = await loadSettings();
 
     // Idempotent — skip write if value unchanged
     if (current.notificationsEnabled === enabled) {
-        return enabled;
+        return { enabled, permissionDenied: false };
     }
 
-    await updateSetting('notificationsEnabled', enabled);
-    dataEvents.emit('settings');
-    return enabled;
+    if (enabled) {
+        // Request permission before enabling
+        const granted = await requestPermissions();
+
+        if (!granted) {
+            return { enabled: false, permissionDenied: true };
+        }
+
+        await updateSetting('notificationsEnabled', true);
+        dataEvents.emit('settings');
+        return { enabled: true, permissionDenied: false };
+    } else {
+        // Cancel all scheduled notifications when disabling
+        await cancelAllNotifications();
+        await updateSetting('notificationsEnabled', false);
+        dataEvents.emit('settings');
+        return { enabled: false, permissionDenied: false };
+    }
 }
 
-// ─── Future Integration Stubs ─────────────────────────────────────────
-// These stubs exist so the interface is ready for expo-notifications.
-// They are intentionally no-ops for now.
+// ─── Scheduling ───────────────────────────────────────────────────────
 
 /**
  * Schedule a local notification.
- * Stub — will integrate with expo-notifications in a future phase.
+ * Only works if notifications are enabled.
  */
 export async function scheduleLocalNotification(
-    _title: string,
-    _body: string,
-    _triggerMs: number,
+    title: string,
+    body: string,
+    triggerMs: number,
 ): Promise<void> {
-    // No-op until expo-notifications is integrated
+    const settings = await loadSettings();
+    if (!settings.notificationsEnabled) return;
+
+    await Notifications.scheduleNotificationAsync({
+        content: { title, body },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: Math.max(1, Math.floor(triggerMs / 1000)) },
+    });
 }
 
 /**
  * Cancel all scheduled notifications.
- * Stub — will integrate with expo-notifications in a future phase.
  */
 export async function cancelAllNotifications(): Promise<void> {
-    // No-op until expo-notifications is integrated
+    await Notifications.cancelAllScheduledNotificationsAsync();
 }

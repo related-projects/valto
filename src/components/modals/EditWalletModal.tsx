@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -33,6 +34,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, wallet, onClose, onSuccess }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
 
     // Hooks
@@ -62,14 +64,14 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
 
         // Validation
         if (!name.trim()) {
-            Alert.alert('Invalid Name', 'Please enter a wallet name');
+            Alert.alert(t('modals.editWallet.invalidName'), t('modals.editWallet.invalidNameMessage'));
             return;
         }
 
         const balanceNum = balance ? parseFloat(balance) : 0;
 
         if (isNaN(balanceNum) || balanceNum < 0) {
-            Alert.alert('Invalid Balance', 'Balance must be 0 or greater');
+            Alert.alert(t('modals.editWallet.invalidBalance'), t('modals.editWallet.invalidBalanceMessage'));
             return;
         }
 
@@ -91,8 +93,8 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
             onClose();
         } catch (error) {
             Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to update wallet'
+                t('modals.common.error'),
+                error instanceof Error ? error.message : t('modals.editWallet.errorUpdate')
             );
         } finally {
             setSaving(false);
@@ -108,12 +110,12 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
 
             if (hasTxns) {
                 Alert.alert(
-                    'Wallet Has Transactions',
-                    'This wallet has transactions associated with it. Deleting will not affect past transactions but they will no longer be linked to a wallet. Are you sure you want to continue?',
+                    t('modals.editWallet.hasTransactions'),
+                    t('modals.editWallet.hasTransactionsMessage'),
                     [
-                        { text: 'Cancel', style: 'cancel' },
+                        { text: t('modals.common.cancel'), style: 'cancel' },
                         {
-                            text: 'Delete Anyway',
+                            text: t('modals.common.deleteAnyway'),
                             style: 'destructive',
                             onPress: () => performDelete(),
                         },
@@ -121,12 +123,12 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                 );
             } else {
                 Alert.alert(
-                    'Delete Wallet',
-                    `Are you sure you want to delete "${wallet.name}"?`,
+                    t('modals.editWallet.deleteConfirm'),
+                    t('modals.editWallet.deleteConfirmMessage', { name: wallet.name }),
                     [
-                        { text: 'Cancel', style: 'cancel' },
+                        { text: t('modals.common.cancel'), style: 'cancel' },
                         {
-                            text: 'Delete',
+                            text: t('modals.common.delete'),
                             style: 'destructive',
                             onPress: () => performDelete(),
                         },
@@ -134,7 +136,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                 );
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to check wallet transactions');
+            Alert.alert(t('modals.common.error'), t('modals.editWallet.errorCheckTransactions'));
         }
     };
 
@@ -148,8 +150,8 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
             onClose();
         } catch (error) {
             Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to delete wallet'
+                t('modals.common.error'),
+                error instanceof Error ? error.message : t('modals.editWallet.errorDelete')
             );
         } finally {
             setDeleting(false);
@@ -176,14 +178,14 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            Edit Wallet
+                            {t('modals.editWallet.title')}
                         </Text>
                         <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    Save
+                                    {t('modals.common.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -202,12 +204,12 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Wallet Name */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Wallet Name *
+                                    {t('modals.editWallet.walletName')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
-                                        placeholder="e.g., Main Account"
+                                        placeholder={t('modals.addWallet.namePlaceholder')}
                                         placeholderTextColor={colors.mutedForeground}
                                         value={name}
                                         onChangeText={setName}
@@ -219,7 +221,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Balance */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Current Balance
+                                    {t('modals.editWallet.currentBalance')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
@@ -237,7 +239,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Wallet Type */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    Wallet Type
+                                    {t('modals.editWallet.walletType')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_TYPES.map((type) => {
@@ -268,7 +270,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                                                         fontWeight: isSelected ? '600' : '500',
                                                     }}
                                                 >
-                                                    {type.label}
+                                                    {t(`wallets.type.${type.value}`)}
                                                 </Text>
                                             </TouchableOpacity>
                                         );
@@ -279,7 +281,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Color Picker */}
                             <View style={{ marginBottom: spacing.xl }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    Wallet Color
+                                    {t('modals.editWallet.walletColor')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_COLORS.map((color) => {
@@ -325,7 +327,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                                     <>
                                         <Ionicons name="trash-outline" size={18} color={colors.destructive} style={{ marginRight: spacing.xs }} />
                                         <Text style={{ color: colors.destructive, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                                            Delete Wallet
+                                            {t('modals.editWallet.deleteWallet')}
                                         </Text>
                                     </>
                                 )}

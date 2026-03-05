@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -15,12 +16,12 @@ import {
     View,
 } from 'react-native';
 import { Wallet } from '../../domain/entities';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
 import { typography } from '../../theme/typography';
-import { formatAmount } from '../../utils/formatAmount';
 
 interface TransferModalProps {
     visible: boolean;
@@ -32,7 +33,9 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, onSuccess }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { formatAmount } = useFormatting();
 
     // Hooks
     const { wallets, refreshWallets, transferBetweenWallets } = useWallets();
@@ -91,27 +94,27 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
         const amountNum = Math.round(parsedAmount * 100);
 
         if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
-            Alert.alert('Invalid Amount', 'Please enter an amount greater than 0');
+            Alert.alert(t('modals.transfer.invalidAmount', 'Invalid Amount'), t('modals.transfer.invalidAmountMessage', 'Please enter an amount greater than 0'));
             return;
         }
 
         if (!sourceWalletId) {
-            Alert.alert('No Source Wallet', 'Please select a source wallet');
+            Alert.alert(t('modals.transfer.noSource', 'No Source Wallet'), t('modals.transfer.noSourceMessage', 'Please select a source wallet'));
             return;
         }
 
         if (!destWalletId) {
-            Alert.alert('No Destination Wallet', 'Please select a destination wallet');
+            Alert.alert(t('modals.addTransaction.noDestinationWallet', 'No Destination Wallet'), t('modals.addTransaction.noDestinationWalletMessage', 'Please select a destination wallet'));
             return;
         }
 
         if (sourceWalletId === destWalletId) {
-            Alert.alert('Invalid Transfer', 'Source and destination wallets must be different');
+            Alert.alert(t('modals.addTransaction.invalidTransfer', 'Invalid Transfer'), t('modals.addTransaction.invalidTransferMessage', 'Source and destination wallets must be different'));
             return;
         }
 
         if (sourceWallet && amountNum > sourceWallet.balance) {
-            Alert.alert('Insufficient Balance', `Source wallet only has ${formatAmount(sourceWallet.balance)}`);
+            Alert.alert(t('modals.addTransaction.insufficientBalance', 'Insufficient Balance'), t('modals.addTransaction.insufficientBalanceMessage', { amount: formatAmount(sourceWallet.balance), defaultValue: `Source wallet only has ${formatAmount(sourceWallet.balance)}` }));
             return;
         }
 
@@ -125,8 +128,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
             onClose();
         } catch (error) {
             Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to complete transfer'
+                t('modals.common.error', 'Error'),
+                error instanceof Error ? error.message : t('modals.transfer.errorTransfer', 'Failed to complete transfer')
             );
         } finally {
             setTransferring(false);
@@ -194,7 +197,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            Transfer
+                            {t('transactions.transfer', 'Transfer')}
                         </Text>
                         <TouchableOpacity
                             onPress={handleTransfer}
@@ -209,7 +212,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                     fontSize: typography.sizes.md,
                                     fontWeight: typography.weights.semibold
                                 }}>
-                                    Send
+                                    {t('modals.transfer.send', 'Send')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -229,7 +232,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                                     <Ionicons name="wallet-outline" size={48} color={colors.mutedForeground} style={{ marginBottom: spacing.md }} />
                                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md, textAlign: 'center' }}>
-                                        You need at least 2 wallets to make a transfer
+                                        {t('modals.transfer.needTwoWallets', 'You need at least 2 wallets to make a transfer')}
                                     </Text>
                                 </View>
                             ) : (
@@ -237,7 +240,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                     {/* Source Wallet */}
                                     <View style={{ marginBottom: spacing.lg }}>
                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                            From
+                                            {t('modals.transfer.from', 'From')}
                                         </Text>
                                         <TouchableOpacity
                                             style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -250,11 +253,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 <Ionicons name="wallet-outline" size={20} color={sourceWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
                                                 <View>
                                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                        {sourceWallet?.name || 'Select wallet'}
+                                                        {sourceWallet?.name || t('modals.common.selectWallet', 'Select wallet')}
                                                     </Text>
                                                     {sourceWallet && (
                                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                            Balance: {formatAmount(sourceWallet.balance)}
+                                                            {t('modals.transfer.balance', { amount: formatAmount(sourceWallet.balance), defaultValue: `Balance: ${formatAmount(sourceWallet.balance)}` })}
                                                         </Text>
                                                     )}
                                                 </View>
@@ -301,7 +304,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                     {/* Destination Wallet */}
                                     <View style={{ marginBottom: spacing.lg }}>
                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                            To
+                                            {t('modals.transfer.to', 'To')}
                                         </Text>
                                         <TouchableOpacity
                                             style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -314,11 +317,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 <Ionicons name="wallet-outline" size={20} color={destWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
                                                 <View>
                                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                        {destWallet?.name || 'Select wallet'}
+                                                        {destWallet?.name || t('modals.common.selectWallet', 'Select wallet')}
                                                     </Text>
                                                     {destWallet && (
                                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                            Balance: {formatAmount(destWallet.balance)}
+                                                            {t('modals.transfer.balance', { amount: formatAmount(destWallet.balance), defaultValue: `Balance: ${formatAmount(destWallet.balance)}` })}
                                                         </Text>
                                                     )}
                                                 </View>
@@ -338,7 +341,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                     {availableDestWallets.length === 0 ? (
                                                         <View style={{ padding: spacing.md, alignItems: 'center' }}>
                                                             <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                                                                No other wallets available
+                                                                {t('modals.common.noOtherWallets', 'No other wallets available')}
                                                             </Text>
                                                         </View>
                                                     ) : (
@@ -359,7 +362,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                     {/* Amount */}
                                     <View style={{ marginBottom: spacing.xl }}>
                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                            Amount
+                                            {t('modals.common.amount', 'Amount')}
                                         </Text>
                                         <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                             <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
@@ -378,7 +381,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 fontSize: typography.sizes.xs,
                                                 marginTop: spacing.xs
                                             }}>
-                                                Available: {formatAmount(sourceWallet.balance)}
+                                                {t('modals.transfer.available', { amount: formatAmount(sourceWallet.balance), defaultValue: `Available: ${formatAmount(sourceWallet.balance)}` })}
                                             </Text>
                                         )}
                                     </View>

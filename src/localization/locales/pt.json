@@ -1,0 +1,39 @@
+{
+    "settings": {
+        "title": "Configurações",
+        "processing": "Processando…",
+        "userName": "Usuário Valto",
+        "premiumAccount": "Conta Premium",
+        "sections": {
+            "references": "Referências",
+            "appSettings": "Configurações do app",
+            "dataManagement": "Gestão de dados",
+            "regional": "Regional",
+            "support": "Suporte"
+        },
+        "currency": "Moeda",
+        "language": "Idioma",
+        "theme": "Tema",
+        "categories": "Categorias",
+        "notifications": "Notificações",
+        "security": "Segurança",
+        "backupData": "Backup",
+        "restoreData": "Restaurar",
+        "resetAllData": "Redefinir tudo",
+        "helpFaq": "Ajuda e FAQ",
+        "aboutValto": "Sobre o Valto",
+        "dateFormat": "Formato de data",
+        "firstDayOfWeek": "Primeiro dia da semana",
+        "decimalSeparator": "Separador decimal",
+        "monday": "Segunda-feira",
+        "sunday": "Domingo"
+    },
+    "alerts": {
+        "cancel": "Cancelar",
+        "continue": "Continuar",
+        "error": "Erro"
+    },
+    "common": {
+        "ok": "OK"
+    }
+}

@@ -1,0 +1,39 @@
+{
+    "settings": {
+        "title": "ترتیبات",
+        "processing": "پروسیسنگ…",
+        "userName": "Valto صارف",
+        "premiumAccount": "پریمیم اکاؤنٹ",
+        "sections": {
+            "references": "حوالہ جات",
+            "appSettings": "ایپ ترتیبات",
+            "dataManagement": "ڈیٹا مینجمنٹ",
+            "regional": "علاقائی",
+            "support": "مدد"
+        },
+        "currency": "کرنسی",
+        "language": "زبان",
+        "theme": "تھیم",
+        "categories": "زمرے",
+        "notifications": "اطلاعات",
+        "security": "سیکیورٹی",
+        "backupData": "بیک اپ",
+        "restoreData": "بحال کریں",
+        "resetAllData": "سب ری سیٹ",
+        "helpFaq": "مدد",
+        "aboutValto": "Valto کے بارے میں",
+        "dateFormat": "تاریخ کا فارمیٹ",
+        "firstDayOfWeek": "ہفتے کا پہلا دن",
+        "decimalSeparator": "اعشاریہ",
+        "monday": "پیر",
+        "sunday": "اتوار"
+    },
+    "alerts": {
+        "cancel": "منسوخ",
+        "continue": "جاری رکھیں",
+        "error": "خرابی"
+    },
+    "common": {
+        "ok": "ٹھیک ہے"
+    }
+}

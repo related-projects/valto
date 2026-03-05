@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BudgetSummary } from '../../hooks/useBudgets';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface BudgetProgressProps {
@@ -13,7 +14,6 @@ interface BudgetProgressProps {
     totalSpent?: number;
     /** Total budget limit across all categories */
     totalLimit?: number;
-    currency?: string;
     /** Whether there are any budgets */
     hasBudgets?: boolean;
     /** Callback when "Create a budget" is tapped */
@@ -26,23 +26,24 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
     budgetSummaries = [],
     totalSpent = 0,
     totalLimit = 0,
-    currency = '$',
     hasBudgets = false,
     onCreateBudget,
     onDeleteBudget,
 }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
+    const { formatAmount } = useFormatting();
 
     // Handle empty state
     if (!hasBudgets) {
         return (
             <Card>
                 <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: typography.sizes.sm, marginBottom: spacing.md }}>
-                    Monthly Budget
+                    {t('components.budgetProgress.title')}
                 </Text>
                 <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
-                        No budget set yet
+                        {t('components.budgetProgress.noBudget')}
                     </Text>
                     <TouchableOpacity
                         style={{
@@ -55,7 +56,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                         onPress={onCreateBudget}
                     >
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
-                            Create a budget
+                            {t('components.budgetProgress.createBudget')}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -83,9 +84,9 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
     };
 
     const getOverallStatusText = () => {
-        if (isOverallOverBudget) return 'Over budget';
-        if (isOverallNearLimit) return 'Near limit';
-        return 'On track';
+        if (isOverallOverBudget) return t('components.budgetProgress.overBudget');
+        if (isOverallNearLimit) return t('components.budgetProgress.nearLimit');
+        return t('components.budgetProgress.onTrack');
     };
 
     return (
@@ -93,7 +94,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
             {/* Header with overall status */}
             <View style={styles.header}>
                 <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: typography.sizes.sm }}>
-                    Monthly Budget
+                    {t('components.budgetProgress.title')}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                     <View
@@ -124,10 +125,10 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
             <View style={{ marginBottom: spacing.md }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing.sm }}>
                     <Text style={{ fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: colors.foreground }}>
-                        {formatAmount(totalSpent, currency)}
+                        {formatAmount(totalSpent)}
                     </Text>
                     <Text style={{ fontSize: typography.sizes.sm, color: colors.mutedForeground }}>
-                        of {formatAmount(totalLimit, currency)}
+                        {t('components.budgetProgress.of', { amount: formatAmount(totalLimit) })}
                     </Text>
                 </View>
 
@@ -151,7 +152,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 
                 {overallOverAmount > 0 && (
                     <Text style={{ fontSize: typography.sizes.xs, color: colors.destructive, marginTop: spacing.xs }}>
-                        {formatAmount(overallOverAmount, currency)} over budget
+                        {t('components.budgetProgress.overAmount', { amount: formatAmount(overallOverAmount) })}
                     </Text>
                 )}
             </View>
@@ -193,7 +194,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                                         </Text>
                                     </View>
                                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                        {formatAmount(summary.spentAmount, currency)} / {formatAmount(summary.budget.limitAmount, currency)}
+                                        {formatAmount(summary.spentAmount)} / {formatAmount(summary.budget.limitAmount)}
                                     </Text>
                                 </View>
 
@@ -218,7 +219,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 
                                 {summary.isOverBudget && (
                                     <Text style={{ color: colors.destructive, fontSize: typography.sizes.xs - 1, marginTop: 2 }}>
-                                        {formatAmount(summary.spentAmount - summary.budget.limitAmount, currency)} over
+                                        {t('components.budgetProgress.overCategory', { amount: formatAmount(summary.spentAmount - summary.budget.limitAmount) })}
                                     </Text>
                                 )}
                             </View>

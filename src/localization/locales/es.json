@@ -1,0 +1,62 @@
+{
+    "settings": {
+        "title": "Configuración",
+        "processing": "Procesando…",
+        "userName": "Usuario Valto",
+        "premiumAccount": "Cuenta Premium",
+        "sections": {
+            "references": "Referencias",
+            "appSettings": "Ajustes de la app",
+            "dataManagement": "Gestión de datos",
+            "regional": "Regional",
+            "support": "Soporte"
+        },
+        "currency": "Moneda",
+        "currencyLocked": "{{symbol}} {{code}} (bloqueada)",
+        "currencyUnlocked": "{{symbol}} {{code}}",
+        "language": "Idioma",
+        "theme": "Tema",
+        "themeSystem": "Sistema",
+        "themeLight": "Claro",
+        "themeDark": "Oscuro",
+        "categories": "Categorías",
+        "notifications": "Notificaciones",
+        "security": "Seguridad",
+        "securityPinBiometrics": "PIN + Biometría",
+        "securityPin": "PIN activado",
+        "securityOff": "Desactivado",
+        "backupData": "Copia de seguridad",
+        "restoreData": "Restaurar datos",
+        "resetAllData": "Restablecer todo",
+        "resetCurrency": "Restablecer moneda",
+        "resetCurrencySubtitle": "Cambiar moneda base",
+        "helpFaq": "Ayuda y FAQ",
+        "aboutValto": "Acerca de Valto",
+        "dateFormat": "Formato de fecha",
+        "firstDayOfWeek": "Primer día de la semana",
+        "decimalSeparator": "Separador decimal",
+        "monday": "Lunes",
+        "sunday": "Domingo",
+        "dot": "Punto (1,000.00)",
+        "comma": "Coma (1.000,00)"
+    },
+    "alerts": {
+        "cancel": "Cancelar",
+        "continue": "Continuar",
+        "error": "Error",
+        "chooseTheme": "Elegir tema",
+        "currencyLocked": "Moneda bloqueada",
+        "currencyLockedMessage": "La moneda no se puede cambiar.",
+        "resetCurrency": "Restablecer moneda",
+        "resetCurrencyMessage": "Esto cambiará su moneda de visualización.",
+        "resetCurrencyConfirm": "Confirmar cambio",
+        "resetCurrencyConfirmMessage": "Se creará una copia de seguridad. ¿Está seguro?",
+        "resetCurrencySuccess": "Moneda actualizada",
+        "resetCurrencySuccessMessage": "Su moneda ha sido cambiada a {{code}}.",
+        "notificationsDenied": "Notificaciones bloqueadas",
+        "notificationsDeniedMessage": "Active las notificaciones en la configuración del dispositivo."
+    },
+    "common": {
+        "ok": "OK"
+    }
+}

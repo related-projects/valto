@@ -7,33 +7,35 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount, formatAmountCompact } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface SpendingBreakdownProps {
     data: { name: string; value: number; color: string; percentage: number }[];
-    currency?: string;
 }
 
-export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data, currency = '$' }) => {
+export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing } = useTheme();
+    const { formatAmount, formatAmountCompact } = useFormatting();
 
     // Handle empty state
     if (data.length === 0) {
         return (
             <Card>
                 <Text style={{ color: colors.foreground, fontWeight: typography.weights.semibold, fontSize: typography.sizes.sm, marginBottom: spacing.md }}>
-                    Spending by Category
+                    {t('components.spendingBreakdown.title')}
                 </Text>
                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
-                        No expense data this month
+                        {t('components.spendingBreakdown.noData')}
                     </Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, textAlign: 'center', marginTop: spacing.xs }}>
-                        Add expenses to see your spending breakdown
+                        {t('components.spendingBreakdown.noDataHint')}
                     </Text>
                 </View>
             </Card>
@@ -54,7 +56,7 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data, curr
     return (
         <Card>
             <Text style={{ color: colors.foreground, fontWeight: typography.weights.semibold, fontSize: typography.sizes.sm, marginBottom: spacing.lg }}>
-                Spending by Category
+                {t('components.spendingBreakdown.title')}
             </Text>
 
             <View style={styles.chartRow}>
@@ -89,10 +91,10 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data, curr
                     </Svg>
                     <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, fontWeight: typography.weights.medium }}>
-                            Total
+                            {t('components.spendingBreakdown.total')}
                         </Text>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.bold }}>
-                            {formatAmountCompact(total, currency)}
+                            {formatAmountCompact(total)}
                         </Text>
                     </View>
                 </View>
@@ -109,7 +111,7 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data, curr
                                 {item.name}
                             </Text>
                             <Text style={{ color: colors.foreground, fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold }}>
-                                {formatAmount(item.value, currency)}
+                                {formatAmount(item.value)}
                             </Text>
                         </View>
                     ))}
