@@ -6,6 +6,6 @@
 
 export {
     container, getBudgetRepository, getCategoryRepository, getTransactionRepository,
-    getWalletRepository
+    getUseCaseDeps, getWalletRepository
 } from './container';
 

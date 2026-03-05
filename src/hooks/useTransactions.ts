@@ -2,18 +2,18 @@
  * useTransactions Hook
  * 
  * React hook for managing transactions with the repository layer.
- * Provides CRUD operations and loading states for UI components.
- * Subscribes to transaction/wallet data events for cross-component reactivity.
+ * Delegates business orchestration to domain use cases.
+ * Retains: UI state, loading/error, event subscription, data refresh.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { getTransactionRepository, getWalletRepository } from '../core/di';
+import { getTransactionRepository, getUseCaseDeps } from '../core/di';
 import { dataEvents } from '../core/events';
+import { CreateTransactionDTO, Transaction } from '../domain/entities';
 import {
-    CreateTransactionDTO,
-    Transaction,
-    TransactionType
-} from '../domain/entities';
+    createTransaction as createTransactionUC,
+    deleteTransaction as deleteTransactionUC,
+} from '../domain/useCases';
 
 interface UseTransactionsResult {
     transactions: Transaction[];
@@ -33,7 +33,6 @@ export function useTransactions(): UseTransactionsResult {
     const [error, setError] = useState<string | null>(null);
 
     const transactionRepo = getTransactionRepository();
-    const walletRepo = getWalletRepository();
 
     /**
      * Load all transactions from repository
@@ -55,22 +54,15 @@ export function useTransactions(): UseTransactionsResult {
     }, [transactionRepo]);
 
     /**
-     * Create a new transaction and update wallet balance
+     * Create a new transaction (delegates to use case)
      */
     const createTransaction = useCallback(async (dto: CreateTransactionDTO): Promise<Transaction> => {
         try {
-            // Create the transaction
-            const transaction = await transactionRepo.create(dto);
+            const deps = getUseCaseDeps();
+            const transaction = await createTransactionUC(deps, dto);
 
-            // Update wallet balance
-            const amount = dto.type === TransactionType.EXPENSE ? -dto.amount : dto.amount;
-            await walletRepo.updateBalance(dto.walletId, amount);
-
-            // Refresh transactions list
+            // Refresh local state
             await loadTransactions();
-
-            // Emit events for cross-component reactivity
-            dataEvents.emitMultiple(['transactions', 'wallets']);
 
             return transaction;
         } catch (err) {
@@ -78,36 +70,24 @@ export function useTransactions(): UseTransactionsResult {
             setError(errorMessage);
             throw new Error(errorMessage);
         }
-    }, [transactionRepo, walletRepo, loadTransactions]);
+    }, [loadTransactions]);
 
     /**
-     * Delete a transaction and revert wallet balance
+     * Delete a transaction (delegates to use case)
      */
     const deleteTransaction = useCallback(async (id: string): Promise<void> => {
         try {
-            // Get the transaction to revert balance
-            const transaction = await transactionRepo.getById(id);
+            const deps = getUseCaseDeps();
+            await deleteTransactionUC(deps, id);
 
-            if (transaction) {
-                // Revert wallet balance (opposite of creation)
-                const amount = transaction.type === TransactionType.EXPENSE ? transaction.amount : -transaction.amount;
-                await walletRepo.updateBalance(transaction.walletId, amount);
-            }
-
-            // Delete the transaction
-            await transactionRepo.delete(id);
-
-            // Refresh transactions list
+            // Refresh local state
             await loadTransactions();
-
-            // Emit events for cross-component reactivity
-            dataEvents.emitMultiple(['transactions', 'wallets']);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete transaction';
             setError(errorMessage);
             throw new Error(errorMessage);
         }
-    }, [transactionRepo, walletRepo, loadTransactions]);
+    }, [loadTransactions]);
 
     /**
      * Refresh transactions from repository

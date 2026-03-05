@@ -21,6 +21,12 @@ let mockTransactionRepo: TransactionRepository;
 jest.mock('../../core/di', () => ({
     getWalletRepository: () => mockWalletRepo,
     getTransactionRepository: () => mockTransactionRepo,
+    getUseCaseDeps: () => ({
+        transactionRepo: mockTransactionRepo,
+        walletRepo: mockWalletRepo,
+        categoryRepo: { getAll: jest.fn().mockResolvedValue([]) },
+        eventBus: { emit: jest.fn(), emitMultiple: jest.fn() },
+    }),
 }));
 
 // Mock events

@@ -2,14 +2,18 @@
  * useWallets Hook
  * 
  * React hook for managing wallets with the repository layer.
- * Provides wallet CRUD operations, transfers, and balance calculations for UI components.
- * Subscribes to wallet data events for cross-component reactivity.
+ * Delegates business orchestration to domain use cases.
+ * Retains: UI state, loading/error, event subscription, data queries.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { getTransactionRepository, getWalletRepository } from '../core/di';
+import { getTransactionRepository, getUseCaseDeps, getWalletRepository } from '../core/di';
 import { dataEvents } from '../core/events';
-import { CreateWalletDTO, TransactionType, UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
+import { TransactionType, UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
+import {
+    createWallet as createWalletUC,
+    transferFunds as transferFundsUC,
+} from '../domain/useCases';
 
 interface UseWalletsResult {
     wallets: Wallet[];
@@ -18,7 +22,7 @@ interface UseWalletsResult {
     getTotalBalance: () => number;
     getWalletsByType: (type: WalletType) => Wallet[];
     refreshWallets: () => Promise<void>;
-    createWallet: (dto: CreateWalletDTO) => Promise<Wallet>;
+    createWallet: (dto: import('../domain/entities').CreateWalletDTO) => Promise<Wallet>;
     updateWallet: (dto: UpdateWalletDTO) => Promise<Wallet>;
     deleteWallet: (id: string) => Promise<void>;
     transferBetweenWallets: (fromId: string, toId: string, amount: number) => Promise<void>;
@@ -76,33 +80,20 @@ export function useWallets(): UseWalletsResult {
     }, [loadWallets]);
 
     /**
-     * Create a new wallet
+     * Create a new wallet (delegates to use case)
      */
-    const createWallet = useCallback(async (dto: CreateWalletDTO): Promise<Wallet> => {
+    const createWallet = useCallback(async (dto: import('../domain/entities').CreateWalletDTO): Promise<Wallet> => {
         try {
-            // Validate name
-            if (!dto.name || dto.name.trim().length === 0) {
-                throw new Error('Wallet name is required');
-            }
-
-            // Validate initial balance
-            if (dto.balance < 0) {
-                throw new Error('Initial balance must be 0 or greater');
-            }
-
-            const wallet = await walletRepo.create(dto);
+            const deps = getUseCaseDeps();
+            const wallet = await createWalletUC(deps, dto);
             await loadWallets();
-
-            // Emit wallet change event for other components
-            dataEvents.emit('wallets');
-
             return wallet;
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to create wallet';
             setError(errorMessage);
             throw new Error(errorMessage);
         }
-    }, [walletRepo, loadWallets]);
+    }, [loadWallets]);
 
     /**
      * Update an existing wallet
@@ -164,8 +155,7 @@ export function useWallets(): UseWalletsResult {
     }, [walletRepo, loadWallets]);
 
     /**
-     * Transfer money between two wallets
-     * Updates both wallet balances atomically
+     * Transfer money between two wallets (delegates to use case)
      */
     const transferBetweenWallets = useCallback(async (
         fromId: string,
@@ -173,72 +163,21 @@ export function useWallets(): UseWalletsResult {
         amount: number
     ): Promise<void> => {
         try {
-            // Validate amount
-            if (amount <= 0) {
-                throw new Error('Transfer amount must be greater than 0');
-            }
+            const deps = getUseCaseDeps();
+            await transferFundsUC(deps, { fromWalletId: fromId, toWalletId: toId, amount });
 
-            // Validate source and destination are different
-            if (fromId === toId) {
-                throw new Error('Source and destination wallets must be different');
-            }
-
-            // Get source wallet to check balance
-            const sourceWallet = await walletRepo.getById(fromId);
-            if (!sourceWallet) {
-                throw new Error('Source wallet not found');
-            }
-
-            // Check if source has sufficient balance
-            if (sourceWallet.balance < amount) {
-                throw new Error('Insufficient balance in source wallet');
-            }
-
-            // Get destination wallet to verify it exists
-            const destWallet = await walletRepo.getById(toId);
-            if (!destWallet) {
-                throw new Error('Destination wallet not found');
-            }
-
-            // Perform atomic updates: subtract from source, add to destination
-            await walletRepo.updateBalance(fromId, -amount);
-            await walletRepo.updateBalance(toId, amount);
-
-            // Double Entry Accounting: Create TRANSFER transactions
-            const now = new Date();
-            await transactionRepo.create({
-                type: TransactionType.TRANSFER,
-                amount: amount,
-                walletId: fromId,
-                categoryId: 'transfer-out',
-                date: now,
-                note: `Transfer to ${destWallet.name}`,
-            });
-            await transactionRepo.create({
-                type: TransactionType.TRANSFER,
-                amount: amount,
-                walletId: toId,
-                categoryId: 'transfer-in',
-                date: now,
-                note: `Transfer from ${sourceWallet.name}`,
-            });
-
-            // Refresh wallets state
+            // Refresh local state
             await loadWallets();
-
-            // Emit wallet + transaction change events for other components
-            dataEvents.emitMultiple(['wallets', 'transactions']);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to transfer between wallets';
             setError(errorMessage);
             throw new Error(errorMessage);
         }
-    }, [walletRepo, loadWallets]);
+    }, [loadWallets]);
 
     /**
      * Dev-only validation function to sum all wallet balances 
      * and check if they equal (Total Income - Total Expenses).
-     * Does not crash app, only logs warning.
      */
     const verifyFinancialIntegrity = useCallback(async (): Promise<boolean> => {
         try {
@@ -251,13 +190,8 @@ export function useWallets(): UseWalletsResult {
             allTransactions.forEach(t => {
                 if (t.type === TransactionType.INCOME) calculatedBalance += t.amount;
                 if (t.type === TransactionType.EXPENSE) calculatedBalance -= t.amount;
-                // Transfers cancel each other natively if handled double-entry
             });
 
-            // Note: If users can create wallets with non-zero balances initially,
-            // sumWallets = calculatedBalance + sum(initial balances).
-            // Currently, Valto has no persistent 'initial balance' property on Wallet.
-            // So we'll trace divergence dynamically.
             if (sumWallets !== calculatedBalance) {
                 console.warn(`[Financial Integrity] Mismatch! Real Wallets sum to ${sumWallets}, but Transactions state implies ${calculatedBalance}`);
                 return false;
