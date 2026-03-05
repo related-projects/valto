@@ -6,7 +6,9 @@ import 'react-native-get-random-values';
 import 'react-native-reanimated';
 
 import { AuthGate } from '@/src/components/security/AuthGate';
+import { ErrorBoundary } from '@/src/core/error/ErrorBoundary';
 import { SecurityProvider } from '@/src/core/security/SecurityContext';
+import { runMigrations } from '@/src/data/migrations';
 import { initializeSeedData } from '@/src/data/seed';
 import { ThemeProvider, useThemeContext } from '@/src/theme/ThemeContext';
 
@@ -21,7 +23,6 @@ function RootNavigator() {
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
       <AuthGate />
@@ -32,17 +33,19 @@ function RootNavigator() {
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
 
-  // Initialize seed data on app start
   useEffect(() => {
-    initializeSeedData()
-      .then((result) => {
+    async function bootstrap() {
+      try {
+        await runMigrations();
+        const result = await initializeSeedData();
         console.log('Seed data initialized:', result);
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+      } finally {
         setIsReady(true);
-      })
-      .catch((error) => {
-        console.error('Failed to initialize seed data:', error);
-        setIsReady(true);
-      });
+      }
+    }
+    bootstrap();
   }, []);
 
   if (!isReady) {
@@ -50,10 +53,12 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <SecurityProvider>
-        <RootNavigator />
-      </SecurityProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <SecurityProvider>
+          <RootNavigator />
+        </SecurityProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

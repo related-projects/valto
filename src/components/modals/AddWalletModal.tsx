@@ -20,6 +20,7 @@ import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
 import { typography } from '../../theme/typography';
+import { WALLET_COLORS, WALLET_TYPES } from './walletConstants';
 
 interface AddWalletModalProps {
     visible: boolean;
@@ -29,27 +30,6 @@ interface AddWalletModalProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
-
-// Predefined color palette for wallet colors
-const WALLET_COLORS = [
-    '#6366F1', // Indigo
-    '#8B5CF6', // Purple
-    '#EC4899', // Pink
-    '#EF4444', // Red
-    '#F97316', // Orange
-    '#EAB308', // Yellow
-    '#22C55E', // Green
-    '#14B8A6', // Teal
-    '#06B6D4', // Cyan
-    '#3B82F6', // Blue
-];
-
-const WALLET_TYPES: { label: string; value: WalletType; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { label: 'Cash', value: WalletType.CASH, icon: 'wallet-outline' },
-    { label: 'Bank', value: WalletType.BANK, icon: 'card-outline' },
-    { label: 'Mobile', value: WalletType.MOBILE, icon: 'phone-portrait-outline' },
-    { label: 'Savings', value: WalletType.SAVINGS, icon: 'cash-outline' },
-];
 
 export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose, onSuccess }) => {
     const { colors, spacing, typography, radius } = useTheme();
