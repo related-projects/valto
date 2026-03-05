@@ -23,6 +23,9 @@ export const StorageKeys = {
 
     /** Key for storing app settings */
     SETTINGS: '@valto:settings',
+
+    /** Key for storing security configuration (PIN hash, biometric settings) */
+    SECURITY_CONFIG: '@valto:security_config',
 } as const;
 
 export type StorageKey = typeof StorageKeys[keyof typeof StorageKeys];

@@ -1,151 +1,23 @@
 /**
- * Phase 8 Services Tests
+ * Phase 9 Services Tests
  *
- * Tests for CSV export, backup/restore, category merge, and reset.
- * Uses in-memory storage mock via the existing test setup.
+ * Tests for backup validation, settings persistence, and schema compatibility.
  */
 
 import {
     BackupSnapshot,
+    CURRENT_SCHEMA_VERSION,
     validateSnapshot,
 } from '../../data/services/backupService';
 import {
-    escapeCSVField,
-    formatAmountForCSV,
-    formatDateForCSV,
-    formatTransactionsToCSV,
-} from '../../data/services/exportService';
+    getDefaultSettings
+} from '../../data/services/settingsService';
+import {
+    DEFAULT_CURRENCY_CODE,
+    getCurrencyByCode,
+    SUPPORTED_CURRENCIES,
+} from '../../domain/constants/currencies';
 import { CategoryType, TransactionType } from '../../domain/entities';
-
-// ─── CSV Export Tests ─────────────────────────────────────────────────
-
-describe('CSV Export', () => {
-    describe('formatDateForCSV', () => {
-        it('formats date to YYYY-MM-DD', () => {
-            expect(formatDateForCSV(new Date('2026-03-15T10:30:00Z'))).toBe('2026-03-15');
-        });
-
-        it('pads single-digit months and days', () => {
-            expect(formatDateForCSV(new Date('2026-01-05T00:00:00Z'))).toBe('2026-01-05');
-        });
-    });
-
-    describe('formatAmountForCSV', () => {
-        it('converts minor units to decimal with 2 places', () => {
-            expect(formatAmountForCSV(123456)).toBe('1234.56');
-        });
-
-        it('handles zero', () => {
-            expect(formatAmountForCSV(0)).toBe('0.00');
-        });
-
-        it('handles small amounts', () => {
-            expect(formatAmountForCSV(99)).toBe('0.99');
-        });
-    });
-
-    describe('escapeCSVField', () => {
-        it('returns plain string unchanged', () => {
-            expect(escapeCSVField('hello')).toBe('hello');
-        });
-
-        it('wraps string with commas in quotes', () => {
-            expect(escapeCSVField('hello, world')).toBe('"hello, world"');
-        });
-
-        it('escapes quotes inside the string', () => {
-            expect(escapeCSVField('say "hello"')).toBe('"say ""hello"""');
-        });
-
-        it('handles newlines', () => {
-            expect(escapeCSVField('line1\nline2')).toBe('"line1\nline2"');
-        });
-    });
-
-    describe('formatTransactionsToCSV', () => {
-        it('produces correct header and data rows', () => {
-            const transactions = [
-                {
-                    id: 't1',
-                    type: TransactionType.EXPENSE,
-                    amount: 150000,
-                    categoryId: 'c1',
-                    walletId: 'w1',
-                    date: new Date('2026-03-10T00:00:00Z'),
-                    note: 'Grocery shopping',
-                    createdAt: new Date(),
-                },
-            ];
-            const categories = [{ id: 'c1', name: 'Food', type: CategoryType.EXPENSE, icon: '🍕', color: '#FF0000' }];
-            const wallets = [{ id: 'w1', name: 'Cash', balance: 0, type: 'cash' as any, createdAt: new Date() }];
-
-            const csv = formatTransactionsToCSV(transactions, categories, wallets);
-            const lines = csv.split('\n');
-
-            expect(lines[0]).toBe('Date,Type,Amount,Category,Wallet,Note');
-            expect(lines[1]).toBe('2026-03-10,expense,1500.00,Food,Cash,Grocery shopping');
-        });
-
-        it('handles empty transactions', () => {
-            const csv = formatTransactionsToCSV([], [], []);
-            expect(csv).toBe('Date,Type,Amount,Category,Wallet,Note');
-        });
-
-        it('sorts by date descending', () => {
-            const transactions = [
-                {
-                    id: 't1',
-                    type: TransactionType.EXPENSE,
-                    amount: 10000,
-                    categoryId: 'c1',
-                    walletId: 'w1',
-                    date: new Date('2026-01-01T00:00:00Z'),
-                    createdAt: new Date(),
-                },
-                {
-                    id: 't2',
-                    type: TransactionType.INCOME,
-                    amount: 20000,
-                    categoryId: 'c1',
-                    walletId: 'w1',
-                    date: new Date('2026-03-01T00:00:00Z'),
-                    createdAt: new Date(),
-                },
-            ];
-            const categories = [{ id: 'c1', name: 'Test', type: CategoryType.EXPENSE, icon: undefined, color: undefined }];
-            const wallets = [{ id: 'w1', name: 'Wallet', balance: 0, type: 'bank' as any, createdAt: new Date() }];
-
-            const csv = formatTransactionsToCSV(transactions, categories, wallets);
-            const lines = csv.split('\n');
-
-            // Most recent first
-            expect(lines[1]).toContain('2026-03-01');
-            expect(lines[2]).toContain('2026-01-01');
-        });
-
-        it('escapes category names with special characters', () => {
-            const transactions = [
-                {
-                    id: 't1',
-                    type: TransactionType.EXPENSE,
-                    amount: 10000,
-                    categoryId: 'c1',
-                    walletId: 'w1',
-                    date: new Date('2026-01-01T00:00:00Z'),
-                    createdAt: new Date(),
-                },
-            ];
-            const categories = [{ id: 'c1', name: 'Food, Drink', type: CategoryType.EXPENSE }];
-            const wallets = [{ id: 'w1', name: 'My Wallet', balance: 0, type: 'cash' as any, createdAt: new Date() }];
-
-            const csv = formatTransactionsToCSV(transactions, categories, wallets);
-            const lines = csv.split('\n');
-
-            // Category with comma should be quoted
-            expect(lines[1]).toContain('"Food, Drink"');
-        });
-    });
-});
 
 // ─── Backup Validation Tests ──────────────────────────────────────────
 
@@ -174,6 +46,13 @@ describe('Backup Validation', () => {
                     limitAmount: 50000, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
                 },
             ],
+            settings: {
+                theme: 'dark',
+                currency: 'EUR',
+                currencyLocked: false,
+                notificationsEnabled: false,
+                language: 'en',
+            },
         },
     };
 
@@ -281,5 +160,96 @@ describe('Backup Validation', () => {
         };
         const result = validateSnapshot(empty);
         expect(result.valid).toBe(true);
+    });
+
+    it('rejects future schema version', () => {
+        const futureSnapshot = { ...validSnapshot, version: CURRENT_SCHEMA_VERSION + 1 };
+        const result = validateSnapshot(futureSnapshot);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e: string) => e.includes('newer'))).toBe(true);
+    });
+
+    it('accepts snapshot with unknown extra fields (forward-compat)', () => {
+        const extraFields = {
+            ...validSnapshot,
+            unknownField: 'should be ignored',
+            data: {
+                ...validSnapshot.data,
+                unknownArray: [1, 2, 3],
+            },
+        };
+        const result = validateSnapshot(extraFields);
+        expect(result.valid).toBe(true);
+    });
+
+    it('accepts snapshot without settings (backward-compat)', () => {
+        const noSettings = {
+            ...validSnapshot,
+            data: {
+                wallets: validSnapshot.data.wallets,
+                transactions: validSnapshot.data.transactions,
+                categories: validSnapshot.data.categories,
+                budgets: validSnapshot.data.budgets,
+                // No settings field
+            },
+        };
+        const result = validateSnapshot(noSettings);
+        expect(result.valid).toBe(true);
+    });
+});
+
+// ─── Settings Service Tests ───────────────────────────────────────────
+
+describe('Settings Service', () => {
+    describe('getDefaultSettings', () => {
+        it('returns correct defaults', () => {
+            const defaults = getDefaultSettings();
+            expect(defaults.theme).toBe('system');
+            expect(defaults.currency).toBe('USD');
+            expect(defaults.currencyLocked).toBe(false);
+            expect(defaults.notificationsEnabled).toBe(false);
+            expect(typeof defaults.language).toBe('string');
+        });
+
+        it('returns a new object each call (no shared reference)', () => {
+            const a = getDefaultSettings();
+            const b = getDefaultSettings();
+            expect(a).toEqual(b);
+            expect(a).not.toBe(b);
+        });
+    });
+});
+
+// ─── Currency Tests ───────────────────────────────────────────────────
+
+describe('Currency System', () => {
+    it('has at least 10 supported currencies', () => {
+        expect(SUPPORTED_CURRENCIES.length).toBeGreaterThanOrEqual(10);
+    });
+
+    it('includes USD as default', () => {
+        expect(DEFAULT_CURRENCY_CODE).toBe('USD');
+        const usd = getCurrencyByCode('USD');
+        expect(usd.symbol).toBe('$');
+        expect(usd.name).toBe('US Dollar');
+    });
+
+    it('returns correct currency by code', () => {
+        const eur = getCurrencyByCode('EUR');
+        expect(eur.code).toBe('EUR');
+        expect(eur.symbol).toBe('€');
+    });
+
+    it('falls back to USD for unknown code', () => {
+        const unknown = getCurrencyByCode('XYZ');
+        expect(unknown.code).toBe('USD');
+    });
+
+    it('all currencies have required fields', () => {
+        for (const c of SUPPORTED_CURRENCIES) {
+            expect(c.code).toBeTruthy();
+            expect(c.symbol).toBeTruthy();
+            expect(c.name).toBeTruthy();
+        }
     });
 });

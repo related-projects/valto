@@ -52,7 +52,7 @@ export const ListItem: React.FC<ListItemProps> = ({
             </View>
             <View style={styles.rightContent}>
                 {rightIcon}
-                {subtitle && showChevron && (
+                {subtitle && (
                     <Text
                         style={{
                             color: colors.mutedForeground,

@@ -1,20 +1,89 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SecuritySetupModal } from '../components/security/SecuritySetupModal';
+import { CurrencyPickerModal } from '../components/settings/CurrencyPickerModal';
+import { LanguagePickerModal } from '../components/settings/LanguagePickerModal';
 import { Avatar } from '../components/ui/Avatar';
 import { IconBadge } from '../components/ui/IconBadge';
 import { ListItem } from '../components/ui/ListItem';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { useSecurity } from '../core/security/SecurityContext';
 import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../theme/theme';
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+
+const THEME_LABELS: Record<string, string> = {
+    system: 'System',
+    light: 'Light',
+    dark: 'Dark',
+};
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export const SettingsScreen = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { exportCSV, createBackup, restoreBackup, resetAllData, loading } = useSettings();
+    const {
+        settings,
+        currency,
+        language,
+        isCurrencyLocked,
+        createBackup,
+        restoreBackup,
+        resetAllData,
+        changeTheme,
+        handleCurrencySelect,
+        handleLanguageSelect,
+        toggleNotifications,
+        loading,
+    } = useSettings();
+    const { isSecurityEnabled, securityConfig, biometrics, disableSecurity } = useSecurity();
+    const [securitySetupVisible, setSecuritySetupVisible] = useState(false);
+    const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
+    const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
+
+    // Security subtitle
+    const securitySubtitle = isSecurityEnabled
+        ? (securityConfig?.biometricsEnabled ? 'PIN + Biometrics' : 'PIN enabled')
+        : 'Off';
+
+    const handleSecurityPress = useCallback(() => {
+        if (isSecurityEnabled) {
+            Alert.alert(
+                'Disable Security',
+                'This will remove your PIN and biometric protection. Your data will be accessible without authentication.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Disable',
+                        style: 'destructive',
+                        onPress: () => disableSecurity(),
+                    },
+                ],
+            );
+        } else {
+            setSecuritySetupVisible(true);
+        }
+    }, [isSecurityEnabled, disableSecurity]);
+
+    const handleCurrencyPress = useCallback(() => {
+        if (isCurrencyLocked) {
+            Alert.alert('Currency Locked', 'Currency cannot be changed once selected.');
+            return;
+        }
+        setCurrencyPickerVisible(true);
+    }, [isCurrencyLocked]);
+
+    const onCurrencySelected = useCallback(async (selected: any) => {
+        await handleCurrencySelect(selected);
+        setCurrencyPickerVisible(false);
+    }, [handleCurrencySelect]);
 
     return (
         <ScrollView
@@ -26,27 +95,20 @@ export const SettingsScreen = () => {
             }}
             showsVerticalScrollIndicator={false}
         >
-            <Text
-                style={{
-                    color: colors.foreground,
-                    fontSize: typography.sizes['2xl'],
-                    fontWeight: 'bold',
-                    marginBottom: spacing.lg,
-                }}
-            >
+            {/* Screen Title */}
+            <Text style={[styles.title, { color: colors.foreground, fontSize: typography.sizes['2xl'] }]}>
                 Settings
             </Text>
 
-            {/* Loading overlay */}
+            {/* Loading Indicator */}
             {loading && (
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: colors.card,
-                    borderRadius: radius.md,
-                    padding: spacing.sm,
                     marginBottom: spacing.md,
-                    ...shadows.card,
+                    padding: spacing.sm,
+                    backgroundColor: colors.accent,
+                    borderRadius: radius.md,
                 }}>
                     <ActivityIndicator size="small" color={colors.primary} />
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginLeft: spacing.sm }}>
@@ -88,30 +150,30 @@ export const SettingsScreen = () => {
                 }}>
                     <ListItem
                         title="Currency"
-                        subtitle="USD ($)"
+                        subtitle={isCurrencyLocked ? `${currency.symbol} ${currency.code} (locked)` : `${currency.symbol} ${currency.code}`}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="cash-outline" size={20} color={colors.primary} />} />
                         }
-                        showChevron
-                        onPress={() => { }}
+                        showChevron={!isCurrencyLocked}
+                        onPress={handleCurrencyPress}
                     />
                     <ListItem
                         title="Language"
-                        subtitle="English"
+                        subtitle={language.nativeName}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="language-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={() => setLanguagePickerVisible(true)}
                     />
                     <ListItem
                         title="Theme"
-                        subtitle="System"
+                        subtitle={THEME_LABELS[settings.theme] ?? 'System'}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="color-palette-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={changeTheme}
                     />
                 </View>
             </View>
@@ -138,38 +200,36 @@ export const SettingsScreen = () => {
                         leftIcon={
                             <IconBadge icon={<Ionicons name="notifications-outline" size={20} color={colors.primary} />} />
                         }
-                        showChevron
-                        onPress={() => { }}
+                        showChevron={false}
+                        rightIcon={
+                            <Switch
+                                value={settings.notificationsEnabled}
+                                onValueChange={toggleNotifications}
+                                trackColor={{ false: colors.muted, true: colors.primary }}
+                            />
+                        }
                     />
                     <ListItem
-                        title="Securities"
-                        subtitle="PIN enabled"
+                        title="Security"
+                        subtitle={securitySubtitle}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="lock-closed-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={handleSecurityPress}
                     />
                 </View>
             </View>
 
-            {/* Data */}
+            {/* Data Management */}
             <View style={{ marginBottom: spacing.xl }}>
-                <SectionHeader title="Data" />
+                <SectionHeader title="Data Management" />
                 <View style={{
                     backgroundColor: colors.card,
                     borderRadius: radius.md,
                     paddingHorizontal: spacing.md,
                     ...shadows.card,
                 }}>
-                    <ListItem
-                        title="Export CSV"
-                        leftIcon={
-                            <IconBadge icon={<Ionicons name="document-text-outline" size={20} color={colors.primary} />} />
-                        }
-                        showChevron
-                        onPress={exportCSV}
-                    />
                     <ListItem
                         title="Backup Data"
                         leftIcon={
@@ -212,19 +272,38 @@ export const SettingsScreen = () => {
                             <IconBadge icon={<Ionicons name="help-circle-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={() => router.push('/help')}
                     />
                     <ListItem
                         title="About Valto"
-                        subtitle="1.0.0"
+                        subtitle={`v${APP_VERSION}`}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="information-circle-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={() => { }}
+                        onPress={() => router.push('/about')}
                     />
                 </View>
             </View>
+
+            {/* Modals */}
+            <SecuritySetupModal
+                visible={securitySetupVisible}
+                onClose={() => setSecuritySetupVisible(false)}
+            />
+            <CurrencyPickerModal
+                visible={currencyPickerVisible}
+                onClose={() => setCurrencyPickerVisible(false)}
+                onSelect={onCurrencySelected}
+                selectedCode={settings.currency}
+                locked={isCurrencyLocked}
+            />
+            <LanguagePickerModal
+                visible={languagePickerVisible}
+                onClose={() => setLanguagePickerVisible(false)}
+                onSelect={handleLanguageSelect}
+                selectedCode={settings.language}
+            />
         </ScrollView>
     );
 };
@@ -232,5 +311,9 @@ export const SettingsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    title: {
+        fontWeight: 'bold',
+        marginBottom: 16,
     },
 });
