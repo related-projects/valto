@@ -5,6 +5,7 @@
  * Validates schema before applying restores to prevent data corruption.
  */
 
+import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import {
@@ -22,9 +23,10 @@ import {
     serializeBudget,
     serializeCategory,
     serializeTransaction,
-    serializeWallet
+    serializeWallet,
 } from '../../domain/entities';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
+import { AppSettings, loadSettings, saveSettings } from './settingsService';
 
 // ─── Snapshot Types ───────────────────────────────────────────────────
 
@@ -41,11 +43,12 @@ export interface BackupSnapshot {
         transactions: SerializableTransaction[];
         categories: SerializableCategory[];
         budgets: SerializableBudget[];
+        settings?: AppSettings;
     };
 }
 
 /** Current schema version */
-const SNAPSHOT_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 1;
 
 // ─── Validation ───────────────────────────────────────────────────────
 
@@ -69,6 +72,11 @@ export function validateSnapshot(data: unknown): ValidationResult {
     // Version check
     if (typeof snapshot.version !== 'number' || snapshot.version < 1) {
         errors.push('Missing or invalid version');
+    }
+
+    // Future version check
+    if (typeof snapshot.version === 'number' && snapshot.version > CURRENT_SCHEMA_VERSION) {
+        errors.push(`Backup version ${snapshot.version} is newer than app version ${CURRENT_SCHEMA_VERSION}. Please update the app.`);
     }
 
     if (typeof snapshot.createdAt !== 'string') {
@@ -130,15 +138,16 @@ export function validateSnapshot(data: unknown): ValidationResult {
  * Create a full backup snapshot of all app data.
  */
 export async function createBackupSnapshot(): Promise<BackupSnapshot> {
-    const [wallets, transactions, categories, budgets] = await Promise.all([
+    const [wallets, transactions, categories, budgets, settings] = await Promise.all([
         getWalletRepository().getAll(),
         getTransactionRepository().getAll(),
         getCategoryRepository().getAll(),
         getBudgetRepository().getAll(),
+        loadSettings(),
     ]);
 
     return {
-        version: SNAPSHOT_VERSION,
+        version: CURRENT_SCHEMA_VERSION,
         createdAt: new Date().toISOString(),
         appVersion: '1.0.0',
         data: {
@@ -146,6 +155,7 @@ export async function createBackupSnapshot(): Promise<BackupSnapshot> {
             transactions: transactions.map(serializeTransaction),
             categories: categories.map(serializeCategory),
             budgets: budgets.map(serializeBudget),
+            settings,
         },
     };
 }
@@ -189,14 +199,49 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
         );
     }
 
-    // Atomic: write all keys. If any write fails, the data is in an
-    // inconsistent state — but this is the best we can do without
-    // transactional storage. The snapshot itself is still valid for retry.
+    // Write all data keys
     await asyncStorageAdapter.set(StorageKeys.WALLETS, snapshot.data.wallets);
     await asyncStorageAdapter.set(StorageKeys.TRANSACTIONS, snapshot.data.transactions);
     await asyncStorageAdapter.set(StorageKeys.CATEGORIES, snapshot.data.categories);
     await asyncStorageAdapter.set(StorageKeys.BUDGETS, snapshot.data.budgets);
 
+    // Restore settings if present in backup
+    if (snapshot.data.settings) {
+        await saveSettings(snapshot.data.settings);
+    }
+
     // Trigger full reactive refresh across the app
     dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets']);
+}
+
+/**
+ * Pick a backup JSON file from device storage, validate, and restore.
+ * Uses expo-document-picker for file selection.
+ *
+ * @returns true if restore was successful, false if user cancelled
+ * @throws Error on validation failure or corrupted file
+ */
+export async function pickAndRestoreBackup(): Promise<boolean> {
+    const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true,
+    });
+
+    if (result.canceled) {
+        return false;
+    }
+
+    const fileUri = result.assets[0].uri;
+    const file = new ExpoFile(fileUri);
+    const content = file.text();
+
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(content);
+    } catch {
+        throw new Error('The selected file is not valid JSON. Please choose a valid Valto backup file.');
+    }
+
+    await restoreFromSnapshot(parsed as BackupSnapshot);
+    return true;
 }

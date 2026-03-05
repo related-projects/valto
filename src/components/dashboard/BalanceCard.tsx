@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
 import { formatAmount as formatAmountUtil } from '../../utils/formatAmount';
@@ -13,6 +13,10 @@ interface BalanceCardProps {
     expenseChange?: number | null;
     netBalanceChange?: number | null;
     currency?: string;
+    /** When true, eye toggle requires authentication before revealing */
+    securityEnabled?: boolean;
+    /** Called when user taps eye with security on. Return true to reveal. */
+    onRequestAuth?: () => Promise<boolean>;
 }
 
 export const BalanceCard: React.FC<BalanceCardProps> = ({
@@ -24,9 +28,36 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     expenseChange,
     netBalanceChange,
     currency = '$',
+    securityEnabled = false,
+    onRequestAuth,
 }) => {
     const { colors, typography, spacing, radius, shadows } = useTheme();
     const [hidden, setHidden] = useState(false);
+    const authInProgress = useRef(false);
+
+    const handleEyePress = useCallback(async () => {
+        // If currently visible, always allow hiding
+        if (!hidden) {
+            setHidden(true);
+            return;
+        }
+
+        // If hidden and security enabled, require auth
+        if (securityEnabled && onRequestAuth) {
+            if (authInProgress.current) return; // Prevent rapid taps
+            authInProgress.current = true;
+            try {
+                const authenticated = await onRequestAuth();
+                if (authenticated) {
+                    setHidden(false);
+                }
+            } finally {
+                authInProgress.current = false;
+            }
+        } else {
+            setHidden(false);
+        }
+    }, [hidden, securityEnabled, onRequestAuth]);
 
     // Helper to convert hex color to rgba with opacity
     const hexToRgba = (hex: string, opacity: number) => {
@@ -91,7 +122,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                     </Text>
                 </View>
                 <TouchableOpacity
-                    onPress={() => setHidden(!hidden)}
+                    onPress={handleEyePress}
                     style={{
                         padding: spacing.sm,
                         borderRadius: radius.full,

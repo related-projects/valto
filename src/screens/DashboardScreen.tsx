@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../components/dashboard/BalanceCard';
@@ -14,6 +14,7 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { useSecurity } from '../core/security/SecurityContext';
 import { SavingsLevel } from '../domain/insights';
 import { useBudgets } from '../hooks/useBudgets';
 import { useDashboard } from '../hooks/useDashboard';
@@ -63,6 +64,24 @@ export const DashboardScreen = () => {
 
     // Financial Insights
     const { savingsHealth, categoryRisk, budgetPace } = useFinancialInsights();
+
+    // Security
+    const { isSecurityEnabled, isUnlocked, unlockWithPin, unlockWithBiometrics, securityConfig, biometrics } = useSecurity();
+
+    const handleRequestAuth = useCallback(async (): Promise<boolean> => {
+        // If already unlocked in this session, allow immediately
+        if (isUnlocked) return true;
+
+        // Try biometrics first if enabled
+        if (securityConfig?.biometricsEnabled && biometrics.available && biometrics.enrolled) {
+            const bioSuccess = await unlockWithBiometrics();
+            if (bioSuccess) return true;
+        }
+
+        // Fall back to PIN — handled by the AuthGate overlay
+        // Return false so BalanceCard doesn't reveal; user will use AuthGate
+        return false;
+    }, [isUnlocked, securityConfig, biometrics, unlockWithBiometrics]);
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
@@ -124,6 +143,8 @@ export const DashboardScreen = () => {
                     incomeChange={incomeChange}
                     expenseChange={expenseChange}
                     netBalanceChange={netBalanceChange}
+                    securityEnabled={isSecurityEnabled}
+                    onRequestAuth={handleRequestAuth}
                 />
             </View>
 
