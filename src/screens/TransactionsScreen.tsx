@@ -46,32 +46,17 @@ export const TransactionsScreen = () => {
     return (
         <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
             <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }}>
-                    <Text
-                        style={{
-                            color: colors.foreground,
-                            fontSize: typography.sizes['3xl'],
-                            fontWeight: typography.weights.bold,
-                            letterSpacing: -0.5,
-                        }}
-                    >
-                        {t('transactions.title')}
-                    </Text>
-                    <TouchableOpacity
-                        style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: spacing.lg,
-                            backgroundColor: colors.card,
-                            borderWidth: 1,
-                            borderColor: colors.border,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Ionicons name="options-outline" size={20} color={colors.foreground} />
-                    </TouchableOpacity>
-                </View>
+                <Text
+                    style={{
+                        color: colors.foreground,
+                        fontSize: typography.sizes['3xl'],
+                        fontWeight: typography.weights.bold,
+                        marginBottom: spacing.lg,
+                        letterSpacing: -0.5,
+                    }}
+                >
+                    {t('transactions.title')}
+                </Text>
                 <InputField
                     placeholder={t('transactions.searchPlaceholder')}
                     value={searchQuery}
@@ -88,6 +73,21 @@ export const TransactionsScreen = () => {
                         <FilterPill label={t('transactions.filterExpense')} isActive={activeFilter === 'expense'} onPress={() => setActiveFilter('expense')} />
                         <FilterPill label={t('transactions.filterTransfer')} isActive={activeFilter === 'transfer'} onPress={() => setActiveFilter('transfer')} />
                     </ScrollView>
+                    <TouchableOpacity
+                        style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: spacing.lg,
+                            backgroundColor: colors.card,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginLeft: spacing.sm,
+                        }}
+                    >
+                        <Ionicons name="options-outline" size={20} color={colors.foreground} />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Income and Expenses Summary Cards */}

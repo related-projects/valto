@@ -63,12 +63,7 @@
         "noBudgetNoSpending": "No budget set for this period.",
         "budgetAhead": "Spending is {{percent}}% ahead of budget pace.",
         "budgetOnTrack": "Spending is on track with your budget pace.",
-        "categoryInsight": "{{category}} accounts for {{percent}}% of your spending.",
-        "trendFirstMonth": "No spending last month — this is your first tracked month.",
-        "trendNoSpending": "No spending recorded in either month.",
-        "trendStable": "Spending is roughly the same as last month.",
-        "trendIncrease": "Spending increased by {{percent}}% compared to last month.",
-        "trendDecrease": "Spending decreased by {{percent}}% compared to last month."
+        "categoryInsight": "{{category}} accounts for {{percent}}% of your spending."
     },
     "reports": {
         "subtitle": "Monthly overview",

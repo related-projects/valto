@@ -85,7 +85,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
             onClose();
         } catch (error) {
             Alert.alert(
-                t('modals.common.error'),
+                t('alerts.error'),
                 error instanceof Error ? error.message : t('modals.addWallet.errorCreate')
             );
         } finally {

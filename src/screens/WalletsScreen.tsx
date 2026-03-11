@@ -9,10 +9,10 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Wallet } from '../domain/entities';
-import { useFormatting } from '../hooks/useFormatting';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
+import { useFormatting } from '../hooks/useFormatting';
 
 export const WalletsScreen = () => {
     const { t } = useTranslation();

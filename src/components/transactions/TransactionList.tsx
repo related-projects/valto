@@ -13,7 +13,7 @@ interface TransactionListProps {
     showDateHeaders?: boolean;
 }
 
-const groupByDate = (transactions: Transaction[], todayLabel: string, yesterdayLabel: string, locale: string) => {
+const groupByDate = (transactions: Transaction[], todayLabel: string, yesterdayLabel: string, locale: string = 'en-US') => {
     const groups: Record<string, Transaction[]> = {};
 
     transactions.forEach((transaction) => {
@@ -56,9 +56,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
     // Helper to get category name from ID
     const getCategoryName = (categoryId: string): string => {
-        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') return t('transactions.transfer', 'Transfer');
+        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') return t('components.transactionList.transfer');
         const category = categories.find(c => c.id === categoryId);
-        return category?.name || t('components.transactionList.unknown', 'Unknown');
+        return category?.name || t('components.transactionList.unknown');
     };
 
     // Helper to get wallet name from ID
@@ -175,9 +175,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
     const grouped = groupByDate(
         transactions,
-        t('components.transactionList.today', 'Today'),
-        t('components.transactionList.yesterday', 'Yesterday'),
-        i18n.language || 'en-US'
+        t('components.transactionList.today'),
+        t('components.transactionList.yesterday'),
+        i18n.language
     );
 
     return (

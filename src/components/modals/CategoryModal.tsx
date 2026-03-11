@@ -81,7 +81,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert(t('modals.common.error'), t('modals.category.invalidName'));
+            Alert.alert(t('alerts.error'), t('modals.category.invalidName'));
             return;
         }
 
@@ -105,7 +105,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
             }
             onClose();
         } catch (error) {
-            Alert.alert(t('modals.common.error'), t('modals.category.errorSave'));
+            Alert.alert(t('alerts.error'), t('modals.category.errorSave'));
             console.error(error);
         } finally {
             setSaving(false);
@@ -132,7 +132,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            {categoryToEdit ? t('modals.category.titleEdit') : t('modals.category.titleNew')}
+                            {categoryToEdit ? t('modals.category.editTitle') : t('modals.category.newTitle')}
                         </Text>
                         <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
                             {saving ? (
@@ -156,11 +156,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                         >
                             {/* Type Segmented Control */}
                             <SegmentControl
-                                segments={Object.values(CategoryType).map(typeRaw => ({
-                                    key: typeRaw,
-                                    label: typeRaw === CategoryType.INCOME ? t('transactions.income') : t('transactions.expenses'),
-                                    value: typeRaw,
-                                }))}
+                                segments={TYPE_SEGMENTS}
                                 selectedValue={type}
                                 onSelect={setType}
                                 style={{ marginBottom: spacing.xl }}

@@ -63,12 +63,7 @@
         "noBudgetNoSpending": "Pas de budget pour cette période.",
         "budgetAhead": "Les dépenses sont {{percent}}% au-dessus du rythme prévu.",
         "budgetOnTrack": "Les dépenses suivent le rythme budgétaire.",
-        "categoryInsight": "{{category}} représente {{percent}}% de vos dépenses.",
-        "trendFirstMonth": "Aucune dépense le mois dernier — c'est votre premier mois de suivi.",
-        "trendNoSpending": "Aucune dépense enregistrée sur les deux mois.",
-        "trendStable": "Les dépenses sont à peu près les mêmes que le mois dernier.",
-        "trendIncrease": "Les dépenses ont augmenté de {{percent}}% par rapport au mois dernier.",
-        "trendDecrease": "Les dépenses ont diminué de {{percent}}% par rapport au mois dernier."
+        "categoryInsight": "{{category}} représente {{percent}}% de vos dépenses."
     },
     "reports": {
         "subtitle": "Vue mensuelle",

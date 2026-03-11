@@ -40,7 +40,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess }) => {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
     const { formatAmount } = useFormatting();
     const scrollViewRef = React.useRef<ScrollView>(null);
@@ -146,9 +146,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        if (d.toDateString() === today.toDateString()) return t('transactions.today');
-        if (d.toDateString() === yesterday.toDateString()) return t('transactions.yesterday');
-        return d.toLocaleDateString(i18n.language || 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        if (d.toDateString() === today.toDateString()) return t('modals.common.today');
+        if (d.toDateString() === yesterday.toDateString()) return t('modals.common.yesterday');
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
     const handleSave = async () => {
@@ -189,7 +189,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 onSuccess?.();
                 onClose();
             } catch (error) {
-                Alert.alert(t('modals.common.error'), error instanceof Error ? error.message : t('modals.addTransaction.errorTransfer'));
+                Alert.alert(t('alerts.error'), error instanceof Error ? error.message : t('modals.addTransaction.errorTransfer'));
             } finally {
                 setSaving(false);
             }
@@ -218,7 +218,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             onSuccess?.();
             onClose();
         } catch (error) {
-            Alert.alert(t('modals.common.error'), error instanceof Error ? error.message : t('modals.addTransaction.errorSave'));
+            Alert.alert(t('alerts.error'), error instanceof Error ? error.message : t('modals.addTransaction.errorSave'));
         } finally {
             setSaving(false);
         }
@@ -265,9 +265,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             {/* Transaction Type Segmented Control */}
                             <SegmentControl
                                 segments={[
-                                    { key: 'expense', label: t('transactions.filterExpense'), value: 'expense' as const },
-                                    { key: 'income', label: t('transactions.income'), value: 'income' as const },
-                                    { key: 'transfer', label: t('transactions.transfer'), value: 'transfer' as const },
+                                    { key: 'expense', label: t('modals.addTransaction.expense'), value: 'expense' as const },
+                                    { key: 'income', label: t('modals.addTransaction.income'), value: 'income' as const },
+                                    { key: 'transfer', label: t('modals.addTransaction.transfer'), value: 'transfer' as const },
                                 ]}
                                 selectedValue={transactionType}
                                 onSelect={setTransactionType}
