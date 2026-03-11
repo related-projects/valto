@@ -10,12 +10,10 @@ export interface BudgetPaceResult {
     expectedSpentByNow: number;
     /** True if actual spending exceeds the expected pace */
     overBudgetPace: boolean;
-    /** Human-readable insight message (English fallback) */
-    message: string;
     /** i18n translation key */
     messageKey: string;
-    /** i18n interpolation params */
-    messageParams?: Record<string, string | number>;
+    /** Interpolation params for the translation key */
+    messageParams: Record<string, string | number>;
 }
 
 /**
@@ -37,8 +35,8 @@ export function evaluateBudgetPace(
         return {
             expectedSpentByNow: 0,
             overBudgetPace: spent > 0,
-            message: 'Invalid budget period.',
             messageKey: 'insights.invalidBudgetPeriod',
+            messageParams: {},
         };
     }
 
@@ -46,10 +44,10 @@ export function evaluateBudgetPace(
         return {
             expectedSpentByNow: 0,
             overBudgetPace: spent > 0,
-            message: spent > 0
-                ? 'No budget set, but you have spending recorded.'
-                : 'No budget set for this period.',
-            messageKey: spent > 0 ? 'insights.noBudgetSpending' : 'insights.noBudgetNoSpending',
+            messageKey: spent > 0
+                ? 'insights.noBudgetWithSpending'
+                : 'insights.noBudgetSet',
+            messageParams: {},
         };
     }
 
@@ -59,20 +57,18 @@ export function evaluateBudgetPace(
     if (overBudgetPace) {
         const overBy = spent - expectedSpentByNow;
         const overPct = ((overBy / expectedSpentByNow) * 100) || 0;
-        const percent = overPct.toFixed(0);
         return {
             expectedSpentByNow,
             overBudgetPace: true,
-            message: `Spending is ${percent}% ahead of budget pace.`,
-            messageKey: 'insights.budgetAhead',
-            messageParams: { percent },
+            messageKey: 'insights.spendingAhead',
+            messageParams: { percent: overPct.toFixed(0) },
         };
     }
 
     return {
         expectedSpentByNow,
         overBudgetPace: false,
-        message: 'Spending is on track with your budget pace.',
-        messageKey: 'insights.budgetOnTrack',
+        messageKey: 'insights.spendingOnTrack',
+        messageParams: {},
     };
 }

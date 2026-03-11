@@ -185,7 +185,7 @@ export const DashboardScreen = () => {
             {categoryRisk.riskLevel !== 'low' && (
                 <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                     <InsightBanner
-                        message={t('insights.categoryInsight', { category: categoryRisk.topCategory, percent: categoryRisk.percentage.toFixed(0) })}
+                        message={t('insights.categoryRisk', { category: categoryRisk.topCategory, percent: categoryRisk.percentage.toFixed(0) })}
                         variant={categoryRisk.riskLevel === 'high' ? 'destructive' : 'warning'}
                         icon="pie-chart-outline"
                     />

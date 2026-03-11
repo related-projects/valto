@@ -16,8 +16,10 @@ export interface MonthlySpendingTrendResult {
     changePercentage: number;
     /** Qualitative direction */
     direction: SpendingDirection;
-    /** Human-readable insight message */
-    message: string;
+    /** i18n translation key */
+    messageKey: string;
+    /** Interpolation params for the translation key */
+    messageParams: Record<string, string | number>;
 }
 
 /**
@@ -38,10 +40,10 @@ export function compareMonthlySpending(
         return {
             changePercentage: current > 0 ? 100 : 0,
             direction: current > 0 ? 'increase' : 'stable',
-            message:
-                current > 0
-                    ? 'No spending last month — this is your first tracked month.'
-                    : 'No spending recorded in either month.',
+            messageKey: current > 0
+                ? 'insights.firstTrackedMonth'
+                : 'insights.noSpendingEither',
+            messageParams: {},
         };
     }
 
@@ -52,7 +54,8 @@ export function compareMonthlySpending(
         return {
             changePercentage,
             direction: 'stable',
-            message: 'Spending is roughly the same as last month.',
+            messageKey: 'insights.spendingStable',
+            messageParams: {},
         };
     }
 
@@ -60,13 +63,15 @@ export function compareMonthlySpending(
         return {
             changePercentage,
             direction: 'increase',
-            message: `Spending increased by ${changePercentage.toFixed(1)}% compared to last month.`,
+            messageKey: 'insights.spendingIncreased',
+            messageParams: { percent: changePercentage.toFixed(1) },
         };
     }
 
     return {
         changePercentage,
         direction: 'decrease',
-        message: `Spending decreased by ${Math.abs(changePercentage).toFixed(1)}% compared to last month.`,
+        messageKey: 'insights.spendingDecreased',
+        messageParams: { percent: Math.abs(changePercentage).toFixed(1) },
     };
 }

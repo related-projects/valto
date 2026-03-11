@@ -47,7 +47,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                 </Text>
                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
-                        {t('reports.noCategories')}
+                        {t('components.spendingBreakdown.noData')}
                     </Text>
                 </View>
             </Card>

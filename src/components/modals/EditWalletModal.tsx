@@ -34,8 +34,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, wallet, onClose, onSuccess }) => {
-    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { t } = useTranslation();
 
     // Hooks
     const { updateWallet, deleteWallet, hasTransactions } = useWallets();
@@ -64,14 +64,14 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
 
         // Validation
         if (!name.trim()) {
-            Alert.alert(t('modals.editWallet.invalidName'), t('modals.editWallet.invalidNameMessage'));
+            Alert.alert(t('modals.addWallet.invalidName'), t('modals.addWallet.invalidNameMessage'));
             return;
         }
 
         const balanceNum = balance ? parseFloat(balance) : 0;
 
         if (isNaN(balanceNum) || balanceNum < 0) {
-            Alert.alert(t('modals.editWallet.invalidBalance'), t('modals.editWallet.invalidBalanceMessage'));
+            Alert.alert(t('modals.addWallet.invalidBalance'), t('modals.addWallet.invalidBalanceMessage'));
             return;
         }
 
@@ -93,8 +93,8 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
             onClose();
         } catch (error) {
             Alert.alert(
-                t('alerts.error'),
-                error instanceof Error ? error.message : t('modals.editWallet.errorUpdate')
+                t('modals.addWallet.error'),
+                error instanceof Error ? error.message : t('modals.addWallet.createFailed')
             );
         } finally {
             setSaving(false);
@@ -110,10 +110,10 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
 
             if (hasTxns) {
                 Alert.alert(
-                    t('modals.editWallet.hasTransactions'),
+                    t('modals.editWallet.hasTransactionsTitle'),
                     t('modals.editWallet.hasTransactionsMessage'),
                     [
-                        { text: t('modals.common.cancel'), style: 'cancel' },
+                        { text: t('common.cancel'), style: 'cancel' },
                         {
                             text: t('modals.editWallet.deleteAnyway'),
                             style: 'destructive',
@@ -123,12 +123,12 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                 );
             } else {
                 Alert.alert(
-                    t('modals.editWallet.deleteWallet'),
-                    t('modals.editWallet.deleteConfirmMessage', { name: wallet.name }),
+                    t('modals.editWallet.deleteTitle'),
+                    t('modals.editWallet.deleteMessage', { name: wallet.name }),
                     [
-                        { text: t('modals.common.cancel'), style: 'cancel' },
+                        { text: t('common.cancel'), style: 'cancel' },
                         {
-                            text: t('modals.common.delete'),
+                            text: t('common.delete'),
                             style: 'destructive',
                             onPress: () => performDelete(),
                         },
@@ -136,7 +136,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                 );
             }
         } catch (error) {
-            Alert.alert(t('alerts.error'), t('modals.editWallet.errorCheck'));
+            Alert.alert(t('modals.editWallet.error'), t('modals.editWallet.deleteFailed'));
         }
     };
 
@@ -150,8 +150,8 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
             onClose();
         } catch (error) {
             Alert.alert(
-                t('alerts.error'),
-                error instanceof Error ? error.message : t('modals.editWallet.errorDelete')
+                t('modals.addWallet.error'),
+                error instanceof Error ? error.message : t('modals.editWallet.deleteFailed')
             );
         } finally {
             setDeleting(false);
@@ -185,7 +185,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    {t('modals.common.save')}
+                                    {t('modals.editWallet.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -204,12 +204,12 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Wallet Name */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    {t('modals.editWallet.walletName')}
+                                    {t('modals.addWallet.walletName')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
-                                        placeholder={t('modals.editWallet.namePlaceholder')}
+                                        placeholder={t('modals.addWallet.walletNamePlaceholder')}
                                         placeholderTextColor={colors.mutedForeground}
                                         value={name}
                                         onChangeText={setName}
@@ -221,7 +221,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Balance */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    {t('modals.editWallet.currentBalance')}
+                                    {t('modals.addWallet.initialBalance')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
@@ -239,7 +239,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Wallet Type */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    {t('modals.editWallet.walletType')}
+                                    {t('modals.addWallet.walletType')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_TYPES.map((type) => {
@@ -270,7 +270,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                                                         fontWeight: isSelected ? '600' : '500',
                                                     }}
                                                 >
-                                                    {t(`wallets.type.${type.value}`)}
+                                                    {t(`wallets.type.${type.labelKey}`)}
                                                 </Text>
                                             </TouchableOpacity>
                                         );
@@ -281,7 +281,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                             {/* Color Picker */}
                             <View style={{ marginBottom: spacing.xl }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    {t('modals.editWallet.walletColor')}
+                                    {t('modals.addWallet.walletColor')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_COLORS.map((color) => {
@@ -327,7 +327,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
                                     <>
                                         <Ionicons name="trash-outline" size={18} color={colors.destructive} style={{ marginRight: spacing.xs }} />
                                         <Text style={{ color: colors.destructive, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                                            {t('modals.editWallet.deleteButton')}
+                                            {t('modals.editWallet.delete')}
                                         </Text>
                                     </>
                                 )}

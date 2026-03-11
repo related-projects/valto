@@ -33,8 +33,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose, onSuccess }) => {
-    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { t } = useTranslation();
 
     // Hooks
     const { createWallet } = useWallets();
@@ -85,8 +85,8 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
             onClose();
         } catch (error) {
             Alert.alert(
-                t('alerts.error'),
-                error instanceof Error ? error.message : t('modals.addWallet.errorCreate')
+                t('modals.addWallet.error'),
+                error instanceof Error ? error.message : t('modals.addWallet.createFailed')
             );
         } finally {
             setSaving(false);
@@ -125,7 +125,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    {t('modals.common.save')}
+                                    {t('modals.addWallet.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -149,7 +149,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
-                                        placeholder={t('modals.addWallet.namePlaceholder')}
+                                        placeholder={t('modals.addWallet.walletNamePlaceholder')}
                                         placeholderTextColor={colors.mutedForeground}
                                         value={name}
                                         onChangeText={setName}
@@ -210,7 +210,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                                         fontWeight: isSelected ? '600' : '500',
                                                     }}
                                                 >
-                                                    {t(`wallets.type.${type.value}`)}
+                                                    {t(`wallets.type.${type.labelKey}`)}
                                                 </Text>
                                             </TouchableOpacity>
                                         );

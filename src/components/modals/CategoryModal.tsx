@@ -53,8 +53,8 @@ const TYPE_SEGMENTS: Segment<CategoryType>[] = Object.values(CategoryType).map(t
 }));
 
 export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, categoryToEdit }) => {
-    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { t } = useTranslation();
     const { createCategory, updateCategory } = useCategories();
 
     const [name, setName] = useState('');
@@ -81,7 +81,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
 
     const handleSave = async () => {
         if (!name.trim()) {
-            Alert.alert(t('alerts.error'), t('modals.category.invalidName'));
+            Alert.alert(t('modals.category.error'), t('modals.category.errorEmpty'));
             return;
         }
 
@@ -105,7 +105,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
             }
             onClose();
         } catch (error) {
-            Alert.alert(t('alerts.error'), t('modals.category.errorSave'));
+            Alert.alert(t('modals.category.error'), t('modals.category.errorSave'));
             console.error(error);
         } finally {
             setSaving(false);
@@ -138,7 +138,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
-                                <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>{t('modals.common.save')}</Text>
+                                <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>{t('modals.category.save')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>

@@ -40,8 +40,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess }) => {
-    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { t, i18n } = useTranslation();
     const { formatAmount } = useFormatting();
     const scrollViewRef = React.useRef<ScrollView>(null);
 
@@ -58,10 +58,25 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     const [notes, setNotes] = useState('');
     const [transactionType, setTransactionType] = useState<'expense' | 'income' | 'transfer'>('expense');
     const [selectedWalletId, setSelectedWalletId] = useState<string>('');
+    const [destWalletId, setDestWalletId] = useState<string>('');
     const [saving, setSaving] = useState(false);
 
-    // Transfer-specific state
-    const [destWalletId, setDestWalletId] = useState<string>('');
+    // Auto-select first wallet
+    useEffect(() => {
+        if (visible && wallets.length > 0 && !selectedWalletId) {
+            setSelectedWalletId(wallets[0].id);
+        }
+    }, [visible, wallets, selectedWalletId]);
+
+    // Auto-select first category
+    useEffect(() => {
+        if (visible) {
+            const list = transactionType === 'expense' ? expenseCategories : incomeCategories;
+            if (list.length > 0 && !selectedCategoryId) {
+                setSelectedCategoryId(list[0].id);
+            }
+        }
+    }, [visible, transactionType, expenseCategories, incomeCategories, selectedCategoryId]);
 
     // Refresh wallets when modal becomes visible
     useEffect(() => {
@@ -69,26 +84,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             refreshWallets();
         }
     }, [visible, refreshWallets]);
-
-    // Initialize default selections when data loads
-    useEffect(() => {
-        if (wallets.length > 0 && !selectedWalletId) {
-            setSelectedWalletId(wallets[0].id);
-        }
-        // Set default destination wallet for transfers
-        if (wallets.length > 1 && !destWalletId) {
-            setDestWalletId(wallets[1].id);
-        }
-    }, [wallets, selectedWalletId, destWalletId]);
-
-    useEffect(() => {
-        const defaultCategories = transactionType === 'expense' ? expenseCategories : incomeCategories;
-        if (defaultCategories.length > 0 && !selectedCategoryId) {
-            setSelectedCategoryId(defaultCategories[0].id);
-        }
-    }, [transactionType, expenseCategories, incomeCategories, selectedCategoryId]);
-
-    // ── Derived picker data ──────────────────────────────────────────
 
     const selectedWallet = wallets.find(w => w.id === selectedWalletId);
 
@@ -110,7 +105,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             icon: 'wallet-outline',
             color: w.color,
         })),
-        [wallets]);
+        [wallets, formatAmount]);
 
     const destWalletItems: DropdownItem[] = useMemo(() =>
         wallets
@@ -122,7 +117,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 icon: 'wallet-outline',
                 color: w.color,
             })),
-        [wallets, selectedWalletId]);
+        [wallets, selectedWalletId, formatAmount]);
 
     // ── Handlers ─────────────────────────────────────────────────────
 
@@ -141,14 +136,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         }
     };
 
-    const formatDate = (d: Date) => {
+    const formatDateLabel = (d: Date) => {
         const today = new Date();
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        if (d.toDateString() === today.toDateString()) return t('modals.common.today');
-        if (d.toDateString() === yesterday.toDateString()) return t('modals.common.yesterday');
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        if (d.toDateString() === today.toDateString()) return t('modals.addTransaction.today');
+        if (d.toDateString() === yesterday.toDateString()) return t('modals.addTransaction.yesterday');
+        return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
     const handleSave = async () => {
@@ -189,7 +184,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 onSuccess?.();
                 onClose();
             } catch (error) {
-                Alert.alert(t('alerts.error'), error instanceof Error ? error.message : t('modals.addTransaction.errorTransfer'));
+                Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.transferFailed'));
             } finally {
                 setSaving(false);
             }
@@ -198,7 +193,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
 
         // Regular expense/income
         if (!selectedCategoryId) {
-            Alert.alert(t('modals.addTransaction.noCategory'), t('modals.addTransaction.noCategoryMessage'));
+            Alert.alert(t('modals.addTransaction.noCategorySelected'), t('modals.addTransaction.noCategorySelectedMessage'));
             return;
         }
 
@@ -218,7 +213,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             onSuccess?.();
             onClose();
         } catch (error) {
-            Alert.alert(t('alerts.error'), error instanceof Error ? error.message : t('modals.addTransaction.errorSave'));
+            Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.saveFailed'));
         } finally {
             setSaving(false);
         }
@@ -244,7 +239,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    {t('modals.common.save')}
+                                    {t('modals.addTransaction.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -277,7 +272,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             {/* Amount */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    {t('modals.common.amount')}
+                                    {t('modals.addTransaction.amount')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
@@ -312,7 +307,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                             size="sm"
                                         />
                                     }
-                                    emptyText={t('modals.addTransaction.noCategoriesAvailable')}
+                                    emptyText={t('modals.addTransaction.noCategories')}
                                 />
                             )}
 
@@ -322,7 +317,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 items={walletItems}
                                 selectedId={selectedWalletId}
                                 onSelect={setSelectedWalletId}
-                                placeholder={t('modals.common.selectWallet')}
+                                placeholder={t('modals.addTransaction.selectWallet')}
                                 triggerIcon={
                                     <Ionicons
                                         name="wallet-outline"
@@ -330,7 +325,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         color={selectedWallet?.color || colors.primary}
                                     />
                                 }
-                                emptyText={t('modals.common.noWalletsAvailable')}
+                                emptyText={t('modals.addTransaction.noWallets')}
                             />
 
                             {/* Transfer Arrow + Destination */}
@@ -362,7 +357,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                                 color={destWalletItems.find(w => w.id === destWalletId)?.color || colors.primary}
                                             />
                                         }
-                                        emptyText={t('modals.common.noOtherWallets')}
+                                        emptyText={t('modals.addTransaction.noOtherWallets')}
                                     />
                                 </>
                             )}
@@ -370,7 +365,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             {/* Date */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    {t('modals.common.date')}
+                                    {t('modals.addTransaction.date')}
                                 </Text>
                                 <TouchableOpacity
                                     style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -378,7 +373,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                         <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{formatDate(date)}</Text>
+                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{formatDateLabel(date)}</Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                                 </TouchableOpacity>

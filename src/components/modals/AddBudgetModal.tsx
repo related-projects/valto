@@ -39,8 +39,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
     onCreateBudget,
     budgetedCategoryIds,
 }) => {
-    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { t } = useTranslation();
     const { expenseCategories } = useCategories();
 
     // Form state
@@ -85,8 +85,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
             onClose();
         } catch (error) {
             Alert.alert(
-                t('alerts.error'),
-                error instanceof Error ? error.message : t('modals.addBudget.errorCreate')
+                t('modals.addBudget.error'),
+                error instanceof Error ? error.message : t('modals.addBudget.createFailed')
             );
         } finally {
             setSaving(false);
@@ -165,7 +165,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    {t('modals.common.save')}
+                                    {t('modals.addBudget.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -211,8 +211,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                                         <Ionicons name="alert-circle-outline" size={32} color={colors.mutedForeground} />
                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center', marginTop: spacing.sm }}>
                                             {expenseCategories.length === 0
-                                                ? t('modals.addBudget.noCategoriesEmpty')
-                                                : t('modals.addBudget.noCategoriesAll')}
+                                                ? t('modals.addBudget.noExpenseCategories')
+                                                : t('modals.addBudget.allBudgeted')}
                                         </Text>
                                     </View>
                                 ) : (

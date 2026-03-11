@@ -33,8 +33,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, onSuccess }) => {
-    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
+    const { t } = useTranslation();
     const { formatAmount } = useFormatting();
 
     // Hooks
@@ -99,12 +99,12 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
         }
 
         if (!sourceWalletId) {
-            Alert.alert(t('modals.transfer.noSource'), t('modals.transfer.noSourceMessage'));
+            Alert.alert(t('modals.transfer.noSourceWallet'), t('modals.transfer.noSourceWalletMessage'));
             return;
         }
 
         if (!destWalletId) {
-            Alert.alert(t('modals.transfer.noDestination'), t('modals.transfer.noDestinationMessage'));
+            Alert.alert(t('modals.transfer.noDestWallet'), t('modals.transfer.noDestWalletMessage'));
             return;
         }
 
@@ -128,8 +128,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
             onClose();
         } catch (error) {
             Alert.alert(
-                t('alerts.error'),
-                error instanceof Error ? error.message : t('modals.transfer.errorTransfer')
+                t('modals.transfer.error'),
+                error instanceof Error ? error.message : t('modals.transfer.transferFailed')
             );
         } finally {
             setTransferring(false);
@@ -253,7 +253,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 <Ionicons name="wallet-outline" size={20} color={sourceWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
                                                 <View>
                                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                        {sourceWallet?.name || t('modals.common.selectWallet')}
+                                                        {sourceWallet?.name || t('modals.transfer.selectWallet')}
                                                     </Text>
                                                     {sourceWallet && (
                                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
@@ -317,7 +317,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 <Ionicons name="wallet-outline" size={20} color={destWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
                                                 <View>
                                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                        {destWallet?.name || t('modals.common.selectWallet')}
+                                                        {destWallet?.name || t('modals.transfer.selectWallet')}
                                                     </Text>
                                                     {destWallet && (
                                                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
@@ -341,7 +341,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                     {availableDestWallets.length === 0 ? (
                                                         <View style={{ padding: spacing.md, alignItems: 'center' }}>
                                                             <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                                                                {t('modals.common.noOtherWallets')}
+                                                                {t('modals.transfer.noOtherWallets')}
                                                             </Text>
                                                         </View>
                                                     ) : (

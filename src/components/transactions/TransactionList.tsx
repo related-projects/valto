@@ -13,7 +13,7 @@ interface TransactionListProps {
     showDateHeaders?: boolean;
 }
 
-const groupByDate = (transactions: Transaction[], todayLabel: string, yesterdayLabel: string, locale: string = 'en-US') => {
+const groupByDate = (transactions: Transaction[], todayLabel: string, yesterdayLabel: string, locale: string = 'en') => {
     const groups: Record<string, Transaction[]> = {};
 
     transactions.forEach((transaction) => {
@@ -177,7 +177,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         transactions,
         t('components.transactionList.today'),
         t('components.transactionList.yesterday'),
-        i18n.language
+        i18n.language,
     );
 
     return (

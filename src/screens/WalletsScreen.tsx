@@ -17,12 +17,12 @@ import { useFormatting } from '../hooks/useFormatting';
 export const WalletsScreen = () => {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
-    const { formatAmount } = useFormatting();
     const insets = useSafeAreaInsets();
 
     // Get real data
     const { wallets, getTotalBalance, refreshWallets } = useWallets();
     const { transactions } = useTransactions();
+    const { formatAmount } = useFormatting();
 
     // Modal state
     const [addModalVisible, setAddModalVisible] = useState(false);
