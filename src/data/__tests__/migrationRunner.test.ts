@@ -2,17 +2,19 @@
  * Migration Runner Tests
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { executeMigrations, getCurrentVersion, type Migration } from '../../../src/data/migrations/migrationRunner';
 import { StorageKeys } from '../../../src/data/storage/StorageKeys';
+import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
 
 describe('migrationRunner', () => {
-    beforeEach(async () => {
-        await AsyncStorage.clear();
+    let storage: InMemoryStorage;
+
+    beforeEach(() => {
+        storage = new InMemoryStorage();
     });
 
     it('returns version 0 when no migrations have run', async () => {
-        const version = await getCurrentVersion();
+        const version = await getCurrentVersion(storage);
         expect(version).toBe(0);
     });
 
@@ -32,12 +34,12 @@ describe('migrationRunner', () => {
             },
         ];
 
-        await executeMigrations(migrations);
+        await executeMigrations(migrations, storage);
         expect(executionOrder).toEqual([1, 2]);
     });
 
     it('skips already-applied migrations', async () => {
-        await AsyncStorage.setItem(StorageKeys.SCHEMA_VERSION, '1');
+        await storage.set(StorageKeys.SCHEMA_VERSION, 1);
         const executionOrder: number[] = [];
 
         const migrations: Migration[] = [
@@ -53,7 +55,7 @@ describe('migrationRunner', () => {
             },
         ];
 
-        await executeMigrations(migrations);
+        await executeMigrations(migrations, storage);
         expect(executionOrder).toEqual([2]);
     });
 
@@ -71,12 +73,12 @@ describe('migrationRunner', () => {
             },
         ];
 
-        const finalVersion = await executeMigrations(migrations);
+        const finalVersion = await executeMigrations(migrations, storage);
         expect(finalVersion).toBe(2);
     });
 
     it('handles empty migration list', async () => {
-        const finalVersion = await executeMigrations([]);
+        const finalVersion = await executeMigrations([], storage);
         expect(finalVersion).toBe(0);
     });
 
@@ -101,8 +103,23 @@ describe('migrationRunner', () => {
             },
         ];
 
-        await expect(executeMigrations(migrations)).rejects.toThrow('migration failed');
+        await expect(executeMigrations(migrations, storage)).rejects.toThrow('migration failed');
         expect(executionOrder).toEqual([1]);
-        expect(await getCurrentVersion()).toBe(1);
+        expect(await getCurrentVersion(storage)).toBe(1);
+    });
+
+    it('passes storage to migration up function', async () => {
+        let receivedStorage: any = null;
+
+        const migrations: Migration[] = [
+            {
+                version: 1,
+                name: 'test',
+                up: async (s) => { receivedStorage = s; },
+            },
+        ];
+
+        await executeMigrations(migrations, storage);
+        expect(receivedStorage).toBe(storage);
     });
 });

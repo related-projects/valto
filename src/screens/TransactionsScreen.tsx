@@ -19,8 +19,8 @@ export const TransactionsScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
-    // Get real transactions
-    const { transactions } = useTransactions();
+    // Get real transactions with pagination support
+    const { transactions, loadNextPage, loadingMore } = useTransactions();
 
     const filteredTransactions = useMemo(() => {
         return transactions.filter((t) => {
@@ -111,7 +111,12 @@ export const TransactionsScreen = () => {
                     overflow: 'hidden',
                     ...shadows.card,
                 }}>
-                    <TransactionList transactions={filteredTransactions} showDateHeaders={true} />
+                    <TransactionList
+                        transactions={filteredTransactions}
+                        showDateHeaders={true}
+                        onEndReached={loadNextPage}
+                        loadingMore={loadingMore}
+                    />
                 </View>
             </ScrollView>
         </View>

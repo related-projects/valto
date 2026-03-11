@@ -7,6 +7,10 @@
  * Architecture Note:
  * This repository manages category persistence and provides methods for
  * filtering categories by type (expense/income).
+ * 
+ * Data Integrity:
+ * - Validates id and name before persistence
+ * - Safe writes: on failure, previous valid state is preserved
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -70,6 +74,14 @@ export class CategoryRepository implements IRepository<Category> {
      */
     async save(category: Category): Promise<Category> {
         try {
+            // Basic entity validation
+            if (!category.id || typeof category.id !== 'string') {
+                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category id must be a non-empty string');
+            }
+            if (!category.name || typeof category.name !== 'string' || category.name.trim().length === 0) {
+                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category name must be a non-empty string');
+            }
+
             const categories = await this.getAll();
 
             // Check for duplicate ID
@@ -91,6 +103,7 @@ export class CategoryRepository implements IRepository<Category> {
                 throw error;
             }
 
+            console.error('[CategoryRepository] Unexpected save failure — previous state preserved:', error);
             throw new RepositoryError(
                 RepositoryErrorType.STORAGE_ERROR,
                 'Failed to save category',
@@ -104,6 +117,14 @@ export class CategoryRepository implements IRepository<Category> {
      */
     async update(category: Category): Promise<Category> {
         try {
+            // Basic entity validation
+            if (!category.id || typeof category.id !== 'string') {
+                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category id must be a non-empty string');
+            }
+            if (!category.name || typeof category.name !== 'string' || category.name.trim().length === 0) {
+                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category name must be a non-empty string');
+            }
+
             const categories = await this.getAll();
             const index = categories.findIndex(c => c.id === category.id);
 
@@ -125,6 +146,7 @@ export class CategoryRepository implements IRepository<Category> {
                 throw error;
             }
 
+            console.error('[CategoryRepository] Unexpected update failure — previous state preserved:', error);
             throw new RepositoryError(
                 RepositoryErrorType.STORAGE_ERROR,
                 'Failed to update category',

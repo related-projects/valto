@@ -7,6 +7,11 @@
  * Architecture Note:
  * This repository manages wallet persistence and provides methods for
  * balance management. It enforces business rules like balance validation.
+ * 
+ * Data Integrity:
+ * - Validates all entities before persistence via WalletValidator
+ * - Retains validateWalletBalance as additional business rule check
+ * - Safe writes: on failure, previous valid state is preserved
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -20,6 +25,8 @@ import {
     Wallet,
     WalletType,
 } from '../../domain/entities/Wallet';
+import { ValidationError } from '../../domain/validators/ValidationError';
+import { validateWallet } from '../../domain/validators/WalletValidator';
 import { IStorage, StorageKeys } from '../storage';
 import { IRepository, RepositoryError, RepositoryErrorType } from './IRepository';
 
@@ -71,7 +78,18 @@ export class WalletRepository implements IRepository<Wallet> {
      */
     async save(wallet: Wallet): Promise<Wallet> {
         try {
-            // Validate wallet balance
+            // Full entity validation
+            try {
+                validateWallet(wallet);
+            } catch (error) {
+                if (error instanceof ValidationError) {
+                    console.error(`[WalletRepository] Validation failed: ${error.message}`);
+                    throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, error.message);
+                }
+                throw error;
+            }
+
+            // Business rule: balance constraints
             if (!validateWalletBalance(wallet)) {
                 throw new RepositoryError(
                     RepositoryErrorType.VALIDATION_ERROR,
@@ -100,6 +118,7 @@ export class WalletRepository implements IRepository<Wallet> {
                 throw error;
             }
 
+            console.error('[WalletRepository] Unexpected save failure — previous state preserved:', error);
             throw new RepositoryError(
                 RepositoryErrorType.STORAGE_ERROR,
                 'Failed to save wallet',
@@ -113,7 +132,18 @@ export class WalletRepository implements IRepository<Wallet> {
      */
     async update(wallet: Wallet): Promise<Wallet> {
         try {
-            // Validate wallet balance
+            // Full entity validation
+            try {
+                validateWallet(wallet);
+            } catch (error) {
+                if (error instanceof ValidationError) {
+                    console.error(`[WalletRepository] Validation failed: ${error.message}`);
+                    throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, error.message);
+                }
+                throw error;
+            }
+
+            // Business rule: balance constraints
             if (!validateWalletBalance(wallet)) {
                 throw new RepositoryError(
                     RepositoryErrorType.VALIDATION_ERROR,
@@ -142,6 +172,7 @@ export class WalletRepository implements IRepository<Wallet> {
                 throw error;
             }
 
+            console.error('[WalletRepository] Unexpected update failure — previous state preserved:', error);
             throw new RepositoryError(
                 RepositoryErrorType.STORAGE_ERROR,
                 'Failed to update wallet',
