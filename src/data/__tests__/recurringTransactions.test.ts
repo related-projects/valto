@@ -8,13 +8,14 @@
  */
 
 import { TransactionType } from '../../domain/entities/Transaction';
+import { WalletType } from '../../domain/entities/Wallet';
 import { RecurrenceFrequency, type RecurringTransaction } from '../../domain/entities/RecurringTransaction';
 import { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
 import { RepositoryErrorType } from '../repositories/IRepository';
 import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
-import { processRecurringRules, computeDueDates } from '../services/RecurringTransactionEngine';
+import { processRecurringRules, computeDueDates, retryRule, SkipReason } from '../services/RecurringTransactionEngine';
 import { dataEvents } from '../../core/events/dataEvents';
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -313,5 +314,225 @@ describe('RecurringTransactionEngine', () => {
         expect(updatedRule!.lastGeneratedDate.getTime()).toBeGreaterThan(
             localDate(2025, 12, 1).getTime(),
         );
+    });
+});
+
+// ─── Insufficient Funds Handling Tests ────────────────────────────────
+
+describe('RecurringTransactionEngine — Insufficient Funds', () => {
+    let storage: InMemoryStorage;
+    let recurringRepo: RecurringTransactionRepository;
+    let transactionRepo: TransactionRepository;
+    let walletRepo: WalletRepository;
+
+    beforeEach(async () => {
+        storage = new InMemoryStorage();
+        recurringRepo = new RecurringTransactionRepository(storage);
+        transactionRepo = new TransactionRepository(storage);
+        walletRepo = new WalletRepository(storage);
+    });
+
+    it('skips expense rule when cash wallet has insufficient funds', async () => {
+        // Wallet with only $50
+        await walletRepo.save({
+            id: 'w-1',
+            name: 'Cash Wallet',
+            balance: 50,
+            type: WalletType.CASH,
+            createdAt: new Date('2025-01-01'),
+        });
+
+        // Rule: $100/month expense starting today
+        await recurringRepo.save(validRule({
+            type: TransactionType.EXPENSE,
+            amount: 100,
+            walletId: 'w-1',
+            startDate: localDate(2026, 3, 1),
+            lastGeneratedDate: localDate(2026, 2, 1),
+        }));
+
+        const result = await processRecurringRules({
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+        });
+
+        // Rule was evaluated and skipped — not errored
+        expect(result.rulesEvaluated).toBe(1);
+        expect(result.skipped).toHaveLength(1);
+        expect(result.skipped[0].reason).toBe(SkipReason.INSUFFICIENT_FUNDS);
+        expect(result.skipped[0].ruleId).toBe('rule-1');
+        expect(result.errors).toHaveLength(0);
+
+        // No transaction created
+        const txs = await transactionRepo.getAll();
+        expect(txs).toHaveLength(0);
+
+        // lastGeneratedDate NOT advanced
+        const rule = await recurringRepo.getById('rule-1');
+        expect(rule!.lastGeneratedDate.getTime()).toBe(localDate(2026, 2, 1).getTime());
+    });
+
+    it('skips rule when cumulative dues exceed balance (all-or-nothing)', async () => {
+        // Wallet with $150 — enough for 1 month but not 3
+        await walletRepo.save({
+            id: 'w-1',
+            name: 'Cash Wallet',
+            balance: 150,
+            type: WalletType.CASH,
+            createdAt: new Date('2025-01-01'),
+        });
+
+        // 3 overdue months × $100 = $300 needed
+        await recurringRepo.save(validRule({
+            type: TransactionType.EXPENSE,
+            amount: 100,
+            walletId: 'w-1',
+            startDate: localDate(2026, 1, 1),
+            lastGeneratedDate: localDate(2025, 12, 1),
+        }));
+
+        const result = await processRecurringRules({
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+        });
+
+        // ALL skipped — no partial generation
+        expect(result.skipped).toHaveLength(1);
+        expect(result.skipped[0].amount).toBeGreaterThan(150);
+        expect(result.transactionsGenerated).toBe(0);
+
+        const txs = await transactionRepo.getAll();
+        expect(txs).toHaveLength(0);
+    });
+
+    it('never skips income rules regardless of balance', async () => {
+        // Wallet with $0 balance
+        await walletRepo.save({
+            id: 'w-1',
+            name: 'Cash Wallet',
+            balance: 0,
+            type: WalletType.CASH,
+            createdAt: new Date('2025-01-01'),
+        });
+
+        // Income rule — should always succeed
+        await recurringRepo.save(validRule({
+            type: TransactionType.INCOME,
+            amount: 500,
+            walletId: 'w-1',
+            startDate: localDate(2026, 3, 1),
+            lastGeneratedDate: localDate(2026, 2, 1),
+        }));
+
+        const result = await processRecurringRules({
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+        });
+
+        expect(result.skipped).toHaveLength(0);
+        expect(result.transactionsGenerated).toBeGreaterThan(0);
+    });
+
+    it('never skips expense rules on bank wallets (overdraft allowed)', async () => {
+        // Bank wallet with $0 balance — overdraft is allowed
+        await walletRepo.save({
+            id: 'w-1',
+            name: 'Bank Account',
+            balance: 0,
+            type: WalletType.BANK,
+            createdAt: new Date('2025-01-01'),
+        });
+
+        await recurringRepo.save(validRule({
+            type: TransactionType.EXPENSE,
+            amount: 100,
+            walletId: 'w-1',
+            startDate: localDate(2026, 3, 1),
+            lastGeneratedDate: localDate(2026, 2, 1),
+        }));
+
+        const result = await processRecurringRules({
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+        });
+
+        expect(result.skipped).toHaveLength(0);
+        expect(result.transactionsGenerated).toBeGreaterThan(0);
+        expect(result.errors).toHaveLength(0);
+    });
+
+    it('does not console.error for insufficient funds (business case)', async () => {
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+        const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+        await walletRepo.save({
+            id: 'w-1',
+            name: 'Cash Wallet',
+            balance: 10,
+            type: WalletType.CASH,
+            createdAt: new Date('2025-01-01'),
+        });
+
+        await recurringRepo.save(validRule({
+            type: TransactionType.EXPENSE,
+            amount: 100,
+            walletId: 'w-1',
+            startDate: localDate(2026, 3, 1),
+            lastGeneratedDate: localDate(2026, 2, 1),
+        }));
+
+        await processRecurringRules({
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+        });
+
+        // console.error should NOT have been called for this business case
+        expect(errorSpy).not.toHaveBeenCalled();
+
+        // console.info SHOULD have been called with skip info
+        expect(infoSpy).toHaveBeenCalledWith(
+            expect.stringContaining('skipped'),
+        );
+
+        errorSpy.mockRestore();
+        infoSpy.mockRestore();
+        logSpy.mockRestore();
+    });
+
+    it('retryRule succeeds after funds are added', async () => {
+        // Start with low balance
+        await walletRepo.save({
+            id: 'w-1',
+            name: 'Cash Wallet',
+            balance: 10,
+            type: WalletType.CASH,
+            createdAt: new Date('2025-01-01'),
+        });
+
+        await recurringRepo.save(validRule({
+            type: TransactionType.EXPENSE,
+            amount: 100,
+            walletId: 'w-1',
+            startDate: localDate(2026, 3, 1),
+            lastGeneratedDate: localDate(2026, 2, 1),
+        }));
+
+        // First run — should be skipped
+        const firstResult = await processRecurringRules({
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+        });
+        expect(firstResult.skipped).toHaveLength(1);
+
+        // Add funds to wallet
+        await walletRepo.updateBalance('w-1', 500);
+
+        // Retry the specific rule
+        const retryResult = await retryRule(
+            { recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents },
+            'rule-1',
+        );
+
+        expect(retryResult.generated).toBeGreaterThan(0);
+        expect(retryResult.skipped).toBeUndefined();
+
+        // Transaction should now exist
+        const txs = await transactionRepo.getAll();
+        expect(txs.length).toBeGreaterThan(0);
     });
 });

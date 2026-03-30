@@ -15,19 +15,25 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RecurrenceFrequency, type RecurringTransaction, type CreateRecurringTransactionDTO, type UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
-import { useRecurringRules } from '../hooks/useRecurringRules';
-import { useFormatting } from '../hooks/useFormatting';
-import { useTheme } from '../theme/theme';
 import { RecurringRuleForm } from '../components/recurring/RecurringRuleForm';
-import { processRecurringRules } from '../data/services/RecurringTransactionEngine';
 import { container } from '../core/di/container';
 import { dataEvents } from '../core/events/dataEvents';
+import { processRecurringRules } from '../data/services/RecurringTransactionEngine';
+import { RecurrenceFrequency, type CreateRecurringTransactionDTO, type RecurringTransaction, type UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
+import { useFormatting } from '../hooks/useFormatting';
+import { useRecurringRules } from '../hooks/useRecurringRules';
+import { useTheme } from '../theme/theme';
 
 // ─── Helpers ──────────────────────────────────────────────────────────
+const FREQ_BASE: Record<RecurrenceFrequency, string> = {
+    daily: 'day',
+    weekly: 'week',
+    monthly: 'month',
+    yearly: 'year',
+};
 
 function frequencyLabel(freq: RecurrenceFrequency, interval: number): string {
-    const base = freq.replace(/ly$/, '');
+    const base = FREQ_BASE[freq]; // freq.replace(/ly$/, '');
     return interval === 1 ? `Every ${base}` : `Every ${interval} ${base}s`;
 }
 
@@ -194,7 +200,13 @@ export const RecurringRulesScreen: React.FC = () => {
                 dataEvents.emit('transactions');
                 dataEvents.emit('wallets');
 
-                if (result.transactionsGenerated > 0) {
+                if (result.skipped && result.skipped.length > 0) {
+                    // Insufficient funds — inform user clearly
+                    Alert.alert(
+                        'Rule Created — Insufficient Funds',
+                        'Recurring rule created successfully, but transactions were skipped because your wallet does not have enough funds. They will be generated automatically once funds are available.',
+                    );
+                } else if (result.transactionsGenerated > 0) {
                     Alert.alert(
                         'Rule Created',
                         `Recurring rule created successfully.\n${result.transactionsGenerated} transaction(s) generated.`,

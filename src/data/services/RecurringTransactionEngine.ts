@@ -9,9 +9,16 @@
  * Idempotency:
  * Uses `lastGeneratedDate` as a watermark — only generates transactions
  * for dates strictly after the watermark up to today.
+ *
+ * Insufficient Funds Handling:
+ * Expense rules targeting cash/mobile wallets are pre-checked before
+ * transaction creation. If the wallet cannot cover the total cost of
+ * all pending due dates, the rule is skipped (all-or-nothing) and
+ * reported as a business outcome — NOT a system error.
  */
 
 import { TransactionType, type CreateTransactionDTO } from '../../domain/entities/Transaction';
+import { WalletType } from '../../domain/entities/Wallet';
 import { RecurrenceFrequency, type RecurringTransaction } from '../../domain/entities/RecurringTransaction';
 import type { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import type { TransactionRepository } from '../repositories/TransactionRepository';
@@ -20,6 +27,20 @@ import type { EventBus } from '../../domain/useCases/types';
 import { createTransaction } from '../../domain/useCases/createTransaction';
 
 // ─── Types ────────────────────────────────────────────────────────────
+
+export enum SkipReason {
+    INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
+}
+
+export interface SkippedRule {
+    ruleId: string;
+    reason: SkipReason;
+    walletId: string;
+    /** Total amount needed for all pending due dates */
+    amount: number;
+    /** Wallet balance at the time of evaluation */
+    availableBalance: number;
+}
 
 export interface RecurringEngineDeps {
     recurringRepo: RecurringTransactionRepository;
@@ -31,7 +52,14 @@ export interface RecurringEngineDeps {
 export interface RecurringEngineResult {
     rulesEvaluated: number;
     transactionsGenerated: number;
+    skipped: SkippedRule[];
     errors: Array<{ ruleId: string; error: string }>;
+}
+
+/** Internal result from generating transactions for a single rule */
+interface GenerateResult {
+    generated: number;
+    skipped?: SkippedRule;
 }
 
 // ─── Engine ───────────────────────────────────────────────────────────
@@ -46,6 +74,7 @@ export async function processRecurringRules(
     const result: RecurringEngineResult = {
         rulesEvaluated: 0,
         transactionsGenerated: 0,
+        skipped: [],
         errors: [],
     };
 
@@ -57,9 +86,20 @@ export async function processRecurringRules(
 
         for (const rule of activeRules) {
             try {
-                const generated = await generateForRule(deps, rule);
-                result.transactionsGenerated += generated;
+                const genResult = await generateForRule(deps, rule);
+                result.transactionsGenerated += genResult.generated;
+
+                if (genResult.skipped) {
+                    result.skipped.push(genResult.skipped);
+                    // Emit event so UI can refresh — this is a business outcome, not an error
+                    deps.eventBus.emit('recurringRules');
+                    console.info(
+                        `[RecurringEngine] Rule ${rule.id} skipped: ${genResult.skipped.reason} ` +
+                        `(need ${genResult.skipped.amount}, have ${genResult.skipped.availableBalance})`,
+                    );
+                }
             } catch (error) {
+                // Only real system failures reach here
                 const message = error instanceof Error ? error.message : String(error);
                 console.error(`[RecurringEngine] Error processing rule ${rule.id}: ${message}`);
                 result.errors.push({ ruleId: rule.id, error: message });
@@ -67,7 +107,8 @@ export async function processRecurringRules(
         }
 
         console.log(
-            `[RecurringEngine] Complete: ${result.transactionsGenerated} transaction(s) generated from ${result.rulesEvaluated} rule(s)`,
+            `[RecurringEngine] Complete: ${result.transactionsGenerated} transaction(s) generated, ` +
+            `${result.skipped.length} skipped, from ${result.rulesEvaluated} rule(s)`,
         );
     } catch (error) {
         console.error('[RecurringEngine] Fatal error:', error);
@@ -77,18 +118,69 @@ export async function processRecurringRules(
 }
 
 /**
+ * Retry processing a single rule by ID.
+ * Use after the user has added funds to the wallet.
+ * Returns the generation result for that rule.
+ */
+export async function retryRule(
+    deps: RecurringEngineDeps,
+    ruleId: string,
+): Promise<GenerateResult> {
+    const rule = await deps.recurringRepo.getById(ruleId);
+    if (!rule) {
+        throw new Error(`Recurring rule with id ${ruleId} not found`);
+    }
+
+    if (rule.isPaused) {
+        throw new Error(`Recurring rule ${ruleId} is paused`);
+    }
+
+    return generateForRule(deps, rule);
+}
+
+/**
  * Generate all missing transactions for a single rule.
- * Returns the number of transactions generated.
+ * Returns the number of transactions generated and any skip info.
+ *
+ * Pre-check: For expense rules targeting cash/mobile wallets,
+ * verifies the wallet can cover the total cost of all pending dues
+ * BEFORE creating any transactions (all-or-nothing).
  */
 async function generateForRule(
     deps: RecurringEngineDeps,
     rule: RecurringTransaction,
-): Promise<number> {
+): Promise<GenerateResult> {
     const today = startOfDay(new Date());
     const dueDates = computeDueDates(rule, today);
 
-    if (dueDates.length === 0) return 0;
+    if (dueDates.length === 0) return { generated: 0 };
 
+    // ─── Pre-check: Insufficient funds guard ──────────────────────────
+    if (rule.type === TransactionType.EXPENSE) {
+        const wallet = await deps.walletRepo.getById(rule.walletId);
+        if (!wallet) {
+            throw new Error(`Wallet ${rule.walletId} not found for rule ${rule.id}`);
+        }
+
+        // Cash and mobile wallets cannot go negative — check total cost
+        if (wallet.type === WalletType.CASH || wallet.type === WalletType.MOBILE) {
+            const totalCost = rule.amount * dueDates.length;
+            if (wallet.balance < totalCost) {
+                return {
+                    generated: 0,
+                    skipped: {
+                        ruleId: rule.id,
+                        reason: SkipReason.INSUFFICIENT_FUNDS,
+                        walletId: rule.walletId,
+                        amount: totalCost,
+                        availableBalance: wallet.balance,
+                    },
+                };
+            }
+        }
+    }
+
+    // ─── Generate transactions ────────────────────────────────────────
     console.log(`[RecurringEngine] Rule ${rule.id}: generating ${dueDates.length} transaction(s)`);
 
     let lastDate = rule.lastGeneratedDate;
@@ -115,10 +207,10 @@ async function generateForRule(
         lastDate = dueDate;
     }
 
-    // Update watermark
+    // Update watermark — only after all transactions successfully created
     await deps.recurringRepo.updateLastGeneratedDate(rule.id, lastDate);
 
-    return dueDates.length;
+    return { generated: dueDates.length };
 }
 
 // ─── Date Computation ─────────────────────────────────────────────────
