@@ -228,6 +228,14 @@ export const SettingsScreen = () => {
                         showChevron
                         onPress={handleSecurityPress}
                     />
+                    <ListItem
+                        title="Recurring Transactions"
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="repeat-outline" size={20} color={colors.primary} />} />
+                        }
+                        showChevron
+                        onPress={() => router.push('/recurring-rules')}
+                    />
                 </View>
             </View>
 
@@ -279,6 +287,14 @@ export const SettingsScreen = () => {
                     paddingHorizontal: spacing.md,
                     ...shadows.card,
                 }}>
+                    <ListItem
+                        title="Export Data"
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="download-outline" size={20} color={colors.primary} />} />
+                        }
+                        showChevron
+                        onPress={() => router.push('/export')}
+                    />
                     <ListItem
                         title={t('settings.backupData')}
                         leftIcon={

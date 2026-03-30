@@ -11,6 +11,7 @@ export {
 
 export { BudgetRepository } from './BudgetRepository';
 export { CategoryRepository } from './CategoryRepository';
+export { RecurringTransactionRepository } from './RecurringTransactionRepository';
 export { TransactionRepository } from './TransactionRepository';
 export { WalletRepository } from './WalletRepository';
 

@@ -23,8 +23,8 @@ export function validateTransaction(tx: Transaction): void {
         throw new ValidationError('Transaction', 'type', tx.type, `Transaction type must be one of: ${VALID_TYPES.join(', ')}`);
     }
 
-    if (typeof tx.amount !== 'number' || !Number.isFinite(tx.amount) || tx.amount < 0) {
-        throw new ValidationError('Transaction', 'amount', tx.amount, 'Transaction amount must be a finite non-negative number');
+    if (typeof tx.amount !== 'number' || !Number.isFinite(tx.amount) || tx.amount < 0 || !Number.isInteger(tx.amount)) {
+        throw new ValidationError('Transaction', 'amount', tx.amount, 'Transaction amount must be a non-negative integer (minor units / cents)');
     }
 
     if (!tx.walletId || typeof tx.walletId !== 'string') {

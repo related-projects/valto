@@ -186,9 +186,9 @@ export async function createAndShareBackup(): Promise<void> {
 
 /**
  * Restore app data from a validated snapshot.
- * Atomically replaces all local data and triggers a full reactive refresh.
+ * Creates a safety backup before overwriting, so partial failures can be detected.
  *
- * @throws Error if snapshot validation fails
+ * @throws Error if snapshot validation fails or any write fails
  */
 export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<void> {
     // Validate before touching any data
@@ -199,19 +199,48 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
         );
     }
 
-    // Write all data keys
-    await asyncStorageAdapter.set(StorageKeys.WALLETS, snapshot.data.wallets);
-    await asyncStorageAdapter.set(StorageKeys.TRANSACTIONS, snapshot.data.transactions);
-    await asyncStorageAdapter.set(StorageKeys.CATEGORIES, snapshot.data.categories);
-    await asyncStorageAdapter.set(StorageKeys.BUDGETS, snapshot.data.budgets);
+    // Safety: snapshot current data before overwriting
+    const previousData = {
+        wallets: await asyncStorageAdapter.get(StorageKeys.WALLETS),
+        transactions: await asyncStorageAdapter.get(StorageKeys.TRANSACTIONS),
+        categories: await asyncStorageAdapter.get(StorageKeys.CATEGORIES),
+        budgets: await asyncStorageAdapter.get(StorageKeys.BUDGETS),
+    };
 
-    // Restore settings if present in backup
-    if (snapshot.data.settings) {
-        await saveSettings(snapshot.data.settings);
+    try {
+        // Write all data keys
+        await asyncStorageAdapter.set(StorageKeys.WALLETS, snapshot.data.wallets);
+        await asyncStorageAdapter.set(StorageKeys.TRANSACTIONS, snapshot.data.transactions);
+        await asyncStorageAdapter.set(StorageKeys.CATEGORIES, snapshot.data.categories);
+        await asyncStorageAdapter.set(StorageKeys.BUDGETS, snapshot.data.budgets);
+
+        // Restore settings if present in backup
+        if (snapshot.data.settings) {
+            await saveSettings(snapshot.data.settings);
+        }
+    } catch (writeError) {
+        // Attempt rollback on failure
+        console.error('[Backup] Restore write failed, attempting rollback:', writeError);
+        try {
+            await asyncStorageAdapter.set(StorageKeys.WALLETS, previousData.wallets);
+            await asyncStorageAdapter.set(StorageKeys.TRANSACTIONS, previousData.transactions);
+            await asyncStorageAdapter.set(StorageKeys.CATEGORIES, previousData.categories);
+            await asyncStorageAdapter.set(StorageKeys.BUDGETS, previousData.budgets);
+        } catch (rollbackError) {
+            console.error('[Backup] Rollback also failed:', rollbackError);
+        }
+        throw new Error('Restore failed while writing data. Your previous data has been preserved.');
     }
 
     // Trigger full reactive refresh across the app
     dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets']);
+}
+
+/**
+ * Strip UTF-8 BOM (Byte Order Mark) if present at the start of content.
+ */
+function stripBOM(content: string): string {
+    return content.charCodeAt(0) === 0xFEFF ? content.slice(1) : content;
 }
 
 /**
@@ -231,15 +260,50 @@ export async function pickAndRestoreBackup(): Promise<boolean> {
         return false;
     }
 
-    const fileUri = result.assets[0].uri;
+    const asset = result.assets[0];
+    const fileUri = asset.uri;
+    console.log('[Backup] Selected file:', { uri: fileUri, name: asset.name, size: asset.size, mimeType: asset.mimeType });
+
+    // --- Pre-parse validation ---
     const file = new ExpoFile(fileUri);
-    const content = file.text();
+
+    if (!file.exists) {
+        throw new Error('The selected file could not be accessed. Please try again.');
+    }
+
+    if (file.size === 0) {
+        throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
+    }
+
+    // --- Read file content (text() returns Promise<string> in expo-file-system v19) ---
+    let content: string;
+    try {
+        content = await file.text();
+    } catch (readError) {
+        console.error('[Backup] Failed to read file:', readError);
+        throw new Error('Could not read the selected file. It may be corrupted or inaccessible.');
+    }
+
+    console.log('[Backup] File read:', { contentLength: content.length, first200: content.substring(0, 200) });
+
+    if (!content || content.trim().length === 0) {
+        throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
+    }
+
+    // --- Strip BOM and parse ---
+    const cleanContent = stripBOM(content.trim());
 
     let parsed: unknown;
     try {
-        parsed = JSON.parse(content);
-    } catch {
-        throw new Error('The selected file is not valid JSON. Please choose a valid Valto backup file.');
+        parsed = JSON.parse(cleanContent);
+    } catch (parseError) {
+        console.error('[Backup] JSON parse failed:', parseError, { contentLength: cleanContent.length, first200: cleanContent.substring(0, 200) });
+        throw new Error('The selected file contains invalid JSON. Please choose a valid Valto backup file.');
+    }
+
+    // --- Structural validation before restore ---
+    if (typeof parsed !== 'object' || parsed === null) {
+        throw new Error('The selected file does not contain a valid backup structure.');
     }
 
     await restoreFromSnapshot(parsed as BackupSnapshot);

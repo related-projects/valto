@@ -13,6 +13,9 @@ import { SecurityProvider } from '@/src/core/security/SecurityContext';
 import { runMigrations } from '@/src/data/migrations';
 import { initializeSeedData } from '@/src/data/seed';
 import { loadSettings } from '@/src/data/services/settingsService';
+import { processRecurringRules } from '@/src/data/services/RecurringTransactionEngine';
+import { container } from '@/src/core/di/container';
+import { dataEvents } from '@/src/core/events/dataEvents';
 import { ThemeProvider, useThemeContext } from '@/src/theme/ThemeContext';
 
 export const unstable_settings = {
@@ -42,6 +45,14 @@ export default function RootLayout() {
         await runMigrations();
         const result = await initializeSeedData();
         console.log('Seed data initialized:', result);
+
+        // Process recurring transaction rules (idempotent)
+        await processRecurringRules({
+          recurringRepo: container.recurringTransactionRepository,
+          transactionRepo: container.transactionRepository,
+          walletRepo: container.walletRepository,
+          eventBus: dataEvents,
+        });
 
         // Sync i18n with persisted language preference
         const settings = await loadSettings();

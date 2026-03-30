@@ -27,6 +27,9 @@ export const StorageKeys = {
     /** Key for storing security configuration (PIN hash, biometric settings) */
     SECURITY_CONFIG: '@valto:security_config',
 
+    /** Key for storing recurring transaction rules */
+    RECURRING_RULES: '@valto:recurring_rules',
+
     /** Key for tracking the current data schema version (migration runner) */
     SCHEMA_VERSION: '@valto:schema_version',
 } as const;

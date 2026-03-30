@@ -1,5 +1,6 @@
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
+import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { asyncStorageAdapter } from '../../data/storage';
@@ -14,6 +15,7 @@ class DIContainer {
     private _walletRepository: WalletRepository | null = null;
     private _categoryRepository: CategoryRepository | null = null;
     private _budgetRepository: BudgetRepository | null = null;
+    private _recurringTransactionRepository: RecurringTransactionRepository | null = null;
 
     /**
      * Get or create TransactionRepository instance
@@ -56,6 +58,16 @@ class DIContainer {
     }
 
     /**
+     * Get or create RecurringTransactionRepository instance
+     */
+    get recurringTransactionRepository(): RecurringTransactionRepository {
+        if (!this._recurringTransactionRepository) {
+            this._recurringTransactionRepository = new RecurringTransactionRepository(asyncStorageAdapter);
+        }
+        return this._recurringTransactionRepository;
+    }
+
+    /**
      * Reset all repository instances (useful for testing)
      */
     reset(): void {
@@ -63,6 +75,7 @@ class DIContainer {
         this._walletRepository = null;
         this._categoryRepository = null;
         this._budgetRepository = null;
+        this._recurringTransactionRepository = null;
     }
 }
 
@@ -78,6 +91,7 @@ export const getTransactionRepository = () => container.transactionRepository;
 export const getWalletRepository = () => container.walletRepository;
 export const getCategoryRepository = () => container.categoryRepository;
 export const getBudgetRepository = () => container.budgetRepository;
+export const getRecurringTransactionRepository = () => container.recurringTransactionRepository;
 
 /**
  * Get the dependency bundle for domain use cases
