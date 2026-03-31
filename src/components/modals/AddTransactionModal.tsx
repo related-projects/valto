@@ -275,7 +275,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                     {t('modals.addTransaction.amount')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                                    <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
+                                    {/* <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text> */}
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
                                         placeholder="0.00"
