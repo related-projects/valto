@@ -166,6 +166,7 @@ describe('validateSettings', () => {
         dateFormat: 'MM/DD/YYYY' as const,
         firstDayOfWeek: 'monday' as const,
         decimalSeparator: 'dot' as const,
+        onboardingCompleted: true,
     };
 
     it('passes for valid settings', () => {

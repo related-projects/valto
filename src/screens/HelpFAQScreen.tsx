@@ -22,6 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FAQ_DATA, type FAQItem } from '../domain/constants/faqData';
 import { useTheme } from '../theme/theme';
+import { getButtonA11y } from '../utils/accessibility';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -37,6 +38,7 @@ interface FAQItemCardProps {
 }
 
 const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(({ item, expanded, onToggle }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
 
     return (
@@ -55,7 +57,7 @@ const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(({ item, expanded, on
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={item.question}
-            accessibilityHint={expanded ? 'Tap to collapse answer' : 'Tap to expand answer'}
+            accessibilityHint={expanded ? t('a11y.collapseFaq') : t('a11y.expandFaq')}
             accessibilityState={{ expanded }}
         >
             <View style={styles.questionRow}>
@@ -119,7 +121,7 @@ export const HelpFAQScreen = () => {
         >
             {/* Header */}
             <View style={styles.headerRow}>
-                <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }} {...getButtonA11y(t('a11y.backButton'))}>
                     <Ionicons name="arrow-back" size={24} color={colors.foreground} />
                 </TouchableOpacity>
                 <Text

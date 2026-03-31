@@ -229,7 +229,7 @@ export const SettingsScreen = () => {
                         onPress={handleSecurityPress}
                     />
                     <ListItem
-                        title="Recurring Transactions"
+                        title={t('recurring.title')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="repeat-outline" size={20} color={colors.primary} />} />
                         }
@@ -288,7 +288,7 @@ export const SettingsScreen = () => {
                     ...shadows.card,
                 }}>
                     <ListItem
-                        title="Export Data"
+                        title={t('export.title')}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="download-outline" size={20} color={colors.primary} />} />
                         }

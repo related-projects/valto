@@ -66,6 +66,7 @@ export function useSettings(): UseSettingsResult {
         dateFormat: 'MM/DD/YYYY',
         firstDayOfWeek: 'monday',
         decimalSeparator: 'dot',
+        onboardingCompleted: false,
     });
     const { setThemePreference } = useTheme();
 

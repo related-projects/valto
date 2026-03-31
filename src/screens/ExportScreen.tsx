@@ -8,21 +8,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useExport } from '../hooks/useExport';
 import { useTheme } from '../theme/theme';
+import { getButtonA11y } from '../utils/accessibility';
 
-// ─── Month Picker ─────────────────────────────────────────────────────
+// ─── Month Keys (i18n) ────────────────────────────────────────────────
 
-const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+const MONTH_KEYS = [
+    'export.months.january', 'export.months.february', 'export.months.march',
+    'export.months.april', 'export.months.may', 'export.months.june',
+    'export.months.july', 'export.months.august', 'export.months.september',
+    'export.months.october', 'export.months.november', 'export.months.december',
 ];
 
 // ─── Component ────────────────────────────────────────────────────────
 
 export const ExportScreen: React.FC = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -36,17 +41,17 @@ export const ExportScreen: React.FC = () => {
         try {
             await exportCSV();
         } catch (error) {
-            Alert.alert('Export Failed', error instanceof Error ? error.message : 'Could not export CSV');
+            Alert.alert(t('export.exportFailed'), error instanceof Error ? error.message : t('export.exportFailedMessage'));
         }
-    }, [exportCSV]);
+    }, [exportCSV, t]);
 
     const handleExportPDF = useCallback(async () => {
         try {
             await exportMonthlyPDF(selectedYear, selectedMonth);
         } catch (error) {
-            Alert.alert('Export Failed', error instanceof Error ? error.message : 'Could not generate PDF');
+            Alert.alert(t('export.exportFailed'), error instanceof Error ? error.message : t('export.exportFailedMessage'));
         }
-    }, [exportMonthlyPDF, selectedYear, selectedMonth]);
+    }, [exportMonthlyPDF, selectedYear, selectedMonth, t]);
 
     const adjustMonth = (delta: number) => {
         let m = selectedMonth + delta;
@@ -69,7 +74,11 @@ export const ExportScreen: React.FC = () => {
                 borderBottomColor: colors.border,
             }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={() => router.back()} style={{ marginRight: spacing.md }}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={{ marginRight: spacing.md }}
+                        {...getButtonA11y(t('a11y.backButton'))}
+                    >
                         <Ionicons name="arrow-back" size={24} color={colors.foreground} />
                     </TouchableOpacity>
                     <Text style={{
@@ -77,7 +86,7 @@ export const ExportScreen: React.FC = () => {
                         fontSize: typography.sizes.xl,
                         fontWeight: typography.weights.bold,
                     }}>
-                        Export Data
+                        {t('export.title')}
                     </Text>
                 </View>
             </View>
@@ -103,7 +112,7 @@ export const ExportScreen: React.FC = () => {
                 }}>
                     <ActivityIndicator size="small" color={colors.primary} />
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginLeft: spacing.sm }}>
-                        Generating export...
+                        {t('export.generating')}
                     </Text>
                 </View>
             )}
@@ -120,6 +129,7 @@ export const ExportScreen: React.FC = () => {
                     ...shadows.card,
                     opacity: loading ? 0.6 : 1,
                 }}
+                {...getButtonA11y(t('export.csvTitle'))}
             >
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
                     <View style={{
@@ -132,10 +142,10 @@ export const ExportScreen: React.FC = () => {
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: '600' }}>
-                            Export CSV
+                            {t('export.csvTitle')}
                         </Text>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                            All transactions as spreadsheet
+                            {t('export.csvDescription')}
                         </Text>
                     </View>
                     <Ionicons name="share-outline" size={22} color={colors.primary} />
@@ -160,10 +170,10 @@ export const ExportScreen: React.FC = () => {
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: '600' }}>
-                            Monthly PDF Report
+                            {t('export.pdfTitle')}
                         </Text>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                            Income, expenses & transaction table
+                            {t('export.pdfDescription')}
                         </Text>
                     </View>
                 </View>
@@ -178,7 +188,11 @@ export const ExportScreen: React.FC = () => {
                     padding: spacing.sm,
                     marginBottom: spacing.md,
                 }}>
-                    <Pressable onPress={() => adjustMonth(-1)} hitSlop={12}>
+                    <Pressable
+                        onPress={() => adjustMonth(-1)}
+                        hitSlop={12}
+                        {...getButtonA11y(t('a11y.previousMonth'))}
+                    >
                         <Ionicons name="chevron-back" size={24} color={colors.primary} />
                     </Pressable>
                     <Text style={{
@@ -189,9 +203,13 @@ export const ExportScreen: React.FC = () => {
                         minWidth: 140,
                         textAlign: 'center',
                     }}>
-                        {MONTHS[selectedMonth - 1]} {selectedYear}
+                        {t(MONTH_KEYS[selectedMonth - 1])} {selectedYear}
                     </Text>
-                    <Pressable onPress={() => adjustMonth(1)} hitSlop={12}>
+                    <Pressable
+                        onPress={() => adjustMonth(1)}
+                        hitSlop={12}
+                        {...getButtonA11y(t('a11y.nextMonth'))}
+                    >
                         <Ionicons name="chevron-forward" size={24} color={colors.primary} />
                     </Pressable>
                 </View>
@@ -209,10 +227,11 @@ export const ExportScreen: React.FC = () => {
                         justifyContent: 'center',
                         opacity: loading ? 0.6 : 1,
                     }}
+                    {...getButtonA11y(t('export.generatePdf'))}
                 >
                     <Ionicons name="share-outline" size={18} color="#fff" style={{ marginRight: spacing.xs }} />
                     <Text style={{ color: '#fff', fontSize: typography.sizes.md, fontWeight: '600' }}>
-                        Generate & Share PDF
+                        {t('export.generatePdf')}
                     </Text>
                 </Pressable>
             </View>

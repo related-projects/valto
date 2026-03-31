@@ -49,4 +49,8 @@ export function validateSettings(settings: AppSettings): void {
     if (!(VALID_DECIMAL_SEPS as readonly string[]).includes(settings.decimalSeparator)) {
         throw new ValidationError('Settings', 'decimalSeparator', settings.decimalSeparator, `Settings decimalSeparator must be one of: ${VALID_DECIMAL_SEPS.join(', ')}`);
     }
+
+    if (typeof settings.onboardingCompleted !== 'boolean') {
+        throw new ValidationError('Settings', 'onboardingCompleted', settings.onboardingCompleted, 'Settings onboardingCompleted must be a boolean');
+    }
 }

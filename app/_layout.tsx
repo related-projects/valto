@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import 'react-native-get-random-values';
 import 'react-native-reanimated';
 
@@ -17,6 +17,7 @@ import { processRecurringRules } from '@/src/data/services/RecurringTransactionE
 import { container } from '@/src/core/di/container';
 import { dataEvents } from '@/src/core/events/dataEvents';
 import { ThemeProvider, useThemeContext } from '@/src/theme/ThemeContext';
+import { OnboardingScreen } from '@/src/features/onboarding/screens/OnboardingScreen';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -38,6 +39,7 @@ function RootNavigator() {
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     async function bootstrap() {
@@ -59,6 +61,11 @@ export default function RootLayout() {
         if (settings.language && settings.language !== i18n.language) {
           await i18n.changeLanguage(settings.language);
         }
+
+        // Check if onboarding is needed
+        if (!settings.onboardingCompleted) {
+          setNeedsOnboarding(true);
+        }
       } catch (error) {
         console.error('Failed to initialize app:', error);
       } finally {
@@ -66,6 +73,10 @@ export default function RootLayout() {
       }
     }
     bootstrap();
+  }, []);
+
+  const handleOnboardingComplete = useCallback(() => {
+    setNeedsOnboarding(false);
   }, []);
 
   if (!isReady) {
@@ -76,7 +87,11 @@ export default function RootLayout() {
     <ErrorBoundary>
       <ThemeProvider>
         <SecurityProvider>
-          <RootNavigator />
+          {needsOnboarding ? (
+            <OnboardingScreen onComplete={handleOnboardingComplete} />
+          ) : (
+            <RootNavigator />
+          )}
         </SecurityProvider>
       </ThemeProvider>
     </ErrorBoundary>

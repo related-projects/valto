@@ -33,6 +33,8 @@ export interface AppSettings {
     firstDayOfWeek: FirstDayOfWeek;
     /** Decimal separator for monetary display */
     decimalSeparator: DecimalSeparator;
+    /** Whether the user has completed the onboarding flow */
+    onboardingCompleted: boolean;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────
@@ -47,6 +49,7 @@ export function getDefaultSettings(): AppSettings {
         dateFormat: 'MM/DD/YYYY',
         firstDayOfWeek: 'monday',
         decimalSeparator: 'dot',
+        onboardingCompleted: false,
     };
 }
 
@@ -99,6 +102,11 @@ export async function loadSettings(): Promise<AppSettings> {
         }
         if (!VALID_DECIMAL_SEPS.includes(merged.decimalSeparator)) {
             merged.decimalSeparator = 'dot';
+        }
+
+        // Validate onboardingCompleted
+        if (typeof merged.onboardingCompleted !== 'boolean') {
+            merged.onboardingCompleted = false;
         }
 
         return merged;
