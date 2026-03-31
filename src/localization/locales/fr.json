@@ -268,6 +268,70 @@
         "subtitle": "Trouvez des réponses aux questions fréquemment posées sur Valto.",
         "noFaqs": "Aucune FAQ disponible pour le moment."
     },
+    "faq": {
+        "items": [
+            {
+                "id": "add-transaction",
+                "question": "Comment ajouter une transaction ?",
+                "answer": "Appuyez sur Actions rapides sur le tableau de bord et choisissez « Ajouter une dépense » ou « Ajouter un revenu ». Saisissez le montant, sélectionnez une catégorie et un portefeuille, puis enregistrez."
+            },
+            {
+                "id": "create-wallet",
+                "question": "Comment créer un nouveau portefeuille ?",
+                "answer": "Allez dans l'onglet Portefeuilles et appuyez sur « Ajouter un portefeuille ». Vous pouvez créer des portefeuilles pour les espèces, les comptes bancaires, le mobile money et l'épargne. Chaque portefeuille suit son propre solde indépendamment."
+            },
+            {
+                "id": "transfer-funds",
+                "question": "Comment effectuer un virement entre portefeuilles ?",
+                "answer": "Sur le tableau de bord, appuyez sur « Transfert » dans Actions rapides. Sélectionnez un portefeuille source, un portefeuille de destination et le montant. Le transfert débitera un portefeuille et créditera l'autre simultanément."
+            },
+            {
+                "id": "set-budget",
+                "question": "Comment fonctionnent les budgets ?",
+                "answer": "Les budgets sont définis par catégorie et par mois. Allez sur le tableau de bord et appuyez sur « Créer un budget » dans la section Budget. Vous verrez une barre de progression indiquant la part de chaque budget utilisée."
+            },
+            {
+                "id": "backup-data",
+                "question": "Comment sauvegarder mes données ?",
+                "answer": "Allez dans Paramètres → Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
+            },
+            {
+                "id": "restore-data",
+                "question": "Comment restaurer depuis une sauvegarde ?",
+                "answer": "Allez dans Paramètres → Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Cette action est irréversible — pensez à sauvegarder d'abord."
+            },
+            {
+                "id": "change-currency",
+                "question": "Comment changer la devise ?",
+                "answer": "Allez dans Paramètres → Devise. Sélectionnez parmi les devises disponibles. Le symbole de la devise sera mis à jour dans toute l'application."
+            },
+            {
+                "id": "dark-mode",
+                "question": "L'application supporte-t-elle le mode sombre ?",
+                "answer": "Oui. Allez dans Paramètres → Thème et choisissez Clair, Sombre ou Système (suit les paramètres de votre appareil)."
+            },
+            {
+                "id": "security",
+                "question": "Comment protéger mes données avec un PIN ?",
+                "answer": "Allez dans Paramètres → Sécurité et appuyez pour configurer un PIN. Vous pouvez également activer l'authentification biométrique (empreinte ou visage) pour un accès rapide. L'application se verrouille automatiquement lorsqu'elle passe en arrière-plan."
+            },
+            {
+                "id": "offline",
+                "question": "L'application fonctionne-t-elle hors ligne ?",
+                "answer": "Oui. Valto est entièrement hors ligne. Toutes vos données sont stockées localement sur votre appareil. Aucune connexion Internet n'est requise pour ajouter des transactions, consulter des rapports ou gérer des portefeuilles."
+            },
+            {
+                "id": "reset-data",
+                "question": "Comment réinitialiser toutes les données ?",
+                "answer": "Allez dans Paramètres → Réinitialiser toutes les données. Cela supprime définitivement tous vos portefeuilles, transactions, catégories, budgets et paramètres. L'application reviendra à son état initial avec les données par défaut. Cette action est irréversible."
+            },
+            {
+                "id": "categories",
+                "question": "Puis-je personnaliser les catégories ?",
+                "answer": "Allez dans Paramètres → Catégories. Vous pouvez consulter toutes les catégories de dépenses et de revenus. La gestion personnalisée des catégories sera disponible dans une future mise à jour."
+            }
+        ]
+    },
     "settings": {
         "title": "Paramètres",
         "processing": "Traitement…",

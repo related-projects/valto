@@ -1,48 +1,96 @@
 /**
  * Help & FAQ and About Screen Tests
  *
- * Tests for the informational screens added to Settings.
+ * Tests that the FAQ content is correctly defined in translation files
+ * and that the FAQItem shape is structurally sound across locales.
  */
 
-import { FAQ_DATA, type FAQItem } from '../../domain/constants/faqData';
+import type { FAQItem } from '../../screens/HelpFAQScreen';
 
-// ─── FAQ Data Tests ───────────────────────────────────────────────────
+// Import all locale translation files directly for structural validation
+import en from '../../localization/locales/en.json';
+import fr from '../../localization/locales/fr.json';
+import es from '../../localization/locales/es.json';
+import ar from '../../localization/locales/ar.json';
+import hi from '../../localization/locales/hi.json';
+import zh from '../../localization/locales/zh.json';
+import ru from '../../localization/locales/ru.json';
+import pt from '../../localization/locales/pt.json';
+import ur from '../../localization/locales/ur.json';
+import bn from '../../localization/locales/bn.json';
 
-describe('FAQ Data', () => {
-    it('contains at least 5 FAQ items', () => {
-        expect(FAQ_DATA.length).toBeGreaterThanOrEqual(5);
+const ALL_LOCALES: Record<string, typeof en> = { en, fr, es, ar, hi, zh, ru, pt, ur, bn };
+const EXPECTED_FAQ_COUNT = 12;
+const EXPECTED_IDS = [
+    'add-transaction',
+    'create-wallet',
+    'transfer-funds',
+    'set-budget',
+    'backup-data',
+    'restore-data',
+    'change-currency',
+    'dark-mode',
+    'security',
+    'offline',
+    'reset-data',
+    'categories',
+];
+
+// ─── FAQ i18n Structure Tests ─────────────────────────────────────────
+
+describe('FAQ i18n Structure', () => {
+    Object.entries(ALL_LOCALES).forEach(([lang, locale]) => {
+        describe(`[${lang}] locale`, () => {
+            it('has faq.items array', () => {
+                expect(Array.isArray((locale as any).faq?.items)).toBe(true);
+            });
+
+            it(`has exactly ${EXPECTED_FAQ_COUNT} FAQ items`, () => {
+                const items: FAQItem[] = (locale as any).faq?.items ?? [];
+                expect(items).toHaveLength(EXPECTED_FAQ_COUNT);
+            });
+
+            it('every item has required id, question, and answer fields', () => {
+                const items: FAQItem[] = (locale as any).faq?.items ?? [];
+                for (const item of items) {
+                    expect(typeof item.id).toBe('string');
+                    expect(item.id.trim().length).toBeGreaterThan(0);
+                    expect(typeof item.question).toBe('string');
+                    expect(item.question.trim().length).toBeGreaterThan(0);
+                    expect(typeof item.answer).toBe('string');
+                    expect(item.answer.trim().length).toBeGreaterThan(0);
+                }
+            });
+
+            it('all IDs match the canonical set', () => {
+                const items: FAQItem[] = (locale as any).faq?.items ?? [];
+                const ids = items.map((i: FAQItem) => i.id);
+                expect(ids).toEqual(EXPECTED_IDS);
+            });
+
+            it('all IDs are unique', () => {
+                const items: FAQItem[] = (locale as any).faq?.items ?? [];
+                const ids = items.map((i: FAQItem) => i.id);
+                expect(new Set(ids).size).toBe(ids.length);
+            });
+
+            it('has help.title, help.subtitle, and help.noFaqs keys', () => {
+                const help = (locale as any).help ?? {};
+                expect(typeof help.title).toBe('string');
+                expect(help.title.trim().length).toBeGreaterThan(0);
+                expect(typeof help.subtitle).toBe('string');
+                expect(help.subtitle.trim().length).toBeGreaterThan(0);
+                expect(typeof help.noFaqs).toBe('string');
+                expect(help.noFaqs.trim().length).toBeGreaterThan(0);
+            });
+        });
     });
+});
 
-    it('every item has required fields', () => {
-        for (const item of FAQ_DATA) {
-            expect(item.id).toBeTruthy();
-            expect(typeof item.id).toBe('string');
-            expect(item.question).toBeTruthy();
-            expect(typeof item.question).toBe('string');
-            expect(item.answer).toBeTruthy();
-            expect(typeof item.answer).toBe('string');
-        }
-    });
+// ─── FAQItem Type Safety ──────────────────────────────────────────────
 
-    it('all IDs are unique', () => {
-        const ids = FAQ_DATA.map(item => item.id);
-        const uniqueIds = new Set(ids);
-        expect(uniqueIds.size).toBe(ids.length);
-    });
-
-    it('no question is empty after trim', () => {
-        for (const item of FAQ_DATA) {
-            expect(item.question.trim().length).toBeGreaterThan(0);
-        }
-    });
-
-    it('no answer is empty after trim', () => {
-        for (const item of FAQ_DATA) {
-            expect(item.answer.trim().length).toBeGreaterThan(0);
-        }
-    });
-
-    it('handles empty FAQ array scenario (type check)', () => {
+describe('FAQItem type check', () => {
+    it('handles empty FAQ array safe-guard (as used in HelpFAQScreen)', () => {
         const emptyFaq: FAQItem[] = [];
         expect(emptyFaq).toHaveLength(0);
         expect(Array.isArray(emptyFaq)).toBe(true);

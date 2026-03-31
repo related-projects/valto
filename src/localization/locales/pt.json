@@ -35,5 +35,74 @@
     },
     "common": {
         "ok": "OK"
+    },
+    "help": {
+        "title": "Ajuda e FAQ",
+        "subtitle": "Encontre respostas para as perguntas mais frequentes sobre o Valto.",
+        "noFaqs": "Nenhuma pergunta frequente disponível ainda."
+    },
+    "faq": {
+        "items": [
+            {
+                "id": "add-transaction",
+                "question": "Como faço para adicionar uma transação?",
+                "answer": "Toque em Ações Rápidas no painel e escolha «Adicionar Despesa» ou «Adicionar Receita». Preencha o valor, selecione uma categoria e carteira, depois salve."
+            },
+            {
+                "id": "create-wallet",
+                "question": "Como crio uma nova carteira?",
+                "answer": "Vá para a aba Carteiras e toque em «Adicionar Carteira». Você pode criar carteiras para dinheiro, contas bancárias, dinheiro móvel e poupança. Cada carteira rastreia seu próprio saldo de forma independente."
+            },
+            {
+                "id": "transfer-funds",
+                "question": "Como faço uma transferência entre carteiras?",
+                "answer": "No painel, toque em «Transferência» nas Ações Rápidas. Selecione a carteira de origem, a de destino e o valor. A transferência debitará uma carteira e creditará a outra simultaneamente."
+            },
+            {
+                "id": "set-budget",
+                "question": "Como funcionam os orçamentos?",
+                "answer": "Os orçamentos são definidos por categoria por mês. Vá ao painel e toque em «Criar Orçamento» na seção Orçamento. Você verá uma barra de progresso mostrando quanto de cada orçamento já foi utilizado."
+            },
+            {
+                "id": "backup-data",
+                "question": "Como faço o backup dos meus dados?",
+                "answer": "Vá em Configurações → Backup de Dados. Isso cria um arquivo JSON contendo todas as suas carteiras, transações, categorias, orçamentos e configurações. Você pode compartilhar ou salvar este arquivo no dispositivo ou na nuvem."
+            },
+            {
+                "id": "restore-data",
+                "question": "Como restauro a partir de um backup?",
+                "answer": "Vá em Configurações → Restaurar Dados. Escolha o arquivo de backup usando o seletor de arquivos. O app validará o backup e substituirá todos os dados atuais. Essa ação não pode ser desfeita — considere fazer um backup antes."
+            },
+            {
+                "id": "change-currency",
+                "question": "Como mudo a moeda?",
+                "answer": "Vá em Configurações → Moeda. Selecione entre as moedas disponíveis. O símbolo da moeda será atualizado em todo o aplicativo."
+            },
+            {
+                "id": "dark-mode",
+                "question": "O app suporta o modo escuro?",
+                "answer": "Sim. Vá em Configurações → Tema e escolha Claro, Escuro ou Sistema (segue a configuração do seu dispositivo)."
+            },
+            {
+                "id": "security",
+                "question": "Como protejo meus dados com um PIN?",
+                "answer": "Vá em Configurações → Segurança e toque para configurar um PIN. Você também pode ativar a autenticação biométrica (impressão digital ou rosto) para acesso rápido. O app trava automaticamente ao ir para o segundo plano."
+            },
+            {
+                "id": "offline",
+                "question": "O app funciona sem conexão?",
+                "answer": "Sim. O Valto é totalmente offline. Todos os seus dados são armazenados localmente no seu dispositivo. Não é necessária conexão à internet para adicionar transações, ver relatórios ou gerenciar carteiras."
+            },
+            {
+                "id": "reset-data",
+                "question": "Como redefinir todos os dados?",
+                "answer": "Vá em Configurações → Redefinir Todos os Dados. Isso exclui permanentemente todas as carteiras, transações, categorias, orçamentos e configurações. O app voltará ao estado inicial com os dados padrão. Essa ação não pode ser desfeita."
+            },
+            {
+                "id": "categories",
+                "question": "Posso personalizar as categorias?",
+                "answer": "Vá em Configurações → Categorias. Você pode ver todas as categorias de despesas e receitas. O gerenciamento personalizado de categorias estará disponível em uma atualização futura."
+            }
+        ]
     }
 }

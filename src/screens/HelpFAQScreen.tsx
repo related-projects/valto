@@ -2,7 +2,7 @@
  * Help & FAQ Screen
  *
  * Displays expandable/collapsible FAQ items.
- * Fully offline — uses static data from domain constants.
+ * Fully offline and fully i18n-driven — content sourced from translation files.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -20,13 +20,20 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FAQ_DATA, type FAQItem } from '../domain/constants/faqData';
 import { useTheme } from '../theme/theme';
 import { getButtonA11y } from '../utils/accessibility';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// ─── Types ────────────────────────────────────────────────────────────
+
+export interface FAQItem {
+    id: string;
+    question: string;
+    answer: string;
 }
 
 // ─── FAQ Item Component ───────────────────────────────────────────────
@@ -104,6 +111,10 @@ export const HelpFAQScreen = () => {
     const router = useRouter();
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
+    // Pull translated FAQ items from i18n — returnObjects is required for arrays
+    const faqItems = t('faq.items', { returnObjects: true }) as FAQItem[];
+    const safeItems: FAQItem[] = Array.isArray(faqItems) ? faqItems : [];
+
     const handleToggle = useCallback((id: string) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setExpandedId(prev => (prev === id ? null : id));
@@ -147,7 +158,7 @@ export const HelpFAQScreen = () => {
             </Text>
 
             {/* FAQ List */}
-            {FAQ_DATA.length === 0 ? (
+            {safeItems.length === 0 ? (
                 <View style={[styles.emptyState, { marginTop: spacing.xl }]}>
                     <Ionicons name="help-buoy-outline" size={48} color={colors.mutedForeground} />
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md, marginTop: spacing.md }}>
@@ -155,7 +166,7 @@ export const HelpFAQScreen = () => {
                     </Text>
                 </View>
             ) : (
-                FAQ_DATA.map(item => (
+                safeItems.map(item => (
                     <FAQItemCard
                         key={item.id}
                         item={item}

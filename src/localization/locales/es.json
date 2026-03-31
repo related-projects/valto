@@ -58,5 +58,74 @@
     },
     "common": {
         "ok": "OK"
+    },
+    "help": {
+        "title": "Ayuda y FAQ",
+        "subtitle": "Encuentra respuestas a las preguntas frecuentes sobre Valto.",
+        "noFaqs": "No hay preguntas frecuentes disponibles aún."
+    },
+    "faq": {
+        "items": [
+            {
+                "id": "add-transaction",
+                "question": "¿Cómo añado una transacción?",
+                "answer": "Toca Acciones rápidas en el panel y elige «Añadir gasto» o «Añadir ingreso». Ingresa el monto, selecciona una categoría y una cartera, luego guarda."
+            },
+            {
+                "id": "create-wallet",
+                "question": "¿Cómo creo una nueva cartera?",
+                "answer": "Ve a la pestaña Carteras y toca «Añadir cartera». Puedes crear carteras para efectivo, cuentas bancarias, dinero móvil y ahorros. Cada cartera lleva su propio saldo de forma independiente."
+            },
+            {
+                "id": "transfer-funds",
+                "question": "¿Cómo transfiero entre carteras?",
+                "answer": "En el panel, toca «Transferencia» en Acciones rápidas. Selecciona una cartera de origen, una de destino y el monto. La transferencia debitará una cartera y acreditará la otra simultáneamente."
+            },
+            {
+                "id": "set-budget",
+                "question": "¿Cómo funcionan los presupuestos?",
+                "answer": "Los presupuestos se establecen por categoría y por mes. Ve al panel y toca «Crear presupuesto» en la sección Presupuesto. Verás una barra de progreso que muestra cuánto has usado de cada presupuesto."
+            },
+            {
+                "id": "backup-data",
+                "question": "¿Cómo hago una copia de seguridad de mis datos?",
+                "answer": "Ve a Ajustes → Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube."
+            },
+            {
+                "id": "restore-data",
+                "question": "¿Cómo restauro desde una copia de seguridad?",
+                "answer": "Ve a Ajustes → Restaurar datos. Elige tu archivo de copia de seguridad con el selector de archivos. La app validará la copia y reemplazará todos los datos actuales. Esta acción no se puede deshacer — considera hacer primero una copia de seguridad."
+            },
+            {
+                "id": "change-currency",
+                "question": "¿Cómo cambio la moneda?",
+                "answer": "Ve a Ajustes → Moneda. Selecciona entre las monedas disponibles. El símbolo de moneda se actualizará en toda la aplicación."
+            },
+            {
+                "id": "dark-mode",
+                "question": "¿La app admite modo oscuro?",
+                "answer": "Sí. Ve a Ajustes → Tema y elige Claro, Oscuro o Sistema (sigue la configuración de tu dispositivo)."
+            },
+            {
+                "id": "security",
+                "question": "¿Cómo protejo mis datos con un PIN?",
+                "answer": "Ve a Ajustes → Seguridad y toca para configurar un PIN. También puedes activar la autenticación biométrica (huella o cara) para acceso rápido. La app se bloqueará automáticamente al pasar a segundo plano."
+            },
+            {
+                "id": "offline",
+                "question": "¿La app funciona sin conexión?",
+                "answer": "Sí. Valto es completamente offline. Todos tus datos se almacenan localmente en tu dispositivo. No se requiere conexión a Internet para agregar transacciones, ver informes o gestionar carteras."
+            },
+            {
+                "id": "reset-data",
+                "question": "¿Cómo restablezco todos los datos?",
+                "answer": "Ve a Ajustes → Restablecer todos los datos. Esto elimina permanentemente todas tus carteras, transacciones, categorías, presupuestos y ajustes. La app volverá a su estado inicial con datos predeterminados. Esta acción no se puede deshacer."
+            },
+            {
+                "id": "categories",
+                "question": "¿Puedo personalizar las categorías?",
+                "answer": "Ve a Ajustes → Categorías. Puedes ver todas las categorías de gastos e ingresos. La gestión personalizada de categorías estará disponible en una futura actualización."
+            }
+        ]
     }
 }
