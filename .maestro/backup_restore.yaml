@@ -1,0 +1,50 @@
+# Maestro E2E Tests — Valto Budget Tracker
+#
+# Backup & Restore Flow
+# Verifies the backup creation flow (restore requires file picker interaction).
+#
+# Prerequisites: App with some data (wallets, transactions).
+# Run: maestro test .maestro/backup_restore.yaml
+
+appId: com.valto.app
+---
+
+# ── Launch ──────────────────────────────────────────────────────
+- launchApp
+
+# ── Navigate to Settings ────────────────────────────────────────
+- tapOn:
+    id: "tab-settings"
+
+- assertVisible:
+    id: "settings-screen"
+
+# ── Trigger Backup ──────────────────────────────────────────────
+- tapOn:
+    id: "settings-backup-button"
+
+# Backup should trigger share sheet or save — wait briefly
+- extendedWaitUntil:
+    visible:
+      id: "settings-screen"
+    timeout: 10000
+
+# ── Trigger Restore (first confirmation) ────────────────────────
+- tapOn:
+    id: "settings-restore-button"
+
+# First alert should appear — alert interactions in Maestro
+# are platform-specific. On iOS, tap the destructive action.
+- tapOn:
+    label: "Continue"
+    optional: true
+
+# Cancel the second confirmation to avoid actual restore in test
+- tapOn:
+    label: "Cancel"
+    optional: true
+
+# ── Verify Still on Settings ────────────────────────────────────
+- assertVisible:
+    id: "settings-screen"
+    timeout: 3000

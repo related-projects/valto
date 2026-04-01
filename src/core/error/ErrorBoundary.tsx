@@ -10,6 +10,8 @@ import { ErrorFallback } from './ErrorFallback';
 
 interface ErrorBoundaryProps {
     children: ReactNode;
+    /** Optional callback invoked when an error is caught — use for telemetry / crash reporting */
+    onError?: (error: Error, componentStack: string | null | undefined) => void;
 }
 
 interface ErrorBoundaryState {
@@ -30,6 +32,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     componentDidCatch(error: Error, info: ErrorInfo): void {
         console.error('[ErrorBoundary] Uncaught render error:', error);
         console.error('[ErrorBoundary] Component stack:', info.componentStack);
+        this.props.onError?.(error, info.componentStack);
     }
 
     private handleReset = () => {

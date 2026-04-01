@@ -1,0 +1,46 @@
+# Maestro E2E Tests — Valto Budget Tracker
+#
+# Onboarding Flow
+# Verifies the complete onboarding experience for new users.
+#
+# Prerequisites: Fresh app install (no previous data)
+# Run: maestro test .maestro/onboarding.yaml
+
+appId: com.valto.app
+---
+
+# ── App Launch ──────────────────────────────────────────────────
+- launchApp:
+    clearState: true
+
+# ── Welcome Screen ──────────────────────────────────────────────
+- assertVisible:
+    id: "onboarding-welcome-screen"
+    
+- assertVisible:
+    id: "onboarding-next-button"
+
+- tapOn:
+    id: "onboarding-next-button"
+
+# ── Currency Selection ──────────────────────────────────────────
+- assertVisible:
+    id: "onboarding-currency-screen"
+
+- tapOn:
+    id: "currency-item-USD"
+
+- tapOn:
+    id: "onboarding-next-button"
+
+# ── Wallet Setup ────────────────────────────────────────────────
+- assertVisible:
+    id: "onboarding-wallet-screen"
+
+- tapOn:
+    id: "onboarding-finish-button"
+
+# ── Verify Dashboard ────────────────────────────────────────────
+- assertVisible:
+    id: "dashboard-screen"
+    timeout: 5000

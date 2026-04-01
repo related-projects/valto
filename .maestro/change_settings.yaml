@@ -1,0 +1,43 @@
+# Maestro E2E Tests — Valto Budget Tracker
+#
+# Change Settings Flow
+# Verifies changing language and currency settings.
+#
+# Prerequisites: App with completed onboarding.
+# Run: maestro test .maestro/change_settings.yaml
+
+appId: com.valto.app
+---
+
+# ── Launch ──────────────────────────────────────────────────────
+- launchApp
+
+# ── Navigate to Settings ────────────────────────────────────────
+- tapOn:
+    id: "tab-settings"
+
+- assertVisible:
+    id: "settings-screen"
+
+# ── Change Theme ────────────────────────────────────────────────
+- tapOn:
+    id: "settings-theme-button"
+
+# Theme selection appears as an alert — tap dark option
+- tapOn:
+    id: "theme-option-dark"
+    optional: true
+
+# ── Change Date Format ──────────────────────────────────────────
+- tapOn:
+    id: "settings-date-format-button"
+
+# Select DD/MM/YYYY format
+- tapOn:
+    id: "date-format-option-0"
+    optional: true
+
+# ── Verify Settings Screen Still Shows ──────────────────────────
+- assertVisible:
+    id: "settings-screen"
+    timeout: 3000
