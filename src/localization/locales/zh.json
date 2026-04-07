@@ -51,7 +51,10 @@
         "notificationsDeniedMessage": "请在设备设置中启用通知。"
     },
     "common": {
-        "ok": "确定"
+        "ok": "确定",
+        "somethingWentWrong": "Something went wrong",
+        "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
+        "reloadApp": "Reload App"
     },
     "help": {
         "title": "帮助与常见问题",

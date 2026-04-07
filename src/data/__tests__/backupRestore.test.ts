@@ -13,9 +13,9 @@ describe('validateSnapshot', () => {
         createdAt: new Date().toISOString(),
         appVersion: '1.0.0',
         data: {
-            wallets: [{ id: 'w-1', name: 'Cash', balance: 50000, type: 'cash', createdAt: new Date().toISOString() }],
+            wallets: [{ id: 'w-1', name: 'Cash', balance: 50000, type: 'cash', createdAt: new Date().toISOString() } as any],
             transactions: [],
-            categories: [{ id: 'cat-1', name: 'Food', type: 'expense', icon: '🍕', color: '#FF5722' }],
+            categories: [{ id: 'cat-1', name: 'Food', type: 'expense', icon: '🍕', color: '#FF5722' } as any],
             budgets: [],
         },
     };

@@ -19,7 +19,7 @@ import pt from '../../localization/locales/pt.json';
 import ur from '../../localization/locales/ur.json';
 import bn from '../../localization/locales/bn.json';
 
-const ALL_LOCALES: Record<string, typeof en> = { en, fr, es, ar, hi, zh, ru, pt, ur, bn };
+const ALL_LOCALES: Record<string, any> = { en, fr, es, ar, hi, zh, ru, pt, ur, bn };
 const EXPECTED_FAQ_COUNT = 12;
 const EXPECTED_IDS = [
     'add-transaction',

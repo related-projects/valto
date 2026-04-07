@@ -138,6 +138,7 @@
             "expense": "Expense",
             "income": "Income",
             "transfer": "Transfer",
+            "type": "Type",
             "amount": "Amount",
             "category": "Category",
             "selectCategory": "Select category",
@@ -427,7 +428,10 @@
         "done": "Done",
         "getStarted": "Get Started",
         "next": "Next",
-        "back": "Back"
+        "back": "Back",
+        "somethingWentWrong": "Something went wrong",
+        "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
+        "reloadApp": "Reload App"
     },
     "recurring": {
         "title": "Recurring Transactions",

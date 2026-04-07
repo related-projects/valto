@@ -11,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import { Transaction } from '../../domain/entities';
+import { useRouter } from 'expo-router';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
@@ -103,6 +104,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     const { categories } = useCategories();
     const { wallets } = useWallets();
     const { formatAmount } = useFormatting();
+    const router = useRouter();
 
     // Helper to get category name from ID
     const getCategoryName = useCallback((categoryId: string): string => {
@@ -177,6 +179,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             const categoryColor = getCategoryColor(categoryName);
             return (
                 <TouchableOpacity
+                    onPress={() => router.push(`/transaction/${item.id}`)}
                     style={[
                         styles.transactionItem,
                         {
@@ -277,6 +280,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
         return (
             <TouchableOpacity
+                onPress={() => router.push(`/transaction/${transaction.id}`)}
                 style={[
                     styles.transactionItem,
                     {

@@ -57,7 +57,10 @@
         "notificationsDeniedMessage": "Active las notificaciones en la configuración del dispositivo."
     },
     "common": {
-        "ok": "OK"
+        "ok": "OK",
+        "somethingWentWrong": "Something went wrong",
+        "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
+        "reloadApp": "Reload App"
     },
     "help": {
         "title": "Ayuda y FAQ",

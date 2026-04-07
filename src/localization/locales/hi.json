@@ -34,7 +34,10 @@
         "error": "त्रुटि"
     },
     "common": {
-        "ok": "ठीक है"
+        "ok": "ठीक है",
+        "somethingWentWrong": "Something went wrong",
+        "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
+        "reloadApp": "Reload App"
     },
     "help": {
         "title": "सहायता और सामान्य प्रश्न",

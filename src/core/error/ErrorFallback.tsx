@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import i18n from '../../localization/i18n';
 
 interface ErrorFallbackProps {
     error: Error;
@@ -16,9 +17,9 @@ interface ErrorFallbackProps {
 export const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onReset }) => (
     <View style={styles.container}>
         <Text style={styles.emoji}>😔</Text>
-        <Text style={styles.title}>Something went wrong</Text>
+        <Text style={styles.title}>{i18n.t('common.somethingWentWrong')}</Text>
         <Text style={styles.message}>
-            The app encountered an unexpected error. You can try reloading to continue.
+            {i18n.t('common.fatalError')}
         </Text>
         {__DEV__ && (
             <View style={styles.errorBox}>
@@ -26,7 +27,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onReset }) 
             </View>
         )}
         <TouchableOpacity style={styles.button} onPress={onReset} activeOpacity={0.8}>
-            <Text style={styles.buttonText}>Reload App</Text>
+            <Text style={styles.buttonText}>{i18n.t('common.reloadApp')}</Text>
         </TouchableOpacity>
     </View>
 );

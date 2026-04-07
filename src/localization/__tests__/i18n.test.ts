@@ -28,8 +28,8 @@ function extractKeys(obj: NestedRecord, prefix = ''): string[] {
 }
 
 describe('i18n Locale Coverage', () => {
-    const enKeys = extractKeys(en as NestedRecord);
-    const frKeys = extractKeys(fr as NestedRecord);
+    const enKeys = extractKeys(en as unknown as NestedRecord);
+    const frKeys = extractKeys(fr as unknown as NestedRecord);
 
     it('en.json has translation keys', () => {
         expect(enKeys.length).toBeGreaterThan(0);
@@ -59,7 +59,7 @@ describe('i18n Locale Coverage', () => {
 
     it('no empty translation values in en.json', () => {
         const emptyKeys = enKeys.filter(key => {
-            const value = getNestedValue(en as NestedRecord, key);
+            const value = getNestedValue(en as unknown as NestedRecord, key);
             return typeof value === 'string' && value.trim() === '';
         });
         if (emptyKeys.length > 0) {
@@ -69,7 +69,7 @@ describe('i18n Locale Coverage', () => {
 
     it('no empty translation values in fr.json', () => {
         const emptyKeys = frKeys.filter(key => {
-            const value = getNestedValue(fr as NestedRecord, key);
+            const value = getNestedValue(fr as unknown as NestedRecord, key);
             return typeof value === 'string' && value.trim() === '';
         });
         if (emptyKeys.length > 0) {

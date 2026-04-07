@@ -13,8 +13,8 @@ import { TransactionType, RecurrenceFrequency } from '../../domain/entities';
 let mockStorage: InMemoryStorage;
 let mockRecurringRepo: RecurringTransactionRepository;
 
-const mockEmit = jest.fn();
-const mockSubscribe = jest.fn(() => jest.fn());
+const mockEmit = jest.fn((event: string, data?: any) => {});
+const mockSubscribe = jest.fn((event: string, callback: any) => jest.fn());
 
 jest.mock('../../core/di/container', () => ({
     container: {
@@ -26,8 +26,8 @@ jest.mock('../../core/di/container', () => ({
 
 jest.mock('../../core/events/dataEvents', () => ({
     dataEvents: {
-        subscribe: (...args: any[]) => mockSubscribe(...args),
-        emit: (...args: any[]) => mockEmit(...args),
+        subscribe: (event: string, callback: any) => mockSubscribe(event, callback),
+        emit: (event: string, data?: any) => mockEmit(event, data),
         emitMultiple: jest.fn(),
     },
 }));

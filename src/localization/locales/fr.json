@@ -138,6 +138,7 @@
             "expense": "Dépense",
             "income": "Revenu",
             "transfer": "Transfert",
+            "type": "Type",
             "amount": "Montant",
             "category": "Catégorie",
             "selectCategory": "Choisir une catégorie",
@@ -427,7 +428,10 @@
         "done": "Terminé",
         "getStarted": "Commencer",
         "next": "Suivant",
-        "back": "Retour"
+        "back": "Retour",
+        "somethingWentWrong": "Something went wrong",
+        "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
+        "reloadApp": "Reload App"
     },
     "recurring": {
         "title": "Transactions récurrentes",

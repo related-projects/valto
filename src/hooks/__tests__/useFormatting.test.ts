@@ -8,11 +8,11 @@
 import { renderHook, waitFor } from '@testing-library/react-native';
 
 const mockLoadSettings = jest.fn();
-const mockSubscribe = jest.fn(() => jest.fn());
+const mockSubscribe = jest.fn((event: string, callback: any) => jest.fn());
 
 jest.mock('../../core/events/dataEvents', () => ({
     dataEvents: {
-        subscribe: (...args: any[]) => mockSubscribe(...args),
+        subscribe: (event: string, callback: any) => mockSubscribe(event, callback),
         emit: jest.fn(),
     },
 }));

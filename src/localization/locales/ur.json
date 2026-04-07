@@ -34,7 +34,10 @@
         "error": "خرابی"
     },
     "common": {
-        "ok": "ٹھیک ہے"
+        "ok": "ٹھیک ہے",
+        "somethingWentWrong": "Something went wrong",
+        "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
+        "reloadApp": "Reload App"
     },
     "help": {
         "title": "مدد اور عمومی سوالات",
