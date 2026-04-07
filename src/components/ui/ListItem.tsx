@@ -11,6 +11,7 @@ interface ListItemProps {
     onPress?: () => void;
     style?: ViewStyle;
     showChevron?: boolean;
+    testID?: string;
 }
 
 export const ListItem: React.FC<ListItemProps> = ({
@@ -21,11 +22,13 @@ export const ListItem: React.FC<ListItemProps> = ({
     onPress,
     style,
     showChevron = true,
+    testID,
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
 
     return (
         <TouchableOpacity
+            testID={testID}
             onPress={onPress}
             disabled={!onPress}
             style={[

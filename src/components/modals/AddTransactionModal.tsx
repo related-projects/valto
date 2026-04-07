@@ -94,6 +94,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             label: c.name,
             icon: (c.icon as string) || 'pricetag-outline',
             color: c.color,
+            testID: `add_tx_category_${c.id}`,
         }));
     }, [transactionType, expenseCategories, incomeCategories]);
 
@@ -104,6 +105,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             sublabel: formatAmount(w.balance),
             icon: 'wallet-outline',
             color: w.color,
+            testID: `add_tx_wallet_${w.id}`,
         })),
         [wallets, formatAmount]);
 
@@ -116,6 +118,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 sublabel: formatAmount(w.balance),
                 icon: 'wallet-outline',
                 color: w.color,
+                testID: `add_tx_dest_wallet_${w.id}`,
             })),
         [wallets, selectedWalletId, formatAmount]);
 
@@ -228,13 +231,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <TouchableOpacity onPress={onClose} style={styles.headerButton}>
+                        <TouchableOpacity onPress={onClose} style={styles.headerButton} testID="add_tx_close_button">
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
                             {t('modals.addTransaction.title')}
                         </Text>
-                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
+                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving} testID="add_tx_save_button">
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
@@ -260,9 +263,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             {/* Transaction Type Segmented Control */}
                             <SegmentControl
                                 segments={[
-                                    { key: 'expense', label: t('modals.addTransaction.expense'), value: 'expense' as const },
-                                    { key: 'income', label: t('modals.addTransaction.income'), value: 'income' as const },
-                                    { key: 'transfer', label: t('modals.addTransaction.transfer'), value: 'transfer' as const },
+                                    { key: 'expense', label: t('modals.addTransaction.expense'), value: 'expense' as const, testID: 'add_tx_type_expense' },
+                                    { key: 'income', label: t('modals.addTransaction.income'), value: 'income' as const, testID: 'add_tx_type_income' },
+                                    { key: 'transfer', label: t('modals.addTransaction.transfer'), value: 'transfer' as const, testID: 'add_tx_type_transfer' },
                                 ]}
                                 selectedValue={transactionType}
                                 onSelect={setTransactionType}
@@ -283,6 +286,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         keyboardType="decimal-pad"
                                         value={amount}
                                         onChangeText={setAmount}
+                                        testID="add_tx_amount_input"
                                     />
                                 </View>
                             </View>
@@ -308,6 +312,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         />
                                     }
                                     emptyText={t('modals.addTransaction.noCategories')}
+                                    testID="add_tx_category_picker"
                                 />
                             )}
 
@@ -326,6 +331,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                     />
                                 }
                                 emptyText={t('modals.addTransaction.noWallets')}
+                                testID="add_tx_wallet_picker"
                             />
 
                             {/* Transfer Arrow + Destination */}
@@ -358,6 +364,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                             />
                                         }
                                         emptyText={t('modals.addTransaction.noOtherWallets')}
+                                        testID="add_tx_dest_wallet_picker"
                                     />
                                 </>
                             )}
@@ -408,6 +415,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         numberOfLines={4}
                                         value={notes}
                                         onChangeText={setNotes}
+                                        testID="add_tx_notes_input"
                                         onFocus={() => {
                                             setTimeout(() => {
                                                 scrollViewRef.current?.scrollToEnd({ animated: true });

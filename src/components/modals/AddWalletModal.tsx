@@ -114,13 +114,13 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                 <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
+                        <TouchableOpacity onPress={handleClose} style={styles.headerButton} testID="add_wallet_close_button">
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
                             {t('modals.addWallet.title')}
                         </Text>
-                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
+                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving} testID="add_wallet_save_button">
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
@@ -154,6 +154,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                         value={name}
                                         onChangeText={setName}
                                         autoCapitalize="words"
+                                        testID="add_wallet_name_input"
                                     />
                                 </View>
                             </View>
@@ -172,6 +173,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                         keyboardType="decimal-pad"
                                         value={balance}
                                         onChangeText={setBalance}
+                                        testID="add_wallet_balance_input"
                                     />
                                 </View>
                             </View>
@@ -196,6 +198,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                                     },
                                                 ]}
                                                 onPress={() => setWalletType(type.value)}
+                                                testID={`add_wallet_type_${type.value}`}
                                             >
                                                 <Ionicons
                                                     name={type.icon}

@@ -106,6 +106,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             <TouchableOpacity
                 style={[styles.primaryButton, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
                 onPress={next}
+                testID="onboarding_get_started"
                 {...getButtonA11y(t('common.getStarted'))}
             >
                 <Text style={[styles.primaryButtonText, { color: colors.primaryForeground }]}>
@@ -162,6 +163,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     placeholderTextColor={colors.mutedForeground}
                     value={currencySearch}
                     onChangeText={setCurrencySearch}
+                    testID="currency_search_input"
                 />
             </View>
 
@@ -183,6 +185,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                             ...shadows.card,
                         }}
                         disabled={loading}
+                        testID={`currency_item_${item.code}`}
                         {...getButtonA11y(`${item.name} (${item.code})`)}
                     >
                         <Text style={{ fontSize: 24, marginRight: spacing.md }}>{item.symbol}</Text>
@@ -241,6 +244,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 placeholderTextColor={colors.mutedForeground}
                 value={walletName}
                 onChangeText={setWalletName}
+                testID="onboarding_wallet_name"
             />
 
             {/* Wallet Type */}
@@ -298,6 +302,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 value={initialBalance}
                 onChangeText={setInitialBalance}
                 keyboardType="numeric"
+                testID="onboarding_wallet_balance"
             />
 
             {/* Error */}
@@ -316,6 +321,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 }]}
                 onPress={handleCreateWallet}
                 disabled={loading}
+                testID="onboarding_next_button"
                 {...getButtonA11y(t('common.next'))}
             >
                 <Text style={[styles.primaryButtonText, { color: colors.primaryForeground }]}>
@@ -341,6 +347,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 style={[styles.primaryButton, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
                 onPress={handleComplete}
                 disabled={loading}
+                testID="onboarding_complete_button"
                 {...getButtonA11y(t('onboarding.goToDashboard'))}
             >
                 <Text style={[styles.primaryButtonText, { color: colors.primaryForeground }]}>

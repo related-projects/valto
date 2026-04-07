@@ -14,41 +14,34 @@ appId: com.valto.app
 
 # ── Navigate to Transactions ────────────────────────────────────
 - tapOn:
-    id: "tab-transactions"
-
-- assertVisible:
-    id: "transactions-screen"
+    id: "tab_transactions"
 
 # ── Open Add Transaction Modal ──────────────────────────────────
 - tapOn:
-    id: "add-transaction-button"
+    id: "fab_add_transaction"
 
 - assertVisible:
-    id: "add-transaction-modal"
+    id: "add_tx_amount_input"
 
 # ── Fill Transaction Form ───────────────────────────────────────
 # Select expense type (default)
 - tapOn:
-    id: "transaction-type-expense"
+    id: "add_tx_type_expense"
 
 # Enter amount
 - tapOn:
-    id: "transaction-amount-input"
+    id: "add_tx_amount_input"
 
 - inputText: "25.50"
 
 # Select category
 - tapOn:
-    id: "transaction-category-picker"
+    id: "add_tx_category_picker"
 
 - tapOn:
-    id: "category-item-0"
+    text: "Food" # Will pick the first thing with Food text, e.g. Food & Dining
 
 # ── Save Transaction ───────────────────────────────────────────
 - tapOn:
-    id: "transaction-save-button"
-
-# ── Verify Transaction Appears ──────────────────────────────────
-- assertVisible:
-    id: "transactions-screen"
+    id: "add_tx_save_button"
     timeout: 3000

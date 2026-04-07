@@ -61,6 +61,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                         return (
                             <TouchableOpacity
                                 key={route.key}
+                                testID={`tab_${route.name}`}
                                 accessibilityRole="button"
                                 accessibilityState={isFocused ? { selected: true } : {}}
                                 accessibilityLabel={options.tabBarAccessibilityLabel}
@@ -102,6 +103,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                     },
                 ]}
                 onPress={() => setShowAddModal(true)}
+                testID="fab_add_transaction"
                 accessibilityRole="button"
                 accessibilityLabel={t('a11y.addTransaction')}
             >

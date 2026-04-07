@@ -23,6 +23,8 @@ export interface DropdownItem {
     icon?: string;
     /** Optional icon/label color */
     color?: string;
+    /** Optional testID */
+    testID?: string;
 }
 
 interface DropdownPickerProps {
@@ -42,6 +44,8 @@ interface DropdownPickerProps {
     emptyText?: string;
     /** Maximum height of the dropdown list */
     maxHeight?: number;
+    /** Optional testID */
+    testID?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────
@@ -55,6 +59,7 @@ export const DropdownPicker: React.FC<DropdownPickerProps> = ({
     triggerIcon,
     emptyText = 'No items available',
     maxHeight = 200,
+    testID,
 }) => {
     const { colors, spacing: sp, typography: tp, radius: rd } = useTheme();
     const [open, setOpen] = useState(false);
@@ -67,6 +72,7 @@ export const DropdownPicker: React.FC<DropdownPickerProps> = ({
                 {label}
             </Text>
             <TouchableOpacity
+                testID={testID}
                 style={[styles.trigger, { backgroundColor: colors.background, borderColor: colors.border }]}
                 onPress={() => setOpen(!open)}
             >
@@ -106,6 +112,7 @@ export const DropdownPicker: React.FC<DropdownPickerProps> = ({
                             items.map((item) => (
                                 <TouchableOpacity
                                     key={item.id}
+                                    testID={item.testID}
                                     style={{
                                         flexDirection: 'row',
                                         alignItems: 'center',

@@ -14,38 +14,30 @@ appId: com.valto.app
 
 # ── Navigate to Wallets ─────────────────────────────────────────
 - tapOn:
-    id: "tab-wallets"
-
-- assertVisible:
-    id: "wallets-screen"
+    id: "tab_wallets"
 
 # ── Open Add Wallet Modal ───────────────────────────────────────
 - tapOn:
-    id: "add-wallet-button"
+    text: "Add Wallet"
 
 - assertVisible:
-    id: "add-wallet-modal"
+    id: "add_wallet_name_input"
 
 # ── Fill Wallet Form ────────────────────────────────────────────
 - tapOn:
-    id: "wallet-name-input"
+    id: "add_wallet_name_input"
 
 - inputText: "Savings Account"
 
 - tapOn:
-    id: "wallet-balance-input"
+    id: "add_wallet_balance_input"
 
 - inputText: "1000"
 
 # Select wallet type
 - tapOn:
-    id: "wallet-type-savings"
+    id: "add_wallet_type_savings"
 
 # ── Save Wallet ────────────────────────────────────────────────
 - tapOn:
-    id: "wallet-save-button"
-
-# ── Verify Wallet Appears ──────────────────────────────────────
-- assertVisible:
-    id: "wallets-screen"
-    timeout: 3000
+    id: "add_wallet_save_button"

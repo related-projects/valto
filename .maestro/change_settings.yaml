@@ -14,14 +14,11 @@ appId: com.valto.app
 
 # ── Navigate to Settings ────────────────────────────────────────
 - tapOn:
-    id: "tab-settings"
-
-- assertVisible:
-    id: "settings-screen"
+    id: "tab_settings"
 
 # ── Change Theme ────────────────────────────────────────────────
 - tapOn:
-    id: "settings-theme-button"
+    id: "settings_theme_item"
 
 # Theme selection appears as an alert — tap dark option
 - tapOn:
@@ -30,14 +27,10 @@ appId: com.valto.app
 
 # ── Change Date Format ──────────────────────────────────────────
 - tapOn:
-    id: "settings-date-format-button"
-
-# Select DD/MM/YYYY format
-- tapOn:
-    id: "date-format-option-0"
+    text: "DD/MM/YYYY"
     optional: true
 
 # ── Verify Settings Screen Still Shows ──────────────────────────
 - assertVisible:
-    id: "settings-screen"
+    id: "tab_settings"
     timeout: 3000

@@ -166,6 +166,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron={!isCurrencyLocked}
                         onPress={handleCurrencyPress}
+                        testID="settings_currency_item"
                     />
                     <ListItem
                         title={t('settings.language')}
@@ -175,6 +176,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={() => setLanguagePickerVisible(true)}
+                        testID="settings_language_item"
                     />
                     <ListItem
                         title={t('settings.theme')}
@@ -184,6 +186,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={changeTheme}
+                        testID="settings_theme_item"
                     />
                 </View>
             </View>
@@ -302,6 +305,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={createBackup}
+                        testID="settings_backup_item"
                     />
                     <ListItem
                         title={t('settings.restoreData')}
@@ -310,6 +314,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={restoreBackup}
+                        testID="settings_restore_item"
                     />
                     {isCurrencyLocked && (
                         <ListItem
@@ -328,6 +333,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={resetAllData}
+                        testID="settings_reset_item"
                     />
                 </View>
             </View>

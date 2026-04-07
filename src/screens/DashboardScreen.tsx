@@ -109,6 +109,7 @@ export const DashboardScreen = () => {
 
     return (
         <ScrollView
+            testID="dashboard_screen"
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
                 paddingBottom: spacing.tabBarOffset,

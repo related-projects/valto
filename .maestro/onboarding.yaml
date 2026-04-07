@@ -15,32 +15,37 @@ appId: com.valto.app
 
 # ── Welcome Screen ──────────────────────────────────────────────
 - assertVisible:
-    id: "onboarding-welcome-screen"
-    
-- assertVisible:
-    id: "onboarding-next-button"
+    id: "onboarding_get_started"
 
 - tapOn:
-    id: "onboarding-next-button"
+    id: "onboarding_get_started"
 
 # ── Currency Selection ──────────────────────────────────────────
 - assertVisible:
-    id: "onboarding-currency-screen"
+    id: "currency_search_input"
 
 - tapOn:
-    id: "currency-item-USD"
+    id: "currency_item_USD"
 
 - tapOn:
-    id: "onboarding-next-button"
+    id: "onboarding_next_button"
 
 # ── Wallet Setup ────────────────────────────────────────────────
 - assertVisible:
-    id: "onboarding-wallet-screen"
+    id: "onboarding_wallet_name"
 
 - tapOn:
-    id: "onboarding-finish-button"
+    id: "onboarding_wallet_name"
+
+- inputText: "Main Account"
+
+- tapOn:
+    id: "onboarding_next_button"
+    
+# ── Completion ────────────────────────────────────────────────
+- tapOn:
+    id: "onboarding_complete_button"
 
 # ── Verify Dashboard ────────────────────────────────────────────
 - assertVisible:
-    id: "dashboard-screen"
-    timeout: 5000
+    id: "dashboard_screen"

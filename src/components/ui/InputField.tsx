@@ -9,6 +9,7 @@ interface InputFieldProps extends TextInputProps {
     rightIcon?: React.ReactNode;
     onRightIconPress?: () => void;
     variant?: 'default' | 'pill';
+    testID?: string;
 }
 
 export const InputField: React.FC<InputFieldProps> = ({
@@ -19,6 +20,7 @@ export const InputField: React.FC<InputFieldProps> = ({
     onRightIconPress,
     variant = 'default',
     style,
+    testID,
     ...props
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
@@ -27,7 +29,7 @@ export const InputField: React.FC<InputFieldProps> = ({
     const isPill = variant === 'pill';
 
     return (
-        <View style={styles.container}>
+        <View style={styles.container} testID={testID}>
             {label && (
                 <Text
                     style={[
