@@ -52,18 +52,18 @@
         }
     },
     "insights": {
-        "noIncomeSpending": "Aucun revenu enregistré — toutes les dépenses proviennent de l'épargne.",
+        "noIncomeSpending": "Aucun revenu enregistré, toutes les dépenses proviennent de l'épargne.",
         "noIncomeNoExpense": "Aucun revenu ni dépense enregistré cette période.",
         "spendingOverIncome": "Vous dépensez {{percent}}% de plus que vos revenus.",
-        "savingsWeak": "Seulement {{percent}}% de revenus épargnés — essayez d'atteindre 10%.",
-        "savingsAcceptable": "{{percent}}% de revenus épargnés — bonne trajectoire.",
+        "savingsWeak": "Seulement {{percent}}% de revenus épargnés, essayez d'atteindre 10%.",
+        "savingsAcceptable": "{{percent}}% de revenus épargnés, bonne trajectoire.",
         "savingsStrong": "Excellent ! {{percent}}% de revenus épargnés.",
         "invalidBudgetPeriod": "Période de budget invalide.",
         "noBudgetWithSpending": "Aucun budget défini, mais des dépenses sont enregistrées.",
         "noBudgetSet": "Aucun budget défini pour cette période.",
         "spendingAhead": "Les dépenses dépassent le rythme du budget de {{percent}}%.",
         "spendingOnTrack": "Les dépenses sont en ligne avec votre budget.",
-        "firstTrackedMonth": "Aucune dépense le mois dernier — c'est votre premier mois suivi.",
+        "firstTrackedMonth": "Aucune dépense le mois dernier, c'est votre premier mois suivi.",
         "noSpendingEither": "Aucune dépense enregistrée dans les deux mois.",
         "spendingStable": "Les dépenses sont à peu près les mêmes que le mois dernier.",
         "spendingIncreased": "Les dépenses ont augmenté de {{percent}}% par rapport au mois dernier.",
@@ -94,6 +94,12 @@
     },
     "dashboard": {
         "greeting": "Bonjour",
+        "greetings": {
+            "morning": "Bonjour",
+            "afternoon": "Bon après-midi",
+            "evening": "Bonsoir",
+            "night": "Bonne nuit"
+        },
         "title": "Tableau de bord",
         "recentTransactions": "Transactions récentes"
     },
@@ -105,7 +111,25 @@
         "filterExpense": "Dépenses",
         "filterTransfer": "Transferts",
         "income": "Revenus",
-        "expenses": "Dépenses"
+        "expenses": "Dépenses",
+        "filter": {
+            "title": "Filtrer les transactions",
+            "apply": "Appliquer les filtres",
+            "reset": "Réinitialiser",
+            "type": "Type de transaction",
+            "category": "Catégorie",
+            "selectCategories": "Sélectionner les catégories",
+            "wallet": "Portefeuille",
+            "selectWallets": "Sélectionner les portefeuilles",
+            "dateRange": "Plage de dates",
+            "startDate": "Date de début",
+            "endDate": "Date de fin",
+            "amountRange": "Plage de montant",
+            "minAmount": "Min",
+            "maxAmount": "Max",
+            "noResults": "Aucune transaction ne correspond à vos filtres",
+            "activeFilters": "{{count}} actif(s)"
+        }
     },
     "wallets": {
         "title": "Portefeuilles",
@@ -299,7 +323,7 @@
             {
                 "id": "restore-data",
                 "question": "Comment restaurer depuis une sauvegarde ?",
-                "answer": "Allez dans Paramètres → Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Cette action est irréversible — pensez à sauvegarder d'abord."
+                "answer": "Allez dans Paramètres → Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Cette action est irréversible, pensez à sauvegarder d'abord."
             },
             {
                 "id": "change-currency",
@@ -447,7 +471,7 @@
         "ruleCreatedMessage": "Règle récurrente créée avec succès.\n{{count}} transaction(s) générée(s).",
         "ruleCreatedNoTransactions": "Règle récurrente créée avec succès. Les transactions seront générées à la prochaine échéance.",
         "ruleCreatedLaunch": "Règle récurrente créée. Les transactions seront générées au prochain lancement.",
-        "ruleCreatedInsufficientTitle": "Règle créée — Fonds insuffisants",
+        "ruleCreatedInsufficientTitle": "Règle créée. Fonds insuffisants",
         "ruleCreatedInsufficientMessage": "Règle récurrente créée avec succès, mais des transactions ont été ignorées car votre portefeuille n'a pas assez de fonds. Elles seront générées automatiquement lorsque les fonds seront disponibles.",
         "ruleUpdated": "Règle mise à jour",
         "ruleUpdatedMessage": "Règle récurrente mise à jour avec succès.",
@@ -534,9 +558,9 @@
         "welcomeTitle": "Bienvenue sur Valto",
         "welcomeDescription": "Votre suivi budgétaire hors ligne. Simple, privé et puissant.",
         "selectCurrencyTitle": "Choisissez votre devise",
-        "selectCurrencyDescription": "Ce sera votre devise de base pour toutes les transactions. Choisissez soigneusement — elle peut être modifiée plus tard dans les paramètres.",
+        "selectCurrencyDescription": "Ce sera votre devise de base pour toutes les transactions. Choisissez soigneusement, elle peut être modifiée plus tard dans les paramètres.",
         "createWalletTitle": "Créez votre premier portefeuille",
-        "createWalletDescription": "Un portefeuille représente l'endroit où vous gardez votre argent — espèces, compte bancaire ou mobile money.",
+        "createWalletDescription": "Un portefeuille représente l'endroit où vous gardez votre argent, espèces, compte bancaire ou mobile money.",
         "walletName": "Nom du portefeuille",
         "walletNamePlaceholder": "ex. Compte principal",
         "initialBalance": "Solde initial",

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +23,7 @@ import { useFinancialInsights } from '../hooks/useFinancialInsights';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
+import { getGreeting } from '../utils/getGreeting';
 
 /** Map savings-health level → visual variant */
 const SAVINGS_VARIANT: Record<SavingsLevel, InsightVariant> = {
@@ -35,6 +36,7 @@ const SAVINGS_VARIANT: Record<SavingsLevel, InsightVariant> = {
 export const DashboardScreen = () => {
     const { t } = useTranslation();
     const { colors, spacing, typography } = useTheme();
+    const greetingKey = useMemo(() => getGreeting(new Date()), []);
     const insets = useSafeAreaInsets();
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
@@ -121,7 +123,7 @@ export const DashboardScreen = () => {
         >
             <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                    {t('dashboard.greeting')}
+                    {t(greetingKey)}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Text

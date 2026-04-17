@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
 
@@ -19,7 +19,29 @@ interface BalanceCardProps {
     onRequestAuth?: () => Promise<boolean>;
 }
 
-export const BalanceCard: React.FC<BalanceCardProps> = ({
+/** Opacity values for 3D surface layers, tuned per theme */
+const SURFACE_OPACITY = {
+    light: {
+        gradientTop: 0.08,
+        gradientBottom: 0.06,
+        innerGlow: 0.12,
+        highlightTop: 'rgba(255, 255, 255, 0.18)',
+        highlightLeft: 'rgba(255, 255, 255, 0.08)',
+        highlightRight: 'rgba(0, 0, 0, 0.05)',
+        highlightBottom: 'rgba(0, 0, 0, 0.10)',
+    },
+    dark: {
+        gradientTop: 0.06,
+        gradientBottom: 0.08,
+        innerGlow: 0.08,
+        highlightTop: 'rgba(255, 255, 255, 0.12)',
+        highlightLeft: 'rgba(255, 255, 255, 0.05)',
+        highlightRight: 'rgba(0, 0, 0, 0.08)',
+        highlightBottom: 'rgba(0, 0, 0, 0.14)',
+    },
+} as const;
+
+const BalanceCardInner: React.FC<BalanceCardProps> = ({
     totalBalance,
     monthlyIncome,
     monthlyExpense,
@@ -31,7 +53,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     onRequestAuth,
 }) => {
     const { t } = useTranslation();
-    const { colors, typography, spacing, radius, shadows } = useTheme();
+    const { colors, typography, spacing, radius, shadows, isDark } = useTheme();
     const { formatAmount } = useFormatting();
     const [hidden, setHidden] = useState(false);
     const authInProgress = useRef(false);
@@ -94,6 +116,9 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         );
     };
 
+    // Select theme-appropriate surface opacities
+    const surface = isDark ? SURFACE_OPACITY.dark : SURFACE_OPACITY.light;
+
     return (
         <View
             style={[
@@ -102,10 +127,70 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                     backgroundColor: colors.accent,
                     borderRadius: radius.xl,
                     padding: spacing.lg,
-                    ...shadows.card,
+                    ...shadows.elevated3d,
+                    // Platform-specific depth boost
+                    ...Platform.select({
+                        android: { elevation: 12 },
+                        ios: {},
+                    }),
                 },
             ]}
         >
+            {/* Layer 1: Gradient simulation — top lighter overlay */}
+            <View
+                style={[
+                    styles.gradientTop,
+                    {
+                        borderTopLeftRadius: radius.xl,
+                        borderTopRightRadius: radius.xl,
+                        backgroundColor: hexToRgba('#FFFFFF', surface.gradientTop),
+                    },
+                ]}
+                pointerEvents="none"
+            />
+
+            {/* Layer 2: Gradient simulation — bottom darker overlay */}
+            <View
+                style={[
+                    styles.gradientBottom,
+                    {
+                        borderBottomLeftRadius: radius.xl,
+                        borderBottomRightRadius: radius.xl,
+                        backgroundColor: hexToRgba('#000000', surface.gradientBottom),
+                    },
+                ]}
+                pointerEvents="none"
+            />
+
+            {/* Layer 3: Surface highlight — inner glow at top edge */}
+            <View
+                style={[
+                    styles.innerGlow,
+                    {
+                        borderTopLeftRadius: radius.xl,
+                        borderTopRightRadius: radius.xl,
+                        backgroundColor: hexToRgba('#FFFFFF', surface.innerGlow),
+                    },
+                ]}
+                pointerEvents="none"
+            />
+
+            {/* Layer 4: Border highlight — beveled edge illusion */}
+            <View
+                style={[
+                    styles.highlightEdge,
+                    {
+                        borderRadius: radius.xl,
+                        borderTopColor: surface.highlightTop,
+                        borderLeftColor: surface.highlightLeft,
+                        borderRightColor: surface.highlightRight,
+                        borderBottomColor: surface.highlightBottom,
+                    },
+                ]}
+                pointerEvents="none"
+            />
+
+            {/* Content */}
             <View style={styles.header}>
                 <View>
                     <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs, opacity: 0.8 }}>
@@ -196,9 +281,36 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     );
 };
 
+/** Memoized BalanceCard — prevents re-renders from parent style changes */
+export const BalanceCard = React.memo(BalanceCardInner);
+
 const styles = StyleSheet.create({
     container: {
         width: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    /** Top 55% — lighter overlay simulating light hitting surface */
+    gradientTop: {
+        ...StyleSheet.absoluteFillObject,
+        bottom: '45%',
+    },
+    /** Bottom 45% — darker overlay simulating shadow underneath */
+    gradientBottom: {
+        ...StyleSheet.absoluteFillObject,
+        top: '55%',
+    },
+    /** Inner glow — narrow strip at very top for specular highlight */
+    innerGlow: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 3,
+    },
+    highlightEdge: {
+        ...StyleSheet.absoluteFillObject,
+        borderWidth: 1,
     },
     header: {
         flexDirection: 'row',

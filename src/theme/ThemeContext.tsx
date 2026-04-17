@@ -53,6 +53,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             soft: { ...shadows.soft, shadowColor: '#000', shadowOpacity: 0.3 },
             card: { ...shadows.card, shadowColor: '#000', shadowOpacity: 0.4 },
             elevated: { ...shadows.elevated, shadowColor: '#000', shadowOpacity: 0.5 },
+            elevated3d: { ...shadows.elevated3d, shadowColor: '#000', shadowOpacity: 0.6 },
         }
         : shadows;
 

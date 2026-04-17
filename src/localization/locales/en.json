@@ -94,6 +94,12 @@
     },
     "dashboard": {
         "greeting": "Good morning",
+        "greetings": {
+            "morning": "Good morning",
+            "afternoon": "Good afternoon",
+            "evening": "Good evening",
+            "night": "Good night"
+        },
         "title": "Dashboard",
         "recentTransactions": "Recent Transactions"
     },
@@ -105,7 +111,25 @@
         "filterExpense": "Expense",
         "filterTransfer": "Transfer",
         "income": "Income",
-        "expenses": "Expenses"
+        "expenses": "Expenses",
+        "filter": {
+            "title": "Filter Transactions",
+            "apply": "Apply Filters",
+            "reset": "Reset",
+            "type": "Transaction Type",
+            "category": "Category",
+            "selectCategories": "Select categories",
+            "wallet": "Wallet",
+            "selectWallets": "Select wallets",
+            "dateRange": "Date Range",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "amountRange": "Amount Range",
+            "minAmount": "Min",
+            "maxAmount": "Max",
+            "noResults": "No transactions match your filters",
+            "activeFilters": "{{count}} active"
+        }
     },
     "wallets": {
         "title": "Wallets",

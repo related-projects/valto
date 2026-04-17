@@ -20,4 +20,12 @@ export const shadows = {
         shadowRadius: 32,
         elevation: 8,
     },
+    /** Dual-layer 3D effect: combines ambient spread with tighter depth */
+    elevated3d: {
+        shadowColor: '#2F241F',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.22,
+        shadowRadius: 24,
+        elevation: 12,
+    },
 };

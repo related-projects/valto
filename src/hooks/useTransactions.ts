@@ -8,12 +8,17 @@
  * Supports two modes:
  * - Full load: getAll() — used by dashboard and consumers needing full dataset
  * - Paginated: loadNextPage() — used by TransactionsScreen for lazy loading
+ * 
+ * Filtering:
+ * - Exposes `filters` / `setFilters` / `resetFilters` for composable filtering
+ * - `filteredTransactions` is a derived (memoised) value from the pure `filterTransactions` function
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getTransactionRepository, getUseCaseDeps } from '../core/di';
 import { dataEvents } from '../core/events';
 import { CreateTransactionDTO, Transaction } from '../domain/entities';
+import { filterTransactions, TransactionFilters } from '../domain/filters/filterTransactions';
 import {
     createTransaction as createTransactionUC,
     deleteTransaction as deleteTransactionUC,
@@ -23,6 +28,14 @@ const PAGE_SIZE = 20;
 
 interface UseTransactionsResult {
     transactions: Transaction[];
+    /** Transactions after applying active filters */
+    filteredTransactions: Transaction[];
+    /** Current active filters */
+    filters: TransactionFilters;
+    /** Update the active filters */
+    setFilters: (filters: TransactionFilters) => void;
+    /** Reset all filters to empty */
+    resetFilters: () => void;
     loading: boolean;
     error: string | null;
     createTransaction: (dto: CreateTransactionDTO) => Promise<Transaction>;
@@ -45,7 +58,24 @@ export function useTransactions(): UseTransactionsResult {
     const [error, setError] = useState<string | null>(null);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [filters, setFilters] = useState<TransactionFilters>({});
     const pageRef = useRef(1);
+
+    /**
+     * Derived filtered transactions (memoised).
+     * Delegates to the pure filterTransactions function in the domain layer.
+     */
+    const filteredTransactions = useMemo(
+        () => filterTransactions(transactions, filters),
+        [transactions, filters]
+    );
+
+    /**
+     * Reset all filters to empty (show all transactions)
+     */
+    const resetFilters = useCallback(() => {
+        setFilters({});
+    }, []);
 
     const transactionRepo = getTransactionRepository();
 
@@ -155,6 +185,10 @@ export function useTransactions(): UseTransactionsResult {
 
     return {
         transactions,
+        filteredTransactions,
+        filters,
+        setFilters,
+        resetFilters,
         loading,
         error,
         createTransaction,
