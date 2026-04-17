@@ -52,18 +52,18 @@
         }
     },
     "insights": {
-        "noIncomeSpending": "No income recorded — all spending is from savings.",
+        "noIncomeSpending": "No income recorded, all spending is from savings.",
         "noIncomeNoExpense": "No income or expenses recorded this period.",
         "spendingOverIncome": "You're spending {{percent}}% more than you earn.",
-        "savingsWeak": "Saving only {{percent}}% of income — try to reach 10%.",
-        "savingsAcceptable": "Saving {{percent}}% of income — on a healthy track.",
+        "savingsWeak": "Saving only {{percent}}% of income, try to reach 10%.",
+        "savingsAcceptable": "Saving {{percent}}% of income, on a healthy track.",
         "savingsStrong": "Great! Saving {{percent}}% of income.",
         "invalidBudgetPeriod": "Invalid budget period.",
         "noBudgetWithSpending": "No budget set, but you have spending recorded.",
         "noBudgetSet": "No budget set for this period.",
         "spendingAhead": "Spending is {{percent}}% ahead of budget pace.",
         "spendingOnTrack": "Spending is on track with your budget pace.",
-        "firstTrackedMonth": "No spending last month — this is your first tracked month.",
+        "firstTrackedMonth": "No spending last month, this is your first tracked month.",
         "noSpendingEither": "No spending recorded in either month.",
         "spendingStable": "Spending is roughly the same as last month.",
         "spendingIncreased": "Spending increased by {{percent}}% compared to last month.",
@@ -323,7 +323,7 @@
             {
                 "id": "restore-data",
                 "question": "How do I restore from a backup?",
-                "answer": "Go to Settings → Restore Data. Pick your backup file using the file picker. The app will validate the backup and replace all current data. This action cannot be undone — consider backing up first."
+                "answer": "Go to Settings → Restore Data. Pick your backup file using the file picker. The app will validate the backup and replace all current data. This action cannot be undone, consider backing up first."
             },
             {
                 "id": "change-currency",
@@ -471,7 +471,7 @@
         "ruleCreatedMessage": "Recurring rule created successfully.\n{{count}} transaction(s) generated.",
         "ruleCreatedNoTransactions": "Recurring rule created successfully. Transactions will be generated on the next due date.",
         "ruleCreatedLaunch": "Recurring rule created. Transactions will generate on next app launch.",
-        "ruleCreatedInsufficientTitle": "Rule Created — Insufficient Funds",
+        "ruleCreatedInsufficientTitle": "Rule Created. Insufficient Funds",
         "ruleCreatedInsufficientMessage": "Recurring rule created successfully, but transactions were skipped because your wallet does not have enough funds. They will be generated automatically once funds are available.",
         "ruleUpdated": "Rule Updated",
         "ruleUpdatedMessage": "Recurring rule updated successfully.",
@@ -558,9 +558,9 @@
         "welcomeTitle": "Welcome to Valto",
         "welcomeDescription": "Your offline-first budget tracker. Simple, private, and powerful.",
         "selectCurrencyTitle": "Choose your currency",
-        "selectCurrencyDescription": "This will be your base currency for all transactions. Choose carefully — it can be changed later in settings.",
+        "selectCurrencyDescription": "This will be your base currency for all transactions. Choose carefully, it can be changed later in settings.",
         "createWalletTitle": "Create your first wallet",
-        "createWalletDescription": "A wallet represents where you keep your money — cash, bank account, or mobile money.",
+        "createWalletDescription": "A wallet represents where you keep your money, cash, bank account, or mobile money.",
         "walletName": "Wallet Name",
         "walletNamePlaceholder": "e.g., Main Account",
         "initialBalance": "Initial Balance",
