@@ -1,0 +1,48 @@
+name: CI
+
+# Run the full local toolchain automatically on the two long-lived branches and
+# on every PR that targets them. Feature PRs target `develop`; release/hotfix PRs
+# target `main`. The workflow that runs is the one present in the PR's head branch,
+# so this pipeline executes on the very first PR that introduces it — even before
+# `develop` contains the file.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+# Cancel any in-progress run for the same ref when a new commit arrives.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node 20 LTS: the project pins no .nvmrc / engines, so CI fixes a known LTS.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # npm ci (not npm install): reproducible, fails if package-lock.json drifts.
+      - name: Install dependencies
+        run: npm ci
+
+      # Lint includes the Clean Architecture barrier (no-restricted-imports on
+      # src/domain/**): a domain->data dependency regression fails CI here.
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # --ci: no snapshot writes; --coverage: enforces the scoped coverageThreshold
+      # (src/domain, src/data) configured in jest.config.js.
+      - name: Test
+        run: npx jest --ci --coverage

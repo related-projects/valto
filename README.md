@@ -1,5 +1,7 @@
 # Valto 💰
 
+[![CI](https://github.com/related-projects/valto/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/related-projects/valto/actions/workflows/ci.yml)
+
 **Offline-first personal finance & budget tracking app**
 
 Valto is a **mobile-first, offline budget and expense tracking application** built with **React Native** and designed to work **entirely without external APIs**.

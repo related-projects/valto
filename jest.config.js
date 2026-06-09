@@ -23,4 +23,26 @@ module.exports = {
         '!src/**/*.d.ts',
         '!src/**/index.ts',
     ],
+    // Anti-regression ratchet, SCOPED to the business logic only. Floors are set
+    // just below the measured coverage of each layer (domain ~98/96/96/98,
+    // data ~69/58/79/68 for statements/branches/functions/lines) so a drop in the
+    // domain or data layers fails CI, while UI (components/screens) — deliberately
+    // not unit-tested — imposes NO threshold and never reddens the build.
+    // NOTE: directory-path keys enforce the AGGREGATE average across the layer
+    // (a glob key would instead enforce each file individually, which is not the
+    // intent — the ratchet is on the layer as a whole, not on every file).
+    coverageThreshold: {
+        './src/domain/': {
+            statements: 96,
+            branches: 93,
+            functions: 93,
+            lines: 96,
+        },
+        './src/data/': {
+            statements: 66,
+            branches: 56,
+            functions: 77,
+            lines: 66,
+        },
+    },
 };
