@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryBreakdownTable } from '../components/reports/CategoryBreakdownTable';
@@ -18,6 +19,7 @@ import { useReports } from '../hooks/useReports';
 import { useTheme } from '../theme/theme';
 
 export const ReportsScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography } = useTheme();
     const insets = useSafeAreaInsets();
 
@@ -54,7 +56,7 @@ export const ReportsScreen = () => {
             {/* Header */}
             <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                    Monthly overview
+                    {t('reports.subtitle')}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Text
@@ -64,7 +66,7 @@ export const ReportsScreen = () => {
                             fontWeight: typography.weights.bold,
                         }}
                     >
-                        Reports
+                        {t('reports.title')}
                     </Text>
                     <Avatar label="V" size="sm" />
                 </View>

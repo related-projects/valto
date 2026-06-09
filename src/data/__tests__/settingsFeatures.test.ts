@@ -1,7 +1,7 @@
 /**
  * Settings Features Tests
  *
- * Tests for Notifications, Currency, and Language features.
+ * Tests for Notifications, Currency, Language, and Regional features.
  */
 
 // ─── Mocks ────────────────────────────────────────────────────────────
@@ -22,6 +22,15 @@ jest.mock('react-native', () => ({
     },
 }));
 
+// Mock expo-notifications
+jest.mock('expo-notifications', () => ({
+    getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+    requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+    cancelAllScheduledNotificationsAsync: jest.fn().mockResolvedValue(undefined),
+    scheduleNotificationAsync: jest.fn().mockResolvedValue('mock-id'),
+    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval' },
+}));
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dataEvents } from '../../core/events/dataEvents';
 import { isNotificationsEnabled, setNotificationsEnabled } from '../../data/services/notificationService';
@@ -29,6 +38,7 @@ import {
     getDefaultSettings,
     loadSettings,
     selectAndLockCurrency,
+    unlockAndResetCurrency,
     updateSetting,
 } from '../../data/services/settingsService';
 import {
@@ -43,6 +53,8 @@ import {
     isSupportedLanguage,
     SUPPORTED_LANGUAGES,
 } from '../../domain/constants/languages';
+import { formatAmount } from '../../utils/formatAmount';
+import { formatDate } from '../../utils/formatDate';
 
 beforeEach(async () => {
     await AsyncStorage.clear();
@@ -57,8 +69,11 @@ describe('Notification Feature', () => {
         expect(enabled).toBe(false);
     });
 
-    it('toggle persists preference', async () => {
-        await setNotificationsEnabled(true);
+    it('toggle persists preference (with permission granted)', async () => {
+        const result = await setNotificationsEnabled(true);
+        expect(result.enabled).toBe(true);
+        expect(result.permissionDenied).toBe(false);
+
         const enabled = await isNotificationsEnabled();
         expect(enabled).toBe(true);
 
@@ -85,6 +100,20 @@ describe('Notification Feature', () => {
         expect(spy).toHaveBeenCalledTimes(1);
 
         unsub();
+    });
+
+    it('handles permission denial', async () => {
+        const Notifications = require('expo-notifications');
+        Notifications.getPermissionsAsync.mockResolvedValueOnce({ status: 'denied' });
+        Notifications.requestPermissionsAsync.mockResolvedValueOnce({ status: 'denied' });
+
+        const result = await setNotificationsEnabled(true);
+        expect(result.enabled).toBe(false);
+        expect(result.permissionDenied).toBe(true);
+
+        // Should not have persisted
+        const enabled = await isNotificationsEnabled();
+        expect(enabled).toBe(false);
     });
 
     it('handles corrupted stored value gracefully', async () => {
@@ -140,6 +169,13 @@ describe('Currency Feature', () => {
     it('updateSetting rejects currency change when locked', async () => {
         await selectAndLockCurrency('EUR');
         await expect(updateSetting('currency', 'USD')).rejects.toThrow('Currency cannot be changed');
+    });
+
+    it('unlockAndResetCurrency changes locked currency', async () => {
+        await selectAndLockCurrency('EUR');
+        const reset = await unlockAndResetCurrency('GBP');
+        expect(reset.currency).toBe('GBP');
+        expect(reset.currencyLocked).toBe(true);
     });
 
     it('getCurrencyByCode falls back to USD for unknown code', () => {
@@ -251,6 +287,75 @@ describe('Language Feature', () => {
     });
 });
 
+// ─── Regional Settings ───────────────────────────────────────────────
+
+describe('Regional Settings', () => {
+    it('defaults to MM/DD/YYYY, monday, dot', async () => {
+        const settings = await loadSettings();
+        expect(settings.dateFormat).toBe('MM/DD/YYYY');
+        expect(settings.firstDayOfWeek).toBe('monday');
+        expect(settings.decimalSeparator).toBe('dot');
+    });
+
+    it('persists dateFormat', async () => {
+        await updateSetting('dateFormat', 'DD/MM/YYYY');
+        const settings = await loadSettings();
+        expect(settings.dateFormat).toBe('DD/MM/YYYY');
+    });
+
+    it('persists firstDayOfWeek', async () => {
+        await updateSetting('firstDayOfWeek', 'sunday');
+        const settings = await loadSettings();
+        expect(settings.firstDayOfWeek).toBe('sunday');
+    });
+
+    it('persists decimalSeparator', async () => {
+        await updateSetting('decimalSeparator', 'comma');
+        const settings = await loadSettings();
+        expect(settings.decimalSeparator).toBe('comma');
+    });
+
+    it('validates invalid dateFormat on load', async () => {
+        await AsyncStorage.setItem('@valto:settings', JSON.stringify({
+            dateFormat: 'INVALID',
+        }));
+        const settings = await loadSettings();
+        expect(settings.dateFormat).toBe('MM/DD/YYYY');
+    });
+
+    it('validates invalid decimalSeparator on load', async () => {
+        await AsyncStorage.setItem('@valto:settings', JSON.stringify({
+            decimalSeparator: 'semicolon',
+        }));
+        const settings = await loadSettings();
+        expect(settings.decimalSeparator).toBe('dot');
+    });
+});
+
+// ─── Formatting Utilities ─────────────────────────────────────────────
+
+describe('Formatting Utilities', () => {
+    it('formatAmount with dot separator', () => {
+        expect(formatAmount(200050, '$', 'dot')).toBe('$2,000.50');
+    });
+
+    it('formatAmount with comma separator', () => {
+        expect(formatAmount(200050, '$', 'comma')).toBe('$2.000,50');
+    });
+
+    it('formatDate DD/MM/YYYY', () => {
+        expect(formatDate(new Date('2026-03-05'), 'DD/MM/YYYY')).toBe('05/03/2026');
+    });
+
+    it('formatDate MM/DD/YYYY', () => {
+        expect(formatDate(new Date('2026-03-05'), 'MM/DD/YYYY')).toBe('03/05/2026');
+    });
+
+    it('formatDate YYYY-MM-DD', () => {
+        expect(formatDate(new Date('2026-03-05'), 'YYYY-MM-DD')).toBe('2026-03-05');
+    });
+});
+
 // ─── Settings Service Defaults ────────────────────────────────────────
 
 describe('Settings Service Defaults', () => {
@@ -261,6 +366,9 @@ describe('Settings Service Defaults', () => {
         expect(defaults.currencyLocked).toBe(false);
         expect(defaults.notificationsEnabled).toBe(false);
         expect(typeof defaults.language).toBe('string');
+        expect(defaults.dateFormat).toBe('MM/DD/YYYY');
+        expect(defaults.firstDayOfWeek).toBe('monday');
+        expect(defaults.decimalSeparator).toBe('dot');
     });
 
     it('loadSettings returns defaults on first launch', async () => {
@@ -272,3 +380,4 @@ describe('Settings Service Defaults', () => {
         expect(settings.notificationsEnabled).toBe(defaults.notificationsEnabled);
     });
 });
+

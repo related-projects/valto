@@ -2,12 +2,13 @@
  * Help & FAQ Screen
  *
  * Displays expandable/collapsible FAQ items.
- * Fully offline — uses static data from domain constants.
+ * Fully offline and fully i18n-driven — content sourced from translation files.
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     LayoutAnimation,
     Platform,
@@ -19,12 +20,20 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FAQ_DATA, type FAQItem } from '../domain/constants/faqData';
 import { useTheme } from '../theme/theme';
+import { getButtonA11y } from '../utils/accessibility';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// ─── Types ────────────────────────────────────────────────────────────
+
+export interface FAQItem {
+    id: string;
+    question: string;
+    answer: string;
 }
 
 // ─── FAQ Item Component ───────────────────────────────────────────────
@@ -36,6 +45,7 @@ interface FAQItemCardProps {
 }
 
 const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(({ item, expanded, onToggle }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
 
     return (
@@ -54,7 +64,7 @@ const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(({ item, expanded, on
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={item.question}
-            accessibilityHint={expanded ? 'Tap to collapse answer' : 'Tap to expand answer'}
+            accessibilityHint={expanded ? t('a11y.collapseFaq') : t('a11y.expandFaq')}
             accessibilityState={{ expanded }}
         >
             <View style={styles.questionRow}>
@@ -95,10 +105,15 @@ const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(({ item, expanded, on
 // ─── Screen ───────────────────────────────────────────────────────────
 
 export const HelpFAQScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography } = useTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    // Pull translated FAQ items from i18n — returnObjects is required for arrays
+    const faqItems = t('faq.items', { returnObjects: true }) as FAQItem[];
+    const safeItems: FAQItem[] = Array.isArray(faqItems) ? faqItems : [];
 
     const handleToggle = useCallback((id: string) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -117,7 +132,7 @@ export const HelpFAQScreen = () => {
         >
             {/* Header */}
             <View style={styles.headerRow}>
-                <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }} {...getButtonA11y(t('a11y.backButton'))}>
                     <Ionicons name="arrow-back" size={24} color={colors.foreground} />
                 </TouchableOpacity>
                 <Text
@@ -128,7 +143,7 @@ export const HelpFAQScreen = () => {
                         marginLeft: spacing.sm,
                     }}
                 >
-                    Help & FAQ
+                    {t('help.title')}
                 </Text>
             </View>
 
@@ -139,19 +154,19 @@ export const HelpFAQScreen = () => {
                     marginBottom: spacing.lg,
                 }}
             >
-                Find answers to frequently asked questions about Valto.
+                {t('help.subtitle')}
             </Text>
 
             {/* FAQ List */}
-            {FAQ_DATA.length === 0 ? (
+            {safeItems.length === 0 ? (
                 <View style={[styles.emptyState, { marginTop: spacing.xl }]}>
                     <Ionicons name="help-buoy-outline" size={48} color={colors.mutedForeground} />
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md, marginTop: spacing.md }}>
-                        No FAQs available yet.
+                        {t('help.noFaqs')}
                     </Text>
                 </View>
             ) : (
-                FAQ_DATA.map(item => (
+                safeItems.map(item => (
                     <FAQItemCard
                         key={item.id}
                         item={item}

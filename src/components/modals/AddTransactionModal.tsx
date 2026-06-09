@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -18,14 +19,14 @@ import {
 } from 'react-native';
 import { TransactionType } from '../../domain/entities';
 import { useCategories } from '../../hooks/useCategories';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
 import { radius } from '../../theme/radius';
-import { shadows } from '../../theme/shadows';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
 import { typography } from '../../theme/typography';
-import { formatAmount } from '../../utils/formatAmount';
+import { DropdownPicker, type DropdownItem } from '../ui/DropdownPicker';
 import { IconBadge } from '../ui/IconBadge';
 import { SegmentControl } from '../ui/SegmentControl';
 
@@ -40,6 +41,8 @@ const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess }) => {
     const { colors, spacing, typography, radius } = useTheme();
+    const { t, i18n } = useTranslation();
+    const { formatAmount } = useFormatting();
     const scrollViewRef = React.useRef<ScrollView>(null);
 
     // Hooks
@@ -52,16 +55,28 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-    const [showWalletPicker, setShowWalletPicker] = useState(false);
     const [notes, setNotes] = useState('');
     const [transactionType, setTransactionType] = useState<'expense' | 'income' | 'transfer'>('expense');
     const [selectedWalletId, setSelectedWalletId] = useState<string>('');
+    const [destWalletId, setDestWalletId] = useState<string>('');
     const [saving, setSaving] = useState(false);
 
-    // Transfer-specific state
-    const [destWalletId, setDestWalletId] = useState<string>('');
-    const [showDestWalletPicker, setShowDestWalletPicker] = useState(false);
+    // Auto-select first wallet
+    useEffect(() => {
+        if (visible && wallets.length > 0 && !selectedWalletId) {
+            setSelectedWalletId(wallets[0].id);
+        }
+    }, [visible, wallets, selectedWalletId]);
+
+    // Auto-select first category
+    useEffect(() => {
+        if (visible) {
+            const list = transactionType === 'expense' ? expenseCategories : incomeCategories;
+            if (list.length > 0 && !selectedCategoryId) {
+                setSelectedCategoryId(list[0].id);
+            }
+        }
+    }, [visible, transactionType, expenseCategories, incomeCategories, selectedCategoryId]);
 
     // Refresh wallets when modal becomes visible
     useEffect(() => {
@@ -70,125 +85,123 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         }
     }, [visible, refreshWallets]);
 
-    // Initialize default selections when data loads
-    useEffect(() => {
-        if (wallets.length > 0 && !selectedWalletId) {
-            setSelectedWalletId(wallets[0].id);
-        }
-        // Set default destination wallet for transfers
-        if (wallets.length > 1 && !destWalletId) {
-            setDestWalletId(wallets[1].id);
-        }
-    }, [wallets, selectedWalletId, destWalletId]);
-
-    useEffect(() => {
-        const defaultCategories = transactionType === 'expense' ? expenseCategories : incomeCategories;
-        if (defaultCategories.length > 0 && !selectedCategoryId) {
-            setSelectedCategoryId(defaultCategories[0].id);
-        }
-    }, [transactionType, expenseCategories, incomeCategories, selectedCategoryId]);
-
-    // Get selected wallet and category for display
     const selectedWallet = wallets.find(w => w.id === selectedWalletId);
-    const selectedCategory = categories.find(c => c.id === selectedCategoryId);
-    const destWallet = wallets.find(w => w.id === destWalletId);
-    const availableDestWallets = wallets.filter(w => w.id !== selectedWalletId);
+
+    const categoryItems: DropdownItem[] = useMemo(() => {
+        const list = transactionType === 'expense' ? expenseCategories : incomeCategories;
+        return list.map(c => ({
+            id: c.id,
+            label: c.name,
+            icon: (c.icon as string) || 'pricetag-outline',
+            color: c.color,
+            testID: `add_tx_category_${c.id}`,
+        }));
+    }, [transactionType, expenseCategories, incomeCategories]);
+
+    const walletItems: DropdownItem[] = useMemo(() =>
+        wallets.map(w => ({
+            id: w.id,
+            label: w.name,
+            sublabel: formatAmount(w.balance),
+            icon: 'wallet-outline',
+            color: w.color,
+            testID: `add_tx_wallet_${w.id}`,
+        })),
+        [wallets, formatAmount]);
+
+    const destWalletItems: DropdownItem[] = useMemo(() =>
+        wallets
+            .filter(w => w.id !== selectedWalletId)
+            .map(w => ({
+                id: w.id,
+                label: w.name,
+                sublabel: formatAmount(w.balance),
+                icon: 'wallet-outline',
+                color: w.color,
+                testID: `add_tx_dest_wallet_${w.id}`,
+            })),
+        [wallets, selectedWalletId, formatAmount]);
+
+    // ── Handlers ─────────────────────────────────────────────────────
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
         if (Platform.OS === 'android') {
             if (event.type === 'set' && selectedDate) {
                 setDate(selectedDate);
             }
-            // Dismiss on both 'set' and 'dismissed' for Android
             if (event.type === 'set' || event.type === 'dismissed') {
                 setShowDatePicker(false);
             }
         } else {
-            // iOS spinner: continuous updates, never dismiss here
-            // Picker closes via overlay tap or existing close controls
             if (selectedDate) {
                 setDate(selectedDate);
             }
         }
     };
 
-    const formatDate = (date: Date) => {
+    const formatDateLabel = (d: Date) => {
         const today = new Date();
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        if (date.toDateString() === today.toDateString()) return 'Today';
-        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        if (d.toDateString() === today.toDateString()) return t('modals.addTransaction.today');
+        if (d.toDateString() === yesterday.toDateString()) return t('modals.addTransaction.yesterday');
+        return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
     const handleSave = async () => {
-        // Convert to cents
         const parsedAmount = parseFloat(amount);
         const amountNum = Math.round(parsedAmount * 100);
 
         if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
-            Alert.alert('Invalid Amount', 'Please enter a valid amount greater than 0');
+            Alert.alert(t('modals.addTransaction.invalidAmount'), t('modals.addTransaction.invalidAmountMessage'));
             return;
         }
 
         if (!selectedWalletId) {
-            Alert.alert('No Wallet Selected', 'Please select a wallet');
+            Alert.alert(t('modals.addTransaction.noWalletSelected'), t('modals.addTransaction.noWalletSelectedMessage'));
             return;
         }
 
-        // Transfer mode validation and handling
+        // Transfer mode
         if (transactionType === 'transfer') {
             if (!destWalletId) {
-                Alert.alert('No Destination Wallet', 'Please select a destination wallet');
+                Alert.alert(t('modals.addTransaction.noDestWallet'), t('modals.addTransaction.noDestWalletMessage'));
                 return;
             }
-
             if (selectedWalletId === destWalletId) {
-                Alert.alert('Invalid Transfer', 'Source and destination wallets must be different');
+                Alert.alert(t('modals.addTransaction.invalidTransfer'), t('modals.addTransaction.invalidTransferMessage'));
                 return;
             }
-
             if (selectedWallet && amountNum > selectedWallet.balance) {
-                Alert.alert('Insufficient Balance', `Source wallet only has ${formatAmount(selectedWallet.balance)}`);
+                Alert.alert(t('modals.addTransaction.insufficientBalance'), t('modals.addTransaction.insufficientBalanceMessage', { amount: formatAmount(selectedWallet.balance) }));
                 return;
             }
 
             try {
                 setSaving(true);
                 await transferBetweenWallets(selectedWalletId, destWalletId, amountNum);
-
-                // Reset form
                 setAmount('');
                 setNotes('');
                 setDate(new Date());
-
-                // Call success callback
                 onSuccess?.();
-
-                // Close modal
                 onClose();
             } catch (error) {
-                Alert.alert(
-                    'Error',
-                    error instanceof Error ? error.message : 'Failed to complete transfer'
-                );
+                Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.transferFailed'));
             } finally {
                 setSaving(false);
             }
             return;
         }
 
-        // Regular expense/income transaction
+        // Regular expense/income
         if (!selectedCategoryId) {
-            Alert.alert('No Category Selected', 'Please select a category');
+            Alert.alert(t('modals.addTransaction.noCategorySelected'), t('modals.addTransaction.noCategorySelectedMessage'));
             return;
         }
 
         try {
             setSaving(true);
-
-            // Create transaction
             await createTransaction({
                 type: transactionType === 'expense' ? TransactionType.EXPENSE : TransactionType.INCOME,
                 amount: amountNum,
@@ -197,55 +210,39 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 date: date,
                 note: notes || undefined,
             });
-
-            // Reset form
             setAmount('');
             setNotes('');
             setDate(new Date());
-
-            // Call success callback
             onSuccess?.();
-
-            // Close modal
             onClose();
         } catch (error) {
-            Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to save transaction'
-            );
+            Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.saveFailed'));
         } finally {
             setSaving(false);
         }
     };
 
+    // ── Render ────────────────────────────────────────────────────────
+
     return (
-        <Modal
-            visible={visible}
-            transparent
-            animationType="slide"
-            onRequestClose={onClose}
-        >
+        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
-                <TouchableOpacity
-                    style={styles.overlayTouchable}
-                    activeOpacity={1}
-                    onPress={onClose}
-                />
+                <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={onClose} />
                 <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <TouchableOpacity onPress={onClose} style={styles.headerButton}>
+                        <TouchableOpacity onPress={onClose} style={styles.headerButton} testID="add_tx_close_button">
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            Add Transaction
+                            {t('modals.addTransaction.title')}
                         </Text>
-                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
+                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving} testID="add_tx_save_button">
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    Save
+                                    {t('modals.addTransaction.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -254,9 +251,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                     <KeyboardAvoidingView
                         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                         style={{ flex: 1 }}
-                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20} // Adjust if needed
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
                     >
-
                         <ScrollView
                             ref={scrollViewRef}
                             style={styles.scrollContent}
@@ -267,21 +263,22 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             {/* Transaction Type Segmented Control */}
                             <SegmentControl
                                 segments={[
-                                    { key: 'expense', label: 'Expense', value: 'expense' as const },
-                                    { key: 'income', label: 'Income', value: 'income' as const },
-                                    { key: 'transfer', label: 'Transfer', value: 'transfer' as const },
+                                    { key: 'expense', label: t('modals.addTransaction.expense'), value: 'expense' as const, testID: 'add_tx_type_expense' },
+                                    { key: 'income', label: t('modals.addTransaction.income'), value: 'income' as const, testID: 'add_tx_type_income' },
+                                    { key: 'transfer', label: t('modals.addTransaction.transfer'), value: 'transfer' as const, testID: 'add_tx_type_transfer' },
                                 ]}
                                 selectedValue={transactionType}
                                 onSelect={setTransactionType}
                                 style={{ marginBottom: spacing.xl }}
                             />
+
                             {/* Amount */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Amount
+                                    {t('modals.addTransaction.amount')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                                    <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
+                                    {/* <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text> */}
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
                                         placeholder="0.00"
@@ -289,173 +286,57 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         keyboardType="decimal-pad"
                                         value={amount}
                                         onChangeText={setAmount}
+                                        testID="add_tx_amount_input"
                                     />
                                 </View>
                             </View>
 
-                            {/* Category - only shown for expense/income, not transfer */}
+                            {/* Category — only for expense/income */}
                             {transactionType !== 'transfer' && (
-                                <View style={{ marginBottom: spacing.lg }}>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                        Category
-                                    </Text>
-                                    <TouchableOpacity
-                                        style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
-                                        onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-                                    >
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                            <IconBadge
-                                                icon={<Ionicons name={(selectedCategory?.icon as keyof typeof Ionicons.glyphMap) || 'pricetag-outline'} size={18} color={selectedCategory?.color || colors.primary} />}
-                                                size="sm"
-                                            />
-                                            <View style={{ marginLeft: spacing.sm }}>
-                                                <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                    {selectedCategory?.name || 'Select category'}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                        <Ionicons name={showCategoryPicker ? 'chevron-up' : 'chevron-down'} size={20} color={colors.mutedForeground} />
-                                    </TouchableOpacity>
-                                    {showCategoryPicker && (
-                                        <View style={{
-                                            backgroundColor: colors.card,
-                                            borderRadius: radius.md,
-                                            borderWidth: 1,
-                                            borderColor: colors.border,
-                                            marginTop: spacing.xs,
-                                            maxHeight: 200,
-                                        }}>
-                                            <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                                                {(transactionType === 'expense' ? expenseCategories : incomeCategories).length === 0 ? (
-                                                    <View style={{ padding: spacing.md, alignItems: 'center' }}>
-                                                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                                                            No categories available
-                                                        </Text>
-                                                    </View>
-                                                ) : (
-                                                    (transactionType === 'expense' ? expenseCategories : incomeCategories).map((category) => (
-                                                        <TouchableOpacity
-                                                            key={category.id}
-                                                            style={{
-                                                                flexDirection: 'row',
-                                                                alignItems: 'center',
-                                                                padding: spacing.md,
-                                                                borderBottomWidth: 1,
-                                                                borderBottomColor: colors.border,
-                                                                backgroundColor: selectedCategoryId === category.id ? colors.muted : 'transparent',
-                                                            }}
-                                                            onPress={() => {
-                                                                setSelectedCategoryId(category.id);
-                                                                setShowCategoryPicker(false);
-                                                            }}
-                                                        >
-                                                            <Ionicons
-                                                                name={(category.icon as keyof typeof Ionicons.glyphMap) || 'pricetag-outline'}
-                                                                size={20}
-                                                                color={category.color || colors.primary}
-                                                                style={{ marginRight: spacing.sm }}
-                                                            />
-                                                            <Text style={{ flex: 1, color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                                {category.name}
-                                                            </Text>
-                                                            {selectedCategoryId === category.id && (
-                                                                <Ionicons name="checkmark" size={20} color={colors.accent} />
-                                                            )}
-                                                        </TouchableOpacity>
-                                                    ))
-                                                )}
-                                            </ScrollView>
-                                        </View>
-                                    )}
-                                </View>
+                                <DropdownPicker
+                                    label={t('modals.addTransaction.category')}
+                                    items={categoryItems}
+                                    selectedId={selectedCategoryId}
+                                    onSelect={setSelectedCategoryId}
+                                    placeholder={t('modals.addTransaction.selectCategory')}
+                                    triggerIcon={
+                                        <IconBadge
+                                            icon={
+                                                <Ionicons
+                                                    name={(categoryItems.find(c => c.id === selectedCategoryId)?.icon as keyof typeof Ionicons.glyphMap) || 'pricetag-outline'}
+                                                    size={18}
+                                                    color={categoryItems.find(c => c.id === selectedCategoryId)?.color || colors.primary}
+                                                />
+                                            }
+                                            size="sm"
+                                        />
+                                    }
+                                    emptyText={t('modals.addTransaction.noCategories')}
+                                    testID="add_tx_category_picker"
+                                />
                             )}
 
-                            {/* Wallet Selector / From Wallet (for transfers) */}
-                            <View style={{ marginBottom: spacing.lg }}>
-                                <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    {transactionType === 'transfer' ? 'From' : 'Wallet'}
-                                </Text>
-                                <TouchableOpacity
-                                    style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
-                                    onPress={() => setShowWalletPicker(!showWalletPicker)}
-                                >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                        <Ionicons name="wallet-outline" size={20} color={selectedWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
-                                        <View>
-                                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                {selectedWallet?.name || 'Select wallet'}
-                                            </Text>
-                                            {transactionType === 'transfer' && selectedWallet && (
-                                                <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                    Balance: {formatAmount(selectedWallet.balance)}
-                                                </Text>
-                                            )}
-                                        </View>
-                                    </View>
-                                    <Ionicons name={showWalletPicker ? 'chevron-up' : 'chevron-down'} size={20} color={colors.mutedForeground} />
-                                </TouchableOpacity>
-                                {showWalletPicker && (
-                                    <View style={{
-                                        backgroundColor: colors.card,
-                                        borderRadius: radius.md,
-                                        borderWidth: 1,
-                                        borderColor: colors.border,
-                                        marginTop: spacing.xs,
-                                        maxHeight: 200,
-                                    }}>
-                                        <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                                            {wallets.length === 0 ? (
-                                                <View style={{ padding: spacing.md, alignItems: 'center' }}>
-                                                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                                                        No wallets available
-                                                    </Text>
-                                                </View>
-                                            ) : (
-                                                wallets.map((wallet) => (
-                                                    <TouchableOpacity
-                                                        key={wallet.id}
-                                                        style={{
-                                                            flexDirection: 'row',
-                                                            alignItems: 'center',
-                                                            padding: spacing.md,
-                                                            borderBottomWidth: 1,
-                                                            borderBottomColor: colors.border,
-                                                            backgroundColor: selectedWalletId === wallet.id ? colors.muted : 'transparent',
-                                                        }}
-                                                        onPress={() => {
-                                                            setSelectedWalletId(wallet.id);
-                                                            setShowWalletPicker(false);
-                                                        }}
-                                                    >
-                                                        <Ionicons
-                                                            name="wallet-outline"
-                                                            size={20}
-                                                            color={wallet.color || colors.primary}
-                                                            style={{ marginRight: spacing.sm }}
-                                                        />
-                                                        <View style={{ flex: 1 }}>
-                                                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                                {wallet.name}
-                                                            </Text>
-                                                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                                {formatAmount(wallet.balance)}
-                                                            </Text>
-                                                        </View>
-                                                        {selectedWalletId === wallet.id && (
-                                                            <Ionicons name="checkmark" size={20} color={colors.accent} />
-                                                        )}
-                                                    </TouchableOpacity>
-                                                ))
-                                            )}
-                                        </ScrollView>
-                                    </View>
-                                )}
-                            </View>
+                            {/* Wallet / From Wallet */}
+                            <DropdownPicker
+                                label={transactionType === 'transfer' ? t('modals.addTransaction.from') : t('modals.addTransaction.wallet')}
+                                items={walletItems}
+                                selectedId={selectedWalletId}
+                                onSelect={setSelectedWalletId}
+                                placeholder={t('modals.addTransaction.selectWallet')}
+                                triggerIcon={
+                                    <Ionicons
+                                        name="wallet-outline"
+                                        size={20}
+                                        color={selectedWallet?.color || colors.primary}
+                                    />
+                                }
+                                emptyText={t('modals.addTransaction.noWallets')}
+                                testID="add_tx_wallet_picker"
+                            />
 
-                            {/* To Wallet - only shown for transfers */}
+                            {/* Transfer Arrow + Destination */}
                             {transactionType === 'transfer' && (
                                 <>
-                                    {/* Transfer Arrow */}
                                     <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
                                         <View style={{
                                             width: 40,
@@ -469,93 +350,29 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         </View>
                                     </View>
 
-                                    <View style={{ marginBottom: spacing.lg }}>
-                                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                            To
-                                        </Text>
-                                        <TouchableOpacity
-                                            style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
-                                            onPress={() => setShowDestWalletPicker(!showDestWalletPicker)}
-                                        >
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                                <Ionicons name="wallet-outline" size={20} color={destWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
-                                                <View>
-                                                    <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                        {destWallet?.name || 'Select destination'}
-                                                    </Text>
-                                                    {destWallet && (
-                                                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                            Balance: {formatAmount(destWallet.balance)}
-                                                        </Text>
-                                                    )}
-                                                </View>
-                                            </View>
-                                            <Ionicons name={showDestWalletPicker ? 'chevron-up' : 'chevron-down'} size={20} color={colors.mutedForeground} />
-                                        </TouchableOpacity>
-                                        {showDestWalletPicker && (
-                                            <View style={{
-                                                backgroundColor: colors.card,
-                                                borderRadius: radius.md,
-                                                borderWidth: 1,
-                                                borderColor: colors.border,
-                                                marginTop: spacing.xs,
-                                                maxHeight: 200,
-                                            }}>
-                                                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                                                    {availableDestWallets.length === 0 ? (
-                                                        <View style={{ padding: spacing.md, alignItems: 'center' }}>
-                                                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                                                                No other wallets available
-                                                            </Text>
-                                                        </View>
-                                                    ) : (
-                                                        availableDestWallets.map((wallet) => (
-                                                            <TouchableOpacity
-                                                                key={wallet.id}
-                                                                style={{
-                                                                    flexDirection: 'row',
-                                                                    alignItems: 'center',
-                                                                    padding: spacing.md,
-                                                                    borderBottomWidth: 1,
-                                                                    borderBottomColor: colors.border,
-                                                                    backgroundColor: destWalletId === wallet.id ? colors.muted : 'transparent',
-                                                                }}
-                                                                onPress={() => {
-                                                                    setDestWalletId(wallet.id);
-                                                                    setShowDestWalletPicker(false);
-                                                                }}
-                                                            >
-                                                                <Ionicons
-                                                                    name="wallet-outline"
-                                                                    size={20}
-                                                                    color={wallet.color || colors.primary}
-                                                                    style={{ marginRight: spacing.sm }}
-                                                                />
-                                                                <View style={{ flex: 1 }}>
-                                                                    <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>
-                                                                        {wallet.name}
-                                                                    </Text>
-                                                                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                                                        {formatAmount(wallet.balance)}
-                                                                    </Text>
-                                                                </View>
-                                                                {destWalletId === wallet.id && (
-                                                                    <Ionicons name="checkmark" size={20} color={colors.accent} />
-                                                                )}
-                                                            </TouchableOpacity>
-                                                        ))
-                                                    )}
-                                                </ScrollView>
-                                            </View>
-                                        )}
-                                    </View>
+                                    <DropdownPicker
+                                        label={t('modals.addTransaction.to')}
+                                        items={destWalletItems}
+                                        selectedId={destWalletId}
+                                        onSelect={setDestWalletId}
+                                        placeholder={t('modals.addTransaction.selectDestination')}
+                                        triggerIcon={
+                                            <Ionicons
+                                                name="wallet-outline"
+                                                size={20}
+                                                color={destWalletItems.find(w => w.id === destWalletId)?.color || colors.primary}
+                                            />
+                                        }
+                                        emptyText={t('modals.addTransaction.noOtherWallets')}
+                                        testID="add_tx_dest_wallet_picker"
+                                    />
                                 </>
                             )}
 
                             {/* Date */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Date
+                                    {t('modals.addTransaction.date')}
                                 </Text>
                                 <TouchableOpacity
                                     style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -563,7 +380,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                         <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{formatDate(date)}</Text>
+                                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.md }}>{formatDateLabel(date)}</Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
                                 </TouchableOpacity>
@@ -571,32 +388,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                     Platform.OS === 'ios' ? (
                                         <>
                                             <Pressable
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: 0,
-                                                    left: 0,
-                                                    right: 0,
-                                                    bottom: 0,
-                                                    zIndex: 1,
-                                                }}
+                                                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }}
                                                 onPress={() => setShowDatePicker(false)}
                                             />
                                             <View style={{ zIndex: 2 }}>
-                                                <DateTimePicker
-                                                    value={date}
-                                                    mode="date"
-                                                    display="spinner"
-                                                    onChange={handleDateChange}
-                                                />
+                                                <DateTimePicker value={date} mode="date" display="spinner" onChange={handleDateChange} />
                                             </View>
                                         </>
                                     ) : (
-                                        <DateTimePicker
-                                            value={date}
-                                            mode="date"
-                                            display="default"
-                                            onChange={handleDateChange}
-                                        />
+                                        <DateTimePicker value={date} mode="date" display="default" onChange={handleDateChange} />
                                     )
                                 )}
                             </View>
@@ -604,19 +404,19 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                             {/* Notes */}
                             <View style={{ marginBottom: spacing.xl }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Notes (Optional)
+                                    {t('modals.addTransaction.notes')}
                                 </Text>
                                 <View style={[styles.textAreaContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.textArea, { color: colors.foreground }]}
-                                        placeholder="Add a note..."
+                                        placeholder={t('modals.addTransaction.notesPlaceholder')}
                                         placeholderTextColor={colors.mutedForeground}
                                         multiline
                                         numberOfLines={4}
                                         value={notes}
                                         onChangeText={setNotes}
+                                        testID="add_tx_notes_input"
                                         onFocus={() => {
-                                            // Delay slightly to allow keyboard to show
                                             setTimeout(() => {
                                                 scrollViewRef.current?.scrollToEnd({ animated: true });
                                             }, 100);
@@ -631,9 +431,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         </Modal>
     );
 };
-
-
-
 
 const styles = StyleSheet.create({
     overlay: {
@@ -665,21 +462,6 @@ const styles = StyleSheet.create({
     scrollContentContainer: {
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.xl,
-    },
-    segmentContainer: {
-        flexDirection: 'row',
-        padding: spacing.xs,
-        borderRadius: radius.lg,
-        height: 44,
-    },
-    segmentButton: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: radius.md, // Changed to closest token (12)
-    },
-    activeSegmentShadow: {
-        ...shadows.soft,
     },
     inputContainer: {
         flexDirection: 'row',

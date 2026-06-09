@@ -10,10 +10,12 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSecurity } from '../../core/security/SecurityContext';
 import { useTheme } from '../../theme/theme';
+import { getButtonA11y } from '../../utils/accessibility';
 import { PinPad } from './PinPad';
 
 interface SecuritySetupModalProps {
@@ -27,6 +29,7 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
     visible,
     onClose,
 }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius } = useTheme();
     const insets = useSafeAreaInsets();
     const { enableSecurity, biometrics } = useSecurity();
@@ -60,7 +63,7 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
     const handleConfirmPin = useCallback((pin: string) => {
         if (pin !== firstPin) {
             setError(true);
-            setSubtitle("PINs don't match. Try again.");
+            setSubtitle(t('security.pinMismatch'));
             setTimeout(() => {
                 setError(false);
                 setStep('enter');
@@ -77,7 +80,7 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
             // No biometrics, enable with PIN only
             enableSecurity(pin, false).then(handleClose);
         }
-    }, [firstPin, biometrics, enableSecurity, handleClose]);
+    }, [firstPin, biometrics, enableSecurity, handleClose, t]);
 
     // Step 3: Biometric enrollment
     const handleBiometricChoice = useCallback((useBiometrics: boolean) => {
@@ -92,7 +95,7 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
                 return (
                     <PinPad
                         onComplete={handleEnterPin}
-                        title="Create a PIN"
+                        title={t('security.createPin')}
                         subtitle={subtitle}
                         error={error}
                     />
@@ -101,7 +104,7 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
                 return (
                     <PinPad
                         onComplete={handleConfirmPin}
-                        title="Confirm your PIN"
+                        title={t('security.confirmPin')}
                         subtitle={subtitle}
                         error={error}
                     />
@@ -113,23 +116,25 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
                             <Ionicons name="finger-print-outline" size={48} color={colors.primary} />
                         </View>
                         <Text style={[styles.biometricTitle, { color: colors.foreground, fontSize: typography.sizes.xl }]}>
-                            Enable {biometrics.biometricTypes.join(' / ')}?
+                            {t('security.enableBiometricTitle', { types: biometrics.biometricTypes.join(' / ') })}
                         </Text>
                         <Text style={[styles.biometricSubtitle, { color: colors.mutedForeground, fontSize: typography.sizes.sm }]}>
-                            Use biometric authentication as a quick alternative to your PIN.
+                            {t('security.enableBiometricSubtitle')}
                         </Text>
                         <View style={[styles.buttonRow, { marginTop: spacing.xl }]}>
                             <TouchableOpacity
                                 style={[styles.button, { backgroundColor: colors.muted, borderRadius: radius.md }]}
                                 onPress={() => handleBiometricChoice(false)}
+                                {...getButtonA11y(t('common.skip'))}
                             >
-                                <Text style={[styles.buttonText, { color: colors.foreground }]}>Skip</Text>
+                                <Text style={[styles.buttonText, { color: colors.foreground }]}>{t('common.skip')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.button, { backgroundColor: colors.primary, borderRadius: radius.md }]}
                                 onPress={() => handleBiometricChoice(true)}
+                                {...getButtonA11y(t('common.enable'))}
                             >
-                                <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>Enable</Text>
+                                <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>{t('common.enable')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -149,11 +154,11 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
             <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
                 {/* Header */}
                 <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
-                    <TouchableOpacity onPress={handleClose}>
+                    <TouchableOpacity onPress={handleClose} {...getButtonA11y(t('a11y.closeButton'))}>
                         <Ionicons name="close" size={24} color={colors.foreground} />
                     </TouchableOpacity>
                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                        Set Up Security
+                        {t('security.setupTitle')}
                     </Text>
                     <View style={{ width: 24 }} />
                 </View>

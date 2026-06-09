@@ -6,10 +6,11 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface DonutDataItem {
@@ -22,15 +23,15 @@ interface DonutDataItem {
 interface ReportDonutChartProps {
     data: DonutDataItem[];
     totalExpense: number;
-    currency?: string;
 }
 
 export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
     data,
     totalExpense,
-    currency = '$',
 }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing } = useTheme();
+    const { formatAmount } = useFormatting();
 
     // Handle empty state
     if (data.length === 0) {
@@ -44,14 +45,14 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
                         marginBottom: spacing.md,
                     }}
                 >
-                    Expense Distribution
+                    {t('reports.expenseDistribution')}
                 </Text>
                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
-                        No expense data this month
+                        {t('components.spendingBreakdown.noData')}
                     </Text>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, textAlign: 'center', marginTop: spacing.xs }}>
-                        Add expenses to see your distribution
+                        {t('components.spendingBreakdown.noDataHint')}
                     </Text>
                 </View>
             </Card>
@@ -77,7 +78,7 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
                     marginBottom: spacing.lg,
                 }}
             >
-                Expense Distribution
+                {t('reports.expenseDistribution')}
             </Text>
 
             {/* Chart */}
@@ -112,10 +113,10 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
                     </Svg>
                     <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, fontWeight: typography.weights.medium }}>
-                            Total
+                            {t('components.spendingBreakdown.total')}
                         </Text>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            {formatAmount(totalExpense, currency)}
+                            {formatAmount(totalExpense)}
                         </Text>
                     </View>
                 </View>

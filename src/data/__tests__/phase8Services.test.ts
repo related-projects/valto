@@ -52,6 +52,10 @@ describe('Backup Validation', () => {
                 currencyLocked: false,
                 notificationsEnabled: false,
                 language: 'en',
+                dateFormat: 'MM/DD/YYYY',
+                firstDayOfWeek: 'monday',
+                decimalSeparator: 'dot',
+                onboardingCompleted: false,
             },
         },
     };

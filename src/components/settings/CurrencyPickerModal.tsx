@@ -7,6 +7,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     FlatList,
     Modal,
@@ -19,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../domain/constants/currencies';
 import { useTheme } from '../../theme/theme';
+import { getButtonA11y } from '../../utils/accessibility';
 
 interface CurrencyPickerModalProps {
     visible: boolean;
@@ -73,6 +75,7 @@ export const CurrencyPickerModal: React.FC<CurrencyPickerModalProps> = ({
     selectedCode,
     locked,
 }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
     const [search, setSearch] = useState('');
@@ -127,11 +130,11 @@ export const CurrencyPickerModal: React.FC<CurrencyPickerModalProps> = ({
             <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
                 {/* Header */}
                 <View style={[styles.header, { paddingHorizontal: spacing.md }]}>
-                    <TouchableOpacity onPress={handleClose}>
+                    <TouchableOpacity onPress={handleClose} {...getButtonA11y(t('a11y.closeButton'))}>
                         <Ionicons name="close" size={24} color={colors.foreground} />
                     </TouchableOpacity>
                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                        Select Currency
+                        {t('currencyPicker.title')}
                     </Text>
                     <View style={{ width: 24 }} />
                 </View>
@@ -140,7 +143,7 @@ export const CurrencyPickerModal: React.FC<CurrencyPickerModalProps> = ({
                     <View style={[styles.lockedBanner, { backgroundColor: colors.accent, marginHorizontal: spacing.md, borderRadius: radius.md, padding: spacing.sm }]}>
                         <Ionicons name="lock-closed-outline" size={16} color={colors.accentForeground} />
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, marginLeft: spacing.sm, flex: 1 }}>
-                            Currency cannot be changed once selected.
+                            {t('currencyPicker.locked')}
                         </Text>
                     </View>
                 )}
@@ -152,7 +155,7 @@ export const CurrencyPickerModal: React.FC<CurrencyPickerModalProps> = ({
                             <Ionicons name="search" size={18} color={colors.mutedForeground} />
                             <TextInput
                                 style={[styles.searchInput, { color: colors.foreground, fontSize: typography.sizes.sm }]}
-                                placeholder="Search currencies..."
+                                placeholder={t('currencyPicker.searchPlaceholder')}
                                 placeholderTextColor={colors.mutedForeground}
                                 value={search}
                                 onChangeText={handleSearchChange}
@@ -172,7 +175,7 @@ export const CurrencyPickerModal: React.FC<CurrencyPickerModalProps> = ({
                 {filteredCurrencies.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md }}>
-                            No currencies match your search.
+                            {t('currencyPicker.noResults')}
                         </Text>
                     </View>
                 ) : (

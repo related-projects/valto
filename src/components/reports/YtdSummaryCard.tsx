@@ -6,9 +6,10 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, View } from 'react-native';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount } from '../../utils/formatAmount';
 
 interface YtdSummaryCardProps {
     totalIncome: number;
@@ -26,7 +27,9 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
     savingsRate,
     year,
 }) => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
+    const { formatAmount } = useFormatting();
 
     const savingsRateDisplay = `${(savingsRate * 100).toFixed(1)}%`;
     const netColor = net >= 0 ? colors.success : colors.destructive;
@@ -48,20 +51,20 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
                     marginBottom: spacing.sm,
                 }}
             >
-                Year-to-Date ({year})
+                {t('reports.ytdSummary.title', { year })}
             </Text>
 
             {/* Grid of metrics */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>
                 <MetricItem
-                    label="Income"
+                    label={t('reports.ytdSummary.income')}
                     value={formatAmount(totalIncome)}
                     color={colors.success}
                     typography={typography}
                     colors={colors}
                 />
                 <MetricItem
-                    label="Expenses"
+                    label={t('reports.ytdSummary.expenses')}
                     value={formatAmount(totalExpenses)}
                     color={colors.destructive}
                     typography={typography}
@@ -70,7 +73,7 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <MetricItem
-                    label="Net"
+                    label={t('reports.ytdSummary.net')}
                     value={formatAmount(Math.abs(net))}
                     prefix={net >= 0 ? '+' : '-'}
                     color={netColor}
@@ -78,7 +81,7 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
                     colors={colors}
                 />
                 <MetricItem
-                    label="Savings Rate"
+                    label={t('reports.ytdSummary.savingsRate')}
                     value={savingsRateDisplay}
                     color={savingsRate >= 0.2 ? colors.success : savingsRate >= 0 ? colors.warning : colors.destructive}
                     typography={typography}

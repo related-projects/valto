@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../components/dashboard/BalanceCard';
@@ -22,6 +23,7 @@ import { useFinancialInsights } from '../hooks/useFinancialInsights';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
+import { getGreeting } from '../utils/getGreeting';
 
 /** Map savings-health level → visual variant */
 const SAVINGS_VARIANT: Record<SavingsLevel, InsightVariant> = {
@@ -32,7 +34,9 @@ const SAVINGS_VARIANT: Record<SavingsLevel, InsightVariant> = {
 };
 
 export const DashboardScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography } = useTheme();
+    const greetingKey = useMemo(() => getGreeting(new Date()), []);
     const insets = useSafeAreaInsets();
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
@@ -107,6 +111,7 @@ export const DashboardScreen = () => {
 
     return (
         <ScrollView
+            testID="dashboard_screen"
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
                 paddingBottom: spacing.tabBarOffset,
@@ -118,7 +123,7 @@ export const DashboardScreen = () => {
         >
             <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                    Good morning
+                    {t(greetingKey)}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Text
@@ -128,7 +133,7 @@ export const DashboardScreen = () => {
                             fontWeight: typography.weights.bold,
                         }}
                     >
-                        Dashboard
+                        {t('dashboard.title')}
                     </Text>
                     <Avatar label="V" size="sm" />
                 </View>
@@ -150,7 +155,7 @@ export const DashboardScreen = () => {
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                 <InsightBanner
-                    message={savingsHealth.message}
+                    message={t(savingsHealth.messageKey, savingsHealth.messageParams)}
                     variant={SAVINGS_VARIANT[savingsHealth.level]}
                     icon="pulse-outline"
                 />
@@ -169,7 +174,7 @@ export const DashboardScreen = () => {
             {budgetPace && (
                 <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                     <InsightBanner
-                        message={budgetPace.message}
+                        message={t(budgetPace.messageKey, budgetPace.messageParams)}
                         variant={budgetPace.overBudgetPace ? 'warning' : 'success'}
                         icon="speedometer-outline"
                     />
@@ -183,7 +188,7 @@ export const DashboardScreen = () => {
             {categoryRisk.riskLevel !== 'low' && (
                 <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                     <InsightBanner
-                        message={`${categoryRisk.topCategory} accounts for ${categoryRisk.percentage.toFixed(0)}% of your spending.`}
+                        message={t('insights.categoryRisk', { category: categoryRisk.topCategory, percent: categoryRisk.percentage.toFixed(0) })}
                         variant={categoryRisk.riskLevel === 'high' ? 'destructive' : 'warning'}
                         icon="pie-chart-outline"
                     />
@@ -204,7 +209,7 @@ export const DashboardScreen = () => {
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <Card>
-                    <SectionHeader title="Recent Transactions" />
+                    <SectionHeader title={t('dashboard.recentTransactions')} />
                     <TransactionList transactions={transactions.slice(0, 5)} showDateHeaders={false} />
                 </Card>
             </View>

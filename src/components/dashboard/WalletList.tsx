@@ -1,19 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Wallet } from '../../domain/entities';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface WalletListProps {
     wallets: Wallet[];
-    currency?: string;
 }
 
-export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' }) => {
+export const WalletList: React.FC<WalletListProps> = ({ wallets }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
+    const { formatAmount } = useFormatting();
     const router = useRouter();
 
     const getIconName = (type: string): keyof typeof Ionicons.glyphMap => {
@@ -31,12 +33,12 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
         return (
             <Card>
                 <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '600', marginBottom: spacing.md }}>
-                    Wallets
+                    {t('components.walletList.title')}
                 </Text>
                 <View style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
                     <Ionicons name="wallet-outline" size={32} color={colors.mutedForeground} style={{ marginBottom: spacing.sm }} />
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
-                        No wallets yet
+                        {t('components.walletList.noWallets')}
                     </Text>
                     <TouchableOpacity
                         style={{
@@ -49,7 +51,7 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
                         onPress={() => { /* Navigation to be implemented */ }}
                     >
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
-                            Create your first wallet
+                            {t('components.walletList.createFirst')}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -61,12 +63,12 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
         <Card>
             <View style={styles.header}>
                 <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '600' }}>
-                    Wallets
+                    {t('components.walletList.title')}
                 </Text>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/wallets')}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Text style={{ color: colors.accent, fontSize: typography.sizes.xs, fontWeight: '500' }}>
-                            See all
+                            {t('components.walletList.seeAll')}
                         </Text>
                         <Ionicons name="chevron-forward" size={12} color={colors.accent} />
                     </View>
@@ -115,7 +117,7 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets, currency = '$' 
                                 fontWeight: '600',
                             }}
                         >
-                            {formatAmount(wallet.balance, currency)}
+                            {formatAmount(wallet.balance)}
                         </Text>
                     </TouchableOpacity>
                 ))}

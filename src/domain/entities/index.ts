@@ -28,3 +28,10 @@ export {
     type Budget, type CreateBudgetDTO, type SerializableBudget, type UpdateBudgetDTO
 } from './Budget';
 
+// RecurringTransaction exports
+export {
+    RecurrenceFrequency, deserializeRecurringTransaction, serializeRecurringTransaction,
+    type CreateRecurringTransactionDTO, type RecurringTransaction,
+    type SerializableRecurringTransaction, type UpdateRecurringTransactionDTO
+} from './RecurringTransaction';
+

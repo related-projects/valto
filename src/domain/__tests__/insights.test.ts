@@ -44,7 +44,7 @@ describe('evaluateSavingsHealth', () => {
         const result = evaluateSavingsHealth(0, 50_000);
         expect(result.level).toBe('deficit');
         expect(result.savingsRate).toBe(0);
-        expect(result.message).toContain('No income');
+        expect(result.messageKey).toBe('insights.noIncomeSpending');
     });
 
     it('handles income = 0 and expenses = 0 → weak', () => {
@@ -223,12 +223,12 @@ describe('evaluateBudgetPace', () => {
     it('handles zero budget limit', () => {
         const result = evaluateBudgetPace(5_000, 0, 10, 30);
         expect(result.overBudgetPace).toBe(true);
-        expect(result.message).toContain('No budget set');
+        expect(result.messageKey).toBe('insights.noBudgetWithSpending');
     });
 
     it('handles totalDays = 0 edge case', () => {
         const result = evaluateBudgetPace(5_000, 100_000, 0, 0);
-        expect(result.message).toBe('Invalid budget period.');
+        expect(result.messageKey).toBe('insights.invalidBudgetPeriod');
     });
 
     it('handles no spending', () => {

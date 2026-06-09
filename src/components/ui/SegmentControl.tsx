@@ -9,6 +9,7 @@ export interface Segment<T> {
     key: string;
     label: string;
     value: T;
+    testID?: string;
 }
 
 interface SegmentControlProps<T> {
@@ -16,9 +17,10 @@ interface SegmentControlProps<T> {
     selectedValue: T;
     onSelect: (value: T) => void;
     style?: object;
+    testID?: string;
 }
 
-export function SegmentControl<T>({ segments, selectedValue, onSelect, style }: SegmentControlProps<T>) {
+export function SegmentControl<T>({ segments, selectedValue, onSelect, style, testID }: SegmentControlProps<T>) {
     const { colors, spacing, typography, radius } = useTheme();
 
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -36,6 +38,7 @@ export function SegmentControl<T>({ segments, selectedValue, onSelect, style }: 
 
     return (
         <View
+            testID={testID}
             style={[styles.container, { backgroundColor: colors.background }, style]}
             onLayout={(e) => {
                 const innerWidth = e.nativeEvent.layout.width - spacing.xs * 2;
@@ -62,6 +65,7 @@ export function SegmentControl<T>({ segments, selectedValue, onSelect, style }: 
                 return (
                     <TouchableOpacity
                         key={seg.key}
+                        testID={seg.testID}
                         style={styles.button}
                         onPress={() => onSelect(seg.value)}
                         activeOpacity={0.8}

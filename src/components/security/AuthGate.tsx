@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSecurity } from '../../core/security/SecurityContext';
@@ -15,6 +16,7 @@ import { useTheme } from '../../theme/theme';
 import { PinPad } from './PinPad';
 
 export const AuthGate: React.FC = () => {
+    const { t } = useTranslation();
     const { colors } = useTheme();
     const insets = useSafeAreaInsets();
     const {
@@ -45,9 +47,9 @@ export const AuthGate: React.FC = () => {
             setError(true);
             const remaining = MAX_PIN_ATTEMPTS - (failedAttempts + 1);
             if (remaining > 0) {
-                setSubtitle(`Wrong PIN. ${remaining} attempts remaining.`);
+                setSubtitle(t('security.wrongPin', { remaining }));
             } else {
-                setSubtitle('Too many attempts. Try again later.');
+                setSubtitle(t('security.tooManyAttempts'));
             }
             setTimeout(() => setError(false), 600);
         }
@@ -70,7 +72,7 @@ export const AuthGate: React.FC = () => {
                 onComplete={handlePinComplete}
                 showBiometricButton={showBiometric}
                 onBiometricPress={handleBiometric}
-                title="Enter PIN to unlock"
+                title={t('security.enterPin')}
                 subtitle={subtitle}
                 error={error}
             />

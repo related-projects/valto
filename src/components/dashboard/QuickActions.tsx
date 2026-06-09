@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../theme/theme';
 import { Card } from '../ui/Card';
@@ -15,26 +16,27 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     onAddIncome,
     onTransfer,
 }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
 
     const actions = [
         {
             icon: 'arrow-down-outline' as const,
-            label: 'Income',
+            label: t('components.quickActions.income'),
             onPress: onAddIncome,
             bg: colors.successBackground,
             iconColor: colors.successText,
         },
         {
             icon: 'arrow-up-outline' as const,
-            label: 'Expense',
+            label: t('components.quickActions.expense'),
             onPress: onAddExpense,
             bg: colors.destructiveBackground,
             iconColor: colors.destructiveText,
         },
         {
             icon: 'swap-horizontal-outline' as const,
-            label: 'Transfer',
+            label: t('components.quickActions.transfer'),
             onPress: onTransfer,
             bg: colors.iconBadgeBackground,
             iconColor: colors.accent,
@@ -44,7 +46,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     return (
         <Card>
             <Text style={{ fontSize: typography.sizes.sm, fontWeight: '600', marginBottom: spacing.md, color: colors.foreground }}>
-                Quick Actions
+                {t('components.quickActions.title')}
             </Text>
             <View style={styles.container}>
                 {actions.map((action, index) => (

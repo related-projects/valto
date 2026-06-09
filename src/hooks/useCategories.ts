@@ -2,13 +2,15 @@
  * useCategories Hook
  * 
  * React hook for managing categories with the repository layer.
- * Provides category operations and filtering for UI components.
+ * Delegates delete orchestration to domain use case.
+ * Retains: UI state, loading/error, event subscription, create/update.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getCategoryRepository, getTransactionRepository } from '../core/di';
+import { getCategoryRepository, getUseCaseDeps } from '../core/di';
 import { dataEvents } from '../core/events';
 import { Category, CategoryType, CreateCategoryDTO, UpdateCategoryDTO } from '../domain/entities';
+import { deleteCategory as deleteCategoryUC } from '../domain/useCases';
 
 interface UseCategoriesResult {
     categories: Category[];
@@ -87,28 +89,20 @@ export function useCategories(): UseCategoriesResult {
     }, [categoryRepo, loadCategories]);
 
     /**
-     * Delete a category
+     * Delete a category (delegates to use case for reference check)
      */
     const deleteCategory = useCallback(async (id: string): Promise<void> => {
         try {
-            // Check if used in transactions
-            const transactionRepo = getTransactionRepository();
-            const transactions = await transactionRepo.getByCategoryId(id);
+            const deps = getUseCaseDeps();
+            await deleteCategoryUC(deps, id);
 
-            if (transactions.length > 0) {
-                throw new Error(`Cannot delete category. It is used in ${transactions.length} transactions.`);
-            }
-
-            await categoryRepo.delete(id);
             await loadCategories();
-
-            dataEvents.emit('categories');
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Failed to delete category';
             // Propagate the specific error message (e.g. usage check)
             throw new Error(msg);
         }
-    }, [categoryRepo, loadCategories]);
+    }, [loadCategories]);
 
     /**
      * Get expense categories

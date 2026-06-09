@@ -28,6 +28,12 @@ jest.mock('../../core/di', () => ({
         getAll: jest.fn().mockResolvedValue([]),
         getByMonth: jest.fn().mockResolvedValue([]),
     }),
+    getUseCaseDeps: () => ({
+        transactionRepo: mockTransactionRepo,
+        walletRepo: mockWalletRepo,
+        categoryRepo: { getAll: jest.fn().mockResolvedValue([]) },
+        eventBus: { emit: jest.fn(), emitMultiple: jest.fn() },
+    }),
 }));
 
 // Mock events to prevent side effects  

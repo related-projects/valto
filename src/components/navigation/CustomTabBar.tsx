@@ -9,6 +9,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/theme';
@@ -16,6 +17,7 @@ import { AddTransactionModal } from '../modals/AddTransactionModal';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { colors, shadows, spacing, typography } = useTheme();
     const [showAddModal, setShowAddModal] = useState(false);
 
@@ -59,6 +61,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                         return (
                             <TouchableOpacity
                                 key={route.key}
+                                testID={`tab_${route.name}`}
                                 accessibilityRole="button"
                                 accessibilityState={isFocused ? { selected: true } : {}}
                                 accessibilityLabel={options.tabBarAccessibilityLabel}
@@ -100,8 +103,9 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                     },
                 ]}
                 onPress={() => setShowAddModal(true)}
+                testID="fab_add_transaction"
                 accessibilityRole="button"
-                accessibilityLabel="Add transaction"
+                accessibilityLabel={t('a11y.addTransaction')}
             >
                 <Ionicons name="add" size={28} color={colors.accentForeground} />
             </TouchableOpacity>

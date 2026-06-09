@@ -7,9 +7,10 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
-import { formatAmount } from '../../utils/formatAmount';
 import { Card } from '../ui/Card';
 
 interface FinancialSummaryProps {
@@ -18,7 +19,6 @@ interface FinancialSummaryProps {
     netBalance: number;
     /** null when income is zero */
     savingsRate: number | null;
-    currency?: string;
 }
 
 export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
@@ -26,9 +26,10 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
     totalExpense,
     netBalance,
     savingsRate,
-    currency = '$',
 }) => {
+    const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
+    const { formatAmount } = useFormatting();
 
     const rows: {
         label: string;
@@ -38,28 +39,28 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
         bgColor: string;
     }[] = [
             {
-                label: 'Total Income',
-                value: formatAmount(totalIncome, currency),
+                label: t('reports.financialSummary.totalIncome'),
+                value: formatAmount(totalIncome),
                 color: colors.successText,
                 icon: 'arrow-down-circle-outline',
                 bgColor: colors.successBackground,
             },
             {
-                label: 'Total Expense',
-                value: formatAmount(totalExpense, currency),
+                label: t('reports.financialSummary.totalExpense'),
+                value: formatAmount(totalExpense),
                 color: colors.destructiveText,
                 icon: 'arrow-up-circle-outline',
                 bgColor: colors.destructiveBackground,
             },
             {
-                label: 'Net Balance',
-                value: formatAmount(netBalance, currency),
+                label: t('reports.financialSummary.netBalance'),
+                value: formatAmount(netBalance),
                 color: netBalance >= 0 ? colors.successText : colors.destructiveText,
                 icon: 'wallet-outline',
                 bgColor: netBalance >= 0 ? colors.successBackground : colors.destructiveBackground,
             },
             {
-                label: 'Savings Rate',
+                label: t('reports.financialSummary.savingsRate'),
                 value: savingsRate !== null ? `${savingsRate.toFixed(1)}%` : '—',
                 color: savingsRate !== null && savingsRate > 0 ? colors.successText : colors.mutedForeground,
                 icon: 'trending-up-outline',
@@ -77,7 +78,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
                     marginBottom: spacing.lg,
                 }}
             >
-                Financial Summary
+                {t('reports.financialSummary.title')}
             </Text>
 
             <View style={{ gap: spacing.md }}>

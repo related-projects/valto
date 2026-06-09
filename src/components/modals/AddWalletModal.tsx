@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -20,6 +21,7 @@ import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
 import { typography } from '../../theme/typography';
+import { WALLET_COLORS, WALLET_TYPES } from './walletConstants';
 
 interface AddWalletModalProps {
     visible: boolean;
@@ -30,29 +32,9 @@ interface AddWalletModalProps {
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
 
-// Predefined color palette for wallet colors
-const WALLET_COLORS = [
-    '#6366F1', // Indigo
-    '#8B5CF6', // Purple
-    '#EC4899', // Pink
-    '#EF4444', // Red
-    '#F97316', // Orange
-    '#EAB308', // Yellow
-    '#22C55E', // Green
-    '#14B8A6', // Teal
-    '#06B6D4', // Cyan
-    '#3B82F6', // Blue
-];
-
-const WALLET_TYPES: { label: string; value: WalletType; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { label: 'Cash', value: WalletType.CASH, icon: 'wallet-outline' },
-    { label: 'Bank', value: WalletType.BANK, icon: 'card-outline' },
-    { label: 'Mobile', value: WalletType.MOBILE, icon: 'phone-portrait-outline' },
-    { label: 'Savings', value: WalletType.SAVINGS, icon: 'cash-outline' },
-];
-
 export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose, onSuccess }) => {
     const { colors, spacing, typography, radius } = useTheme();
+    const { t } = useTranslation();
 
     // Hooks
     const { createWallet } = useWallets();
@@ -74,14 +56,14 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
     const handleSave = async () => {
         // Validation
         if (!name.trim()) {
-            Alert.alert('Invalid Name', 'Please enter a wallet name');
+            Alert.alert(t('modals.addWallet.invalidName'), t('modals.addWallet.invalidNameMessage'));
             return;
         }
 
         const balanceNum = balance ? parseFloat(balance) : 0;
 
         if (isNaN(balanceNum) || balanceNum < 0) {
-            Alert.alert('Invalid Balance', 'Initial balance must be 0 or greater');
+            Alert.alert(t('modals.addWallet.invalidBalance'), t('modals.addWallet.invalidBalanceMessage'));
             return;
         }
 
@@ -103,8 +85,8 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
             onClose();
         } catch (error) {
             Alert.alert(
-                'Error',
-                error instanceof Error ? error.message : 'Failed to create wallet'
+                t('modals.addWallet.error'),
+                error instanceof Error ? error.message : t('modals.addWallet.createFailed')
             );
         } finally {
             setSaving(false);
@@ -132,18 +114,18 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                 <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
+                        <TouchableOpacity onPress={handleClose} style={styles.headerButton} testID="add_wallet_close_button">
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            Add Wallet
+                            {t('modals.addWallet.title')}
                         </Text>
-                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving}>
+                        <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={saving} testID="add_wallet_save_button">
                             {saving ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
                             ) : (
                                 <Text style={{ color: colors.accent, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
-                                    Save
+                                    {t('modals.addWallet.save')}
                                 </Text>
                             )}
                         </TouchableOpacity>
@@ -162,16 +144,17 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Wallet Name */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Wallet Name *
+                                    {t('modals.addWallet.walletName')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
-                                        placeholder="e.g., Main Account"
+                                        placeholder={t('modals.addWallet.walletNamePlaceholder')}
                                         placeholderTextColor={colors.mutedForeground}
                                         value={name}
                                         onChangeText={setName}
                                         autoCapitalize="words"
+                                        testID="add_wallet_name_input"
                                     />
                                 </View>
                             </View>
@@ -179,7 +162,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Initial Balance */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
-                                    Initial Balance
+                                    {t('modals.addWallet.initialBalance')}
                                 </Text>
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, marginRight: spacing.sm }}>$</Text>
@@ -190,6 +173,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                         keyboardType="decimal-pad"
                                         value={balance}
                                         onChangeText={setBalance}
+                                        testID="add_wallet_balance_input"
                                     />
                                 </View>
                             </View>
@@ -197,7 +181,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Wallet Type */}
                             <View style={{ marginBottom: spacing.lg }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    Wallet Type
+                                    {t('modals.addWallet.walletType')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_TYPES.map((type) => {
@@ -214,6 +198,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                                     },
                                                 ]}
                                                 onPress={() => setWalletType(type.value)}
+                                                testID={`add_wallet_type_${type.value}`}
                                             >
                                                 <Ionicons
                                                     name={type.icon}
@@ -228,7 +213,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                                                         fontWeight: isSelected ? '600' : '500',
                                                     }}
                                                 >
-                                                    {type.label}
+                                                    {t(`wallets.type.${type.labelKey}`)}
                                                 </Text>
                                             </TouchableOpacity>
                                         );
@@ -239,7 +224,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ visible, onClose
                             {/* Color Picker */}
                             <View style={{ marginBottom: spacing.xl }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.sm }}>
-                                    Wallet Color
+                                    {t('modals.addWallet.walletColor')}
                                 </Text>
                                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                                     {WALLET_COLORS.map((color) => {

@@ -10,8 +10,10 @@ export interface BudgetPaceResult {
     expectedSpentByNow: number;
     /** True if actual spending exceeds the expected pace */
     overBudgetPace: boolean;
-    /** Human-readable insight message */
-    message: string;
+    /** i18n translation key */
+    messageKey: string;
+    /** Interpolation params for the translation key */
+    messageParams: Record<string, string | number>;
 }
 
 /**
@@ -33,7 +35,8 @@ export function evaluateBudgetPace(
         return {
             expectedSpentByNow: 0,
             overBudgetPace: spent > 0,
-            message: 'Invalid budget period.',
+            messageKey: 'insights.invalidBudgetPeriod',
+            messageParams: {},
         };
     }
 
@@ -41,9 +44,10 @@ export function evaluateBudgetPace(
         return {
             expectedSpentByNow: 0,
             overBudgetPace: spent > 0,
-            message: spent > 0
-                ? 'No budget set, but you have spending recorded.'
-                : 'No budget set for this period.',
+            messageKey: spent > 0
+                ? 'insights.noBudgetWithSpending'
+                : 'insights.noBudgetSet',
+            messageParams: {},
         };
     }
 
@@ -56,13 +60,15 @@ export function evaluateBudgetPace(
         return {
             expectedSpentByNow,
             overBudgetPace: true,
-            message: `Spending is ${overPct.toFixed(0)}% ahead of budget pace.`,
+            messageKey: 'insights.spendingAhead',
+            messageParams: { percent: overPct.toFixed(0) },
         };
     }
 
     return {
         expectedSpentByNow,
         overBudgetPace: false,
-        message: 'Spending is on track with your budget pace.',
+        messageKey: 'insights.spendingOnTrack',
+        messageParams: {},
     };
 }

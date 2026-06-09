@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CategoryModal } from '../components/modals/CategoryModal';
@@ -12,6 +13,7 @@ import { useCategories } from '../hooks/useCategories';
 import { useTheme } from '../theme/theme';
 
 export const CategoriesScreen = () => {
+    const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -19,8 +21,8 @@ export const CategoriesScreen = () => {
 
     // Segment data
     const SEGMENTS: Segment<CategoryType>[] = [
-        { key: 'expense', label: 'Expense', value: CategoryType.EXPENSE },
-        { key: 'income', label: 'Income', value: CategoryType.INCOME },
+        { key: 'expense', label: t('categories.expense'), value: CategoryType.EXPENSE },
+        { key: 'income', label: t('categories.income'), value: CategoryType.INCOME },
     ];
 
     // State for filter segment (Expense / Income)
@@ -44,18 +46,18 @@ export const CategoriesScreen = () => {
 
     const handleDelete = (category: Category) => {
         Alert.alert(
-            'Delete Category',
-            `Are you sure you want to delete "${category.name}"?`,
+            t('categories.deleteTitle'),
+            t('categories.deleteMessage', { name: category.name }),
             [
-                { text: 'Cancel', style: 'cancel' },
+                { text: t('alerts.cancel'), style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: t('categories.delete'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
                             await deleteCategory(category.id);
                         } catch (error) {
-                            Alert.alert('Error', 'Failed to delete category');
+                            Alert.alert(t('alerts.error'), t('categories.deleteFailed'));
                         }
                     }
                 }
@@ -83,7 +85,7 @@ export const CategoriesScreen = () => {
                         fontSize: typography.sizes.xl,
                         fontWeight: typography.weights.bold,
                     }}>
-                        Categories
+                        {t('categories.title')}
                     </Text>
                 </View>
             </View>
@@ -132,7 +134,7 @@ export const CategoriesScreen = () => {
                     {categories.length === 0 && (
                         <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
                             <Ionicons name="grid-outline" size={40} color={colors.mutedForeground} style={{ marginBottom: spacing.sm }} />
-                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md }}>No categories found</Text>
+                            <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md }}>{t('categories.noCategories')}</Text>
                         </View>
                     )}
                 </View>

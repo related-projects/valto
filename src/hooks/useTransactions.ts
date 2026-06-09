@@ -2,26 +2,51 @@
  * useTransactions Hook
  * 
  * React hook for managing transactions with the repository layer.
- * Provides CRUD operations and loading states for UI components.
- * Subscribes to transaction/wallet data events for cross-component reactivity.
+ * Delegates business orchestration to domain use cases.
+ * Retains: UI state, loading/error, event subscription, data refresh.
+ * 
+ * Supports two modes:
+ * - Full load: getAll() — used by dashboard and consumers needing full dataset
+ * - Paginated: loadNextPage() — used by TransactionsScreen for lazy loading
+ * 
+ * Filtering:
+ * - Exposes `filters` / `setFilters` / `resetFilters` for composable filtering
+ * - `filteredTransactions` is a derived (memoised) value from the pure `filterTransactions` function
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import { getTransactionRepository, getWalletRepository } from '../core/di';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getTransactionRepository, getUseCaseDeps } from '../core/di';
 import { dataEvents } from '../core/events';
+import { CreateTransactionDTO, Transaction } from '../domain/entities';
+import { filterTransactions, TransactionFilters } from '../domain/filters/filterTransactions';
 import {
-    CreateTransactionDTO,
-    Transaction,
-    TransactionType
-} from '../domain/entities';
+    createTransaction as createTransactionUC,
+    deleteTransaction as deleteTransactionUC,
+} from '../domain/useCases';
+
+const PAGE_SIZE = 20;
 
 interface UseTransactionsResult {
     transactions: Transaction[];
+    /** Transactions after applying active filters */
+    filteredTransactions: Transaction[];
+    /** Current active filters */
+    filters: TransactionFilters;
+    /** Update the active filters */
+    setFilters: (filters: TransactionFilters) => void;
+    /** Reset all filters to empty */
+    resetFilters: () => void;
     loading: boolean;
     error: string | null;
     createTransaction: (dto: CreateTransactionDTO) => Promise<Transaction>;
     deleteTransaction: (id: string) => Promise<void>;
     refreshTransactions: () => Promise<void>;
+    /** Paginated loading — appends next page */
+    loadNextPage: () => Promise<void>;
+    /** Whether more pages are available */
+    hasMore: boolean;
+    /** Whether a page load is in progress */
+    loadingMore: boolean;
 }
 
 /**
@@ -31,12 +56,31 @@ export function useTransactions(): UseTransactionsResult {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    const transactionRepo = getTransactionRepository();
-    const walletRepo = getWalletRepository();
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [filters, setFilters] = useState<TransactionFilters>({});
+    const pageRef = useRef(1);
 
     /**
-     * Load all transactions from repository
+     * Derived filtered transactions (memoised).
+     * Delegates to the pure filterTransactions function in the domain layer.
+     */
+    const filteredTransactions = useMemo(
+        () => filterTransactions(transactions, filters),
+        [transactions, filters]
+    );
+
+    /**
+     * Reset all filters to empty (show all transactions)
+     */
+    const resetFilters = useCallback(() => {
+        setFilters({});
+    }, []);
+
+    const transactionRepo = getTransactionRepository();
+
+    /**
+     * Load all transactions from repository (full load)
      */
     const loadTransactions = useCallback(async () => {
         try {
@@ -46,6 +90,9 @@ export function useTransactions(): UseTransactionsResult {
             // Sort by date descending (newest first)
             const sorted = data.sort((a, b) => b.date.getTime() - a.date.getTime());
             setTransactions(sorted);
+            // Reset pagination state on full reload
+            pageRef.current = Math.ceil(sorted.length / PAGE_SIZE) || 1;
+            setHasMore(false); // Full load means we have everything
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load transactions');
             console.error('Failed to load transactions:', err);
@@ -55,22 +102,42 @@ export function useTransactions(): UseTransactionsResult {
     }, [transactionRepo]);
 
     /**
-     * Create a new transaction and update wallet balance
+     * Load the next page of transactions (paginated / lazy loading)
+     */
+    const loadNextPage = useCallback(async () => {
+        if (loadingMore || !hasMore) return;
+
+        try {
+            setLoadingMore(true);
+            const nextPage = pageRef.current + 1;
+            const result = await transactionRepo.getTransactionsPage(nextPage, PAGE_SIZE);
+
+            setTransactions(prev => {
+                // Deduplicate — merge without re-adding existing ids
+                const existingIds = new Set(prev.map(t => t.id));
+                const newItems = result.data.filter(t => !existingIds.has(t.id));
+                return [...prev, ...newItems];
+            });
+
+            pageRef.current = nextPage;
+            setHasMore(result.hasMore);
+        } catch (err) {
+            console.error('Failed to load next page:', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [transactionRepo, loadingMore, hasMore]);
+
+    /**
+     * Create a new transaction (delegates to use case)
      */
     const createTransaction = useCallback(async (dto: CreateTransactionDTO): Promise<Transaction> => {
         try {
-            // Create the transaction
-            const transaction = await transactionRepo.create(dto);
+            const deps = getUseCaseDeps();
+            const transaction = await createTransactionUC(deps, dto);
 
-            // Update wallet balance
-            const amount = dto.type === TransactionType.EXPENSE ? -dto.amount : dto.amount;
-            await walletRepo.updateBalance(dto.walletId, amount);
-
-            // Refresh transactions list
+            // Refresh local state
             await loadTransactions();
-
-            // Emit events for cross-component reactivity
-            dataEvents.emitMultiple(['transactions', 'wallets']);
 
             return transaction;
         } catch (err) {
@@ -78,36 +145,24 @@ export function useTransactions(): UseTransactionsResult {
             setError(errorMessage);
             throw new Error(errorMessage);
         }
-    }, [transactionRepo, walletRepo, loadTransactions]);
+    }, [loadTransactions]);
 
     /**
-     * Delete a transaction and revert wallet balance
+     * Delete a transaction (delegates to use case)
      */
     const deleteTransaction = useCallback(async (id: string): Promise<void> => {
         try {
-            // Get the transaction to revert balance
-            const transaction = await transactionRepo.getById(id);
+            const deps = getUseCaseDeps();
+            await deleteTransactionUC(deps, id);
 
-            if (transaction) {
-                // Revert wallet balance (opposite of creation)
-                const amount = transaction.type === TransactionType.EXPENSE ? transaction.amount : -transaction.amount;
-                await walletRepo.updateBalance(transaction.walletId, amount);
-            }
-
-            // Delete the transaction
-            await transactionRepo.delete(id);
-
-            // Refresh transactions list
+            // Refresh local state
             await loadTransactions();
-
-            // Emit events for cross-component reactivity
-            dataEvents.emitMultiple(['transactions', 'wallets']);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete transaction';
             setError(errorMessage);
             throw new Error(errorMessage);
         }
-    }, [transactionRepo, walletRepo, loadTransactions]);
+    }, [loadTransactions]);
 
     /**
      * Refresh transactions from repository
@@ -130,10 +185,17 @@ export function useTransactions(): UseTransactionsResult {
 
     return {
         transactions,
+        filteredTransactions,
+        filters,
+        setFilters,
+        resetFilters,
         loading,
         error,
         createTransaction,
         deleteTransaction,
         refreshTransactions,
+        loadNextPage,
+        hasMore,
+        loadingMore,
     };
 }

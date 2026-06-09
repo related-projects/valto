@@ -11,6 +11,7 @@ interface ListItemProps {
     onPress?: () => void;
     style?: ViewStyle;
     showChevron?: boolean;
+    testID?: string;
 }
 
 export const ListItem: React.FC<ListItemProps> = ({
@@ -21,11 +22,13 @@ export const ListItem: React.FC<ListItemProps> = ({
     onPress,
     style,
     showChevron = true,
+    testID,
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
 
     return (
         <TouchableOpacity
+            testID={testID}
             onPress={onPress}
             disabled={!onPress}
             style={[
@@ -38,13 +41,14 @@ export const ListItem: React.FC<ListItemProps> = ({
         >
             <View style={styles.leftContent}>
                 {leftIcon && <View style={{ marginRight: spacing.md }}>{leftIcon}</View>}
-                <View>
+                <View style={{ flexShrink: 1 }}>
                     <Text
                         style={{
                             color: colors.foreground,
                             fontSize: typography.sizes.md,
                             fontWeight: '500',
                         }}
+                        numberOfLines={1}
                     >
                         {title}
                     </Text>
@@ -58,7 +62,9 @@ export const ListItem: React.FC<ListItemProps> = ({
                             color: colors.mutedForeground,
                             fontSize: typography.sizes.sm,
                             marginRight: spacing.xs,
+                            flexShrink: 1,
                         }}
+                        numberOfLines={2}
                     >
                         {subtitle}
                     </Text>
@@ -86,5 +92,8 @@ const styles = StyleSheet.create({
     rightContent: {
         flexDirection: 'row',
         alignItems: 'center',
+        flexShrink: 1,
+        maxWidth: '55%',
     },
 });
+

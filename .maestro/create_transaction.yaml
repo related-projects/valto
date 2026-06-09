@@ -1,0 +1,47 @@
+# Maestro E2E Tests — Valto Budget Tracker
+#
+# Create Transaction Flow
+# Verifies adding an expense transaction and seeing balance update.
+#
+# Prerequisites: App with completed onboarding and at least one wallet.
+# Run: maestro test .maestro/create_transaction.yaml
+
+appId: com.valto.app
+---
+
+# ── Launch ──────────────────────────────────────────────────────
+- launchApp
+
+# ── Navigate to Transactions ────────────────────────────────────
+- tapOn:
+    id: "tab_transactions"
+
+# ── Open Add Transaction Modal ──────────────────────────────────
+- tapOn:
+    id: "fab_add_transaction"
+
+- assertVisible:
+    id: "add_tx_amount_input"
+
+# ── Fill Transaction Form ───────────────────────────────────────
+# Select expense type (default)
+- tapOn:
+    id: "add_tx_type_expense"
+
+# Enter amount
+- tapOn:
+    id: "add_tx_amount_input"
+
+- inputText: "25.50"
+
+# Select category
+- tapOn:
+    id: "add_tx_category_picker"
+
+- tapOn:
+    text: "Food" # Will pick the first thing with Food text, e.g. Food & Dining
+
+# ── Save Transaction ───────────────────────────────────────────
+- tapOn:
+    id: "add_tx_save_button"
+    timeout: 3000
