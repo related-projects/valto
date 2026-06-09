@@ -44,7 +44,7 @@ interface FAQItemCardProps {
     onToggle: () => void;
 }
 
-const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(({ item, expanded, onToggle }) => {
+const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(function FAQItemCard({ item, expanded, onToggle }: FAQItemCardProps) {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
 
