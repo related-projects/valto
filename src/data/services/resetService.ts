@@ -7,20 +7,28 @@
 
 import { dataEvents } from '../../core/events';
 import { initializeSeedData } from '../seed';
+import { getDb } from '../storage/sql/database';
+import { FINANCIAL_TABLES } from '../storage/sql/schema';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
 /**
  * Reset all app data.
  *
- * 1. Clears all known storage keys (wallets, transactions, categories, budgets, settings)
- * 2. Resets the seed initialization flag
+ * 1. Wipes the financial data from SQLite (wallets, transactions, …)
+ * 2. Removes any residual legacy key-value copies + settings + seed flag
  * 3. Re-runs seed to populate defaults
  * 4. Emits all data events for a full UI refresh
  *
  * Callers MUST require double confirmation before invoking this function.
  */
 export async function resetAppData(): Promise<void> {
-    // Clear all data keys individually (safer than full AsyncStorage.clear())
+    // Financial data now lives in SQLite — clear every table.
+    const db = getDb();
+    for (const table of FINANCIAL_TABLES) {
+        await db.execute(`DELETE FROM ${table}`);
+    }
+
+    // Remove residual legacy KV copies (cleartext) + KV-resident settings/seed flag.
     await Promise.all([
         asyncStorageAdapter.remove(StorageKeys.WALLETS),
         asyncStorageAdapter.remove(StorageKeys.TRANSACTIONS),

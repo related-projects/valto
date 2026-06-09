@@ -6,7 +6,8 @@
  */
 
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
@@ -14,7 +15,7 @@ import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { CategoryType, TransactionType, getCurrentMonth } from '../../domain/entities';
 
 // Shared state
-let mockStorage: InMemoryStorage;
+let mockDb: SqlDatabase;
 let mockTransactionRepo: TransactionRepository;
 let mockCategoryRepo: CategoryRepository;
 let mockBudgetRepo: BudgetRepository;
@@ -26,6 +27,7 @@ jest.mock('../../core/di', () => ({
     getBudgetRepository: () => mockBudgetRepo,
     getWalletRepository: () => mockWalletRepo,
     getUseCaseDeps: () => ({
+        runInTransaction: (work: any) => mockDb.runInTransaction(work),
         transactionRepo: mockTransactionRepo,
         walletRepo: mockWalletRepo,
         categoryRepo: mockCategoryRepo,
@@ -47,12 +49,12 @@ describe('useDashboard', () => {
     const currentMonth = getCurrentMonth();
     const [year, month] = currentMonth.split('-').map(Number);
 
-    beforeEach(() => {
-        mockStorage = new InMemoryStorage();
-        mockTransactionRepo = new TransactionRepository(mockStorage);
-        mockCategoryRepo = new CategoryRepository(mockStorage);
-        mockBudgetRepo = new BudgetRepository(mockStorage);
-        mockWalletRepo = new WalletRepository(mockStorage);
+    beforeEach(async () => {
+        mockDb = await createTestDb();
+        mockTransactionRepo = new TransactionRepository(mockDb);
+        mockCategoryRepo = new CategoryRepository(mockDb);
+        mockBudgetRepo = new BudgetRepository(mockDb);
+        mockWalletRepo = new WalletRepository(mockDb);
     });
 
     it('returns empty data when no transactions exist', async () => {

@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Category, CreateBudgetDTO, getCurrentMonth } from '../../domain/entities';
 import { useCategories } from '../../hooks/useCategories';
+import { normalizeAmount } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -67,7 +68,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
         }
 
         const parsedAmount = parseFloat(limitAmount);
-        const amountNum = Math.round(parsedAmount * 100);
+        // Single input→storage conversion point (major units → integer cents).
+        const amountNum = normalizeAmount(parsedAmount);
 
         if (!limitAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
             Alert.alert(t('modals.addBudget.invalidAmount'), t('modals.addBudget.invalidAmountMessage'));

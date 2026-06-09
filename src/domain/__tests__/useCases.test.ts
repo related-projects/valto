@@ -5,38 +5,39 @@
  * verifying pure business logic without React hook involvement.
  */
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
-import { CategoryRepository } from '../../data/repositories/CategoryRepository';
-import { TransactionRepository } from '../../data/repositories/TransactionRepository';
-import { WalletRepository } from '../../data/repositories/WalletRepository';
-import { CategoryType, TransactionType, WalletType } from '../../domain/entities';
-import type { EventBus } from '../../domain/useCases';
+import { createMockRepositories, type MockRepositoryBundle } from '../../test-utils/mockRepositories';
+import { CategoryType, TransactionType, WalletType } from '../entities';
 import {
     createTransaction,
     createWallet,
     deleteCategory,
     deleteTransaction,
     transferFunds,
-} from '../../domain/useCases';
+} from '../useCases';
 
 // ─── Shared test infrastructure ─────────────────────────────────────
+// Concrete repositories (real in-memory SQLite) are built by the test-utils
+// helper, so this domain test never imports from the data layer directly.
 
-let storage: InMemoryStorage;
-let transactionRepo: TransactionRepository;
-let walletRepo: WalletRepository;
-let categoryRepo: CategoryRepository;
-let eventBus: EventBus;
+let repos: MockRepositoryBundle;
+let transactionRepo: MockRepositoryBundle['transactionRepo'];
+let walletRepo: MockRepositoryBundle['walletRepo'];
+let categoryRepo: MockRepositoryBundle['categoryRepo'];
+let eventBus: MockRepositoryBundle['eventBus'];
 
 function getDeps() {
-    return { transactionRepo, walletRepo, categoryRepo, eventBus };
+    return {
+        transactionRepo,
+        walletRepo,
+        categoryRepo,
+        eventBus,
+        runInTransaction: repos.runInTransaction,
+    };
 }
 
-beforeEach(() => {
-    storage = new InMemoryStorage();
-    transactionRepo = new TransactionRepository(storage);
-    walletRepo = new WalletRepository(storage);
-    categoryRepo = new CategoryRepository(storage);
-    eventBus = { emit: jest.fn(), emitMultiple: jest.fn() };
+beforeEach(async () => {
+    repos = await createMockRepositories();
+    ({ transactionRepo, walletRepo, categoryRepo, eventBus } = repos);
 });
 
 // ─── createTransaction ──────────────────────────────────────────────
@@ -57,6 +58,25 @@ describe('createTransaction', () => {
         const updated = await walletRepo.getById(wallet.id);
         expect(updated!.balance).toBe(85000);
         expect(eventBus.emitMultiple).toHaveBeenCalledWith(['transactions', 'wallets']);
+    });
+
+    it('does not re-normalize an already-converted amount (no double ×100)', async () => {
+        // UI converts input → cents once via normalizeAmount; the domain stores
+        // those cents verbatim. Passing 1575 (== $15.75 normalized) must stay
+        // 1575, never become 157500.
+        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+
+        const txn = await createTransaction(getDeps(), {
+            type: TransactionType.EXPENSE,
+            amount: 1575,
+            categoryId: 'food',
+            walletId: wallet.id,
+            date: new Date(),
+        });
+
+        expect(txn.amount).toBe(1575);
+        const updated = await walletRepo.getById(wallet.id);
+        expect(updated!.balance).toBe(98425);
     });
 
     it('credits wallet for income', async () => {

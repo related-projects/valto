@@ -1,16 +1,8 @@
 /**
  * Category Repository
- * 
- * Repository for managing Category entities.
- * Handles CRUD operations and category-specific queries.
- * 
- * Architecture Note:
- * This repository manages category persistence and provides methods for
- * filtering categories by type (expense/income).
- * 
- * Data Integrity:
- * - Validates id and name before persistence
- * - Safe writes: on failure, previous valid state is preserved
+ *
+ * Repository for managing Category entities, backed by relational SQLite.
+ * Handles CRUD and filtering by type (expense/income).
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -18,176 +10,88 @@ import {
     Category,
     CategoryType,
     CreateCategoryDTO,
-    deserializeCategory,
-    SerializableCategory,
-    serializeCategory,
     UpdateCategoryDTO,
 } from '../../domain/entities/Category';
-import { IStorage, StorageKeys } from '../storage';
-import { IRepository, RepositoryError, RepositoryErrorType } from './IRepository';
+import {
+    categoryMapper,
+    sqlDelete,
+    sqlExists,
+    sqlGetAll,
+    sqlGetById,
+    sqlInsert,
+    sqlUpdate,
+} from '../storage/sql/mappers';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
+import type { ICategoryRepository } from '../../domain/repositories';
+import { RepositoryError, RepositoryErrorType } from './IRepository';
 
-/**
- * Category repository implementation
- */
-export class CategoryRepository implements IRepository<Category> {
-    constructor(private storage: IStorage) { }
+export class CategoryRepository implements ICategoryRepository {
+    constructor(private db: SqlDatabase) { }
 
-    /**
-     * Get all categories
-     */
     async getAll(): Promise<Category[]> {
         try {
-            const data = await this.storage.get<SerializableCategory[]>(StorageKeys.CATEGORIES);
-
-            if (!data) {
-                return [];
-            }
-
-            return data.map(deserializeCategory);
+            return await sqlGetAll(this.db, categoryMapper);
         } catch (error) {
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to get all categories',
-                error as Error
-            );
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to get all categories', error as Error);
         }
     }
 
-    /**
-     * Get a category by ID
-     */
     async getById(id: string): Promise<Category | null> {
         try {
-            const categories = await this.getAll();
-            return categories.find(c => c.id === id) || null;
+            return await sqlGetById(this.db, categoryMapper, id);
         } catch (error) {
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                `Failed to get category with id: ${id}`,
-                error as Error
-            );
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, `Failed to get category with id: ${id}`, error as Error);
         }
     }
 
-    /**
-     * Save a new category
-     */
     async save(category: Category): Promise<Category> {
         try {
-            // Basic entity validation
-            if (!category.id || typeof category.id !== 'string') {
-                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category id must be a non-empty string');
-            }
-            if (!category.name || typeof category.name !== 'string' || category.name.trim().length === 0) {
-                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category name must be a non-empty string');
-            }
+            this.validate(category);
 
-            const categories = await this.getAll();
-
-            // Check for duplicate ID
-            if (categories.some(c => c.id === category.id)) {
+            if (await sqlExists(this.db, categoryMapper, category.id)) {
                 throw new RepositoryError(
                     RepositoryErrorType.DUPLICATE_ERROR,
-                    `Category with id ${category.id} already exists`
+                    `Category with id ${category.id} already exists`,
                 );
             }
 
-            categories.push(category);
-
-            const serialized = categories.map(serializeCategory);
-            await this.storage.set(StorageKeys.CATEGORIES, serialized);
-
+            await sqlInsert(this.db, categoryMapper, category);
             return category;
         } catch (error) {
-            if (error instanceof RepositoryError) {
-                throw error;
-            }
-
-            console.error('[CategoryRepository] Unexpected save failure — previous state preserved:', error);
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to save category',
-                error as Error
-            );
+            if (error instanceof RepositoryError) throw error;
+            console.error('[CategoryRepository] Unexpected save failure:', error);
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to save category', error as Error);
         }
     }
 
-    /**
-     * Update an existing category
-     */
     async update(category: Category): Promise<Category> {
         try {
-            // Basic entity validation
-            if (!category.id || typeof category.id !== 'string') {
-                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category id must be a non-empty string');
+            this.validate(category);
+
+            const affected = await sqlUpdate(this.db, categoryMapper, category);
+            if (affected === 0) {
+                throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Category with id ${category.id} not found`);
             }
-            if (!category.name || typeof category.name !== 'string' || category.name.trim().length === 0) {
-                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category name must be a non-empty string');
-            }
-
-            const categories = await this.getAll();
-            const index = categories.findIndex(c => c.id === category.id);
-
-            if (index === -1) {
-                throw new RepositoryError(
-                    RepositoryErrorType.NOT_FOUND,
-                    `Category with id ${category.id} not found`
-                );
-            }
-
-            categories[index] = category;
-
-            const serialized = categories.map(serializeCategory);
-            await this.storage.set(StorageKeys.CATEGORIES, serialized);
-
             return category;
         } catch (error) {
-            if (error instanceof RepositoryError) {
-                throw error;
-            }
-
-            console.error('[CategoryRepository] Unexpected update failure — previous state preserved:', error);
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to update category',
-                error as Error
-            );
+            if (error instanceof RepositoryError) throw error;
+            console.error('[CategoryRepository] Unexpected update failure:', error);
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to update category', error as Error);
         }
     }
 
-    /**
-     * Delete a category
-     */
     async delete(id: string): Promise<void> {
         try {
-            const categories = await this.getAll();
-            const filtered = categories.filter(c => c.id !== id);
-
-            if (filtered.length === categories.length) {
-                throw new RepositoryError(
-                    RepositoryErrorType.NOT_FOUND,
-                    `Category with id ${id} not found`
-                );
+            const affected = await sqlDelete(this.db, categoryMapper, id);
+            if (affected === 0) {
+                throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Category with id ${id} not found`);
             }
-
-            const serialized = filtered.map(serializeCategory);
-            await this.storage.set(StorageKeys.CATEGORIES, serialized);
         } catch (error) {
-            if (error instanceof RepositoryError) {
-                throw error;
-            }
-
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to delete category',
-                error as Error
-            );
+            if (error instanceof RepositoryError) throw error;
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to delete category', error as Error);
         }
     }
 
-    /**
-     * Create a new category from DTO
-     */
     async create(dto: CreateCategoryDTO): Promise<Category> {
         const category: Category = {
             id: uuidv4(),
@@ -196,21 +100,13 @@ export class CategoryRepository implements IRepository<Category> {
             icon: dto.icon,
             color: dto.color,
         };
-
         return this.save(category);
     }
 
-    /**
-     * Update category from DTO
-     */
     async updateFromDTO(dto: UpdateCategoryDTO): Promise<Category> {
         const existing = await this.getById(dto.id);
-
         if (!existing) {
-            throw new RepositoryError(
-                RepositoryErrorType.NOT_FOUND,
-                `Category with id ${dto.id} not found`
-            );
+            throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Category with id ${dto.id} not found`);
         }
 
         const updated: Category = {
@@ -224,27 +120,27 @@ export class CategoryRepository implements IRepository<Category> {
         return this.update(updated);
     }
 
-    // Domain-specific query methods
+    // ─── Domain-specific query methods ──────────────────────────────────
 
-    /**
-     * Get categories by type
-     */
     async getByType(type: CategoryType): Promise<Category[]> {
         const categories = await this.getAll();
-        return categories.filter(c => c.type === type);
+        return categories.filter((c) => c.type === type);
     }
 
-    /**
-     * Get expense categories
-     */
     async getExpenseCategories(): Promise<Category[]> {
         return this.getByType(CategoryType.EXPENSE);
     }
 
-    /**
-     * Get income categories
-     */
     async getIncomeCategories(): Promise<Category[]> {
         return this.getByType(CategoryType.INCOME);
+    }
+
+    private validate(category: Category): void {
+        if (!category.id || typeof category.id !== 'string') {
+            throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category id must be a non-empty string');
+        }
+        if (!category.name || typeof category.name !== 'string' || category.name.trim().length === 0) {
+            throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Category name must be a non-empty string');
+        }
     }
 }

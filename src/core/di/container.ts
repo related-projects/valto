@@ -3,7 +3,7 @@ import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
-import { asyncStorageAdapter } from '../../data/storage';
+import { getDb } from '../../data/storage/sql/database';
 import type { UseCaseDeps } from '../../domain/useCases/types';
 import { dataEvents } from '../events/dataEvents';
 
@@ -22,7 +22,7 @@ class DIContainer {
      */
     get transactionRepository(): TransactionRepository {
         if (!this._transactionRepository) {
-            this._transactionRepository = new TransactionRepository(asyncStorageAdapter);
+            this._transactionRepository = new TransactionRepository(getDb());
         }
         return this._transactionRepository;
     }
@@ -32,7 +32,7 @@ class DIContainer {
      */
     get walletRepository(): WalletRepository {
         if (!this._walletRepository) {
-            this._walletRepository = new WalletRepository(asyncStorageAdapter);
+            this._walletRepository = new WalletRepository(getDb());
         }
         return this._walletRepository;
     }
@@ -42,7 +42,7 @@ class DIContainer {
      */
     get categoryRepository(): CategoryRepository {
         if (!this._categoryRepository) {
-            this._categoryRepository = new CategoryRepository(asyncStorageAdapter);
+            this._categoryRepository = new CategoryRepository(getDb());
         }
         return this._categoryRepository;
     }
@@ -52,7 +52,7 @@ class DIContainer {
      */
     get budgetRepository(): BudgetRepository {
         if (!this._budgetRepository) {
-            this._budgetRepository = new BudgetRepository(asyncStorageAdapter);
+            this._budgetRepository = new BudgetRepository(getDb());
         }
         return this._budgetRepository;
     }
@@ -62,7 +62,7 @@ class DIContainer {
      */
     get recurringTransactionRepository(): RecurringTransactionRepository {
         if (!this._recurringTransactionRepository) {
-            this._recurringTransactionRepository = new RecurringTransactionRepository(asyncStorageAdapter);
+            this._recurringTransactionRepository = new RecurringTransactionRepository(getDb());
         }
         return this._recurringTransactionRepository;
     }
@@ -101,4 +101,6 @@ export const getUseCaseDeps = (): UseCaseDeps => ({
     walletRepo: container.walletRepository,
     categoryRepo: container.categoryRepository,
     eventBus: dataEvents,
+    // Atomic boundary backed by the single shared SQLite connection.
+    runInTransaction: (work) => getDb().runInTransaction(work),
 });

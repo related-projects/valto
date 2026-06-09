@@ -4,17 +4,18 @@
  * Tests CRUD operations, business rule enforcement, and domain queries.
  */
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { BudgetRepository } from '../repositories/BudgetRepository';
 import { RepositoryError, RepositoryErrorType } from '../repositories/IRepository';
 import { makeBudget, resetFactoryCounters } from '../../test-utils/testFactories';
 
 describe('BudgetRepository', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: BudgetRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new BudgetRepository(storage);
         resetFactoryCounters();
     });

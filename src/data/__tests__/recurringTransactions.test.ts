@@ -14,7 +14,8 @@ import { RecurringTransactionRepository } from '../repositories/RecurringTransac
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
 import { RepositoryErrorType } from '../repositories/IRepository';
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { processRecurringRules, computeDueDates, retryRule, SkipReason } from '../services/RecurringTransactionEngine';
 import { dataEvents } from '../../core/events/dataEvents';
 
@@ -54,12 +55,12 @@ function validRule(overrides: Partial<RecurringTransaction> = {}): RecurringTran
 // ─── Repository Tests ─────────────────────────────────────────────────
 
 describe('RecurringTransactionRepository', () => {
-    let storage: InMemoryStorage;
+    let db: SqlDatabase;
     let repo: RecurringTransactionRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
-        repo = new RecurringTransactionRepository(storage);
+    beforeEach(async () => {
+        db = await createTestDb();
+        repo = new RecurringTransactionRepository(db);
     });
 
     it('saves and retrieves a rule', async () => {
@@ -222,16 +223,16 @@ describe('computeDueDates', () => {
 // ─── Engine Integration Tests ─────────────────────────────────────────
 
 describe('RecurringTransactionEngine', () => {
-    let storage: InMemoryStorage;
+    let db: SqlDatabase;
     let recurringRepo: RecurringTransactionRepository;
     let transactionRepo: TransactionRepository;
     let walletRepo: WalletRepository;
 
     beforeEach(async () => {
-        storage = new InMemoryStorage();
-        recurringRepo = new RecurringTransactionRepository(storage);
-        transactionRepo = new TransactionRepository(storage);
-        walletRepo = new WalletRepository(storage);
+        db = await createTestDb();
+        recurringRepo = new RecurringTransactionRepository(db);
+        transactionRepo = new TransactionRepository(db);
+        walletRepo = new WalletRepository(db);
 
         // Seed a wallet for transaction creation
         await walletRepo.save({
@@ -255,7 +256,7 @@ describe('RecurringTransactionEngine', () => {
             recurringRepo,
             transactionRepo,
             walletRepo,
-            eventBus: dataEvents,
+            eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         expect(result.rulesEvaluated).toBe(1);
@@ -276,13 +277,13 @@ describe('RecurringTransactionEngine', () => {
         }));
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         const countAfterFirst = (await transactionRepo.getAll()).length;
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         const countAfterSecond = (await transactionRepo.getAll()).length;
@@ -293,7 +294,7 @@ describe('RecurringTransactionEngine', () => {
         await recurringRepo.save(validRule({ isPaused: true }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         expect(result.rulesEvaluated).toBe(0);
@@ -307,7 +308,7 @@ describe('RecurringTransactionEngine', () => {
         }));
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         const updatedRule = await recurringRepo.getById('rule-1');
@@ -320,16 +321,16 @@ describe('RecurringTransactionEngine', () => {
 // ─── Insufficient Funds Handling Tests ────────────────────────────────
 
 describe('RecurringTransactionEngine — Insufficient Funds', () => {
-    let storage: InMemoryStorage;
+    let db: SqlDatabase;
     let recurringRepo: RecurringTransactionRepository;
     let transactionRepo: TransactionRepository;
     let walletRepo: WalletRepository;
 
     beforeEach(async () => {
-        storage = new InMemoryStorage();
-        recurringRepo = new RecurringTransactionRepository(storage);
-        transactionRepo = new TransactionRepository(storage);
-        walletRepo = new WalletRepository(storage);
+        db = await createTestDb();
+        recurringRepo = new RecurringTransactionRepository(db);
+        transactionRepo = new TransactionRepository(db);
+        walletRepo = new WalletRepository(db);
     });
 
     it('skips expense rule when cash wallet has insufficient funds', async () => {
@@ -352,7 +353,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         // Rule was evaluated and skipped — not errored
@@ -391,7 +392,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         // ALL skipped — no partial generation
@@ -423,7 +424,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         expect(result.skipped).toHaveLength(0);
@@ -449,7 +450,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         expect(result.skipped).toHaveLength(0);
@@ -479,7 +480,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         // console.error should NOT have been called for this business case
@@ -515,7 +516,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
         // First run — should be skipped
         const firstResult = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents,
+            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
         expect(firstResult.skipped).toHaveLength(1);
 
@@ -524,7 +525,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
         // Retry the specific rule
         const retryResult = await retryRule(
-            { recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents },
+            { recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction },
             'rule-1',
         );
 

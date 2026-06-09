@@ -6,6 +6,13 @@ import { executeMigrations, getCurrentVersion, type Migration } from '../../../s
 import { StorageKeys } from '../../../src/data/storage/StorageKeys';
 import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
 
+// Version-tracking tests only; these migrations don't touch SQLite, so a
+// no-op stub satisfies the SqlDatabase parameter.
+const stubDb: any = {
+    execute: async () => ({ rows: [], rowsAffected: 0 }),
+    runInTransaction: async (work: any) => work(),
+};
+
 describe('migrationRunner', () => {
     let storage: InMemoryStorage;
 
@@ -34,7 +41,7 @@ describe('migrationRunner', () => {
             },
         ];
 
-        await executeMigrations(migrations, storage);
+        await executeMigrations(migrations, storage, stubDb);
         expect(executionOrder).toEqual([1, 2]);
     });
 
@@ -55,7 +62,7 @@ describe('migrationRunner', () => {
             },
         ];
 
-        await executeMigrations(migrations, storage);
+        await executeMigrations(migrations, storage, stubDb);
         expect(executionOrder).toEqual([2]);
     });
 
@@ -73,12 +80,12 @@ describe('migrationRunner', () => {
             },
         ];
 
-        const finalVersion = await executeMigrations(migrations, storage);
+        const finalVersion = await executeMigrations(migrations, storage, stubDb);
         expect(finalVersion).toBe(2);
     });
 
     it('handles empty migration list', async () => {
-        const finalVersion = await executeMigrations([], storage);
+        const finalVersion = await executeMigrations([], storage, stubDb);
         expect(finalVersion).toBe(0);
     });
 
@@ -103,7 +110,7 @@ describe('migrationRunner', () => {
             },
         ];
 
-        await expect(executeMigrations(migrations, storage)).rejects.toThrow('migration failed');
+        await expect(executeMigrations(migrations, storage, stubDb)).rejects.toThrow('migration failed');
         expect(executionOrder).toEqual([1]);
         expect(await getCurrentVersion(storage)).toBe(1);
     });
@@ -115,11 +122,11 @@ describe('migrationRunner', () => {
             {
                 version: 1,
                 name: 'test',
-                up: async (s) => { receivedStorage = s; },
+                up: async ({ storage: s }) => { receivedStorage = s; },
             },
         ];
 
-        await executeMigrations(migrations, storage);
+        await executeMigrations(migrations, storage, stubDb);
         expect(receivedStorage).toBe(storage);
     });
 });

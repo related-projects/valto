@@ -5,17 +5,18 @@
  * pagination, filtering by wallet/category/type/date range, and count.
  */
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { TransactionType } from '../../domain/entities/Transaction';
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { makeTransaction, resetFactoryCounters } from '../../test-utils/testFactories';
 
 describe('TransactionRepository — Query Methods', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: TransactionRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new TransactionRepository(storage);
         resetFactoryCounters();
     });

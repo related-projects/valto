@@ -9,10 +9,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getTransactionRepository, getUseCaseDeps, getWalletRepository } from '../core/di';
 import { dataEvents } from '../core/events';
-import { TransactionType, UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
+import { UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
 import {
     createWallet as createWalletUC,
     transferFunds as transferFundsUC,
+    verifyFinancialIntegrity as verifyFinancialIntegrityUC,
 } from '../domain/useCases';
 
 interface UseWalletsResult {
@@ -171,38 +172,25 @@ export function useWallets(): UseWalletsResult {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to transfer between wallets';
             setError(errorMessage);
-            throw new Error(errorMessage);
+            // Rethrow the ORIGINAL error so typed domain errors (e.g.
+            // InsufficientFundsError) survive to the UI for localized handling.
+            throw err;
         }
     }, [loadWallets]);
 
     /**
-     * Dev-only validation function to sum all wallet balances 
-     * and check if they equal (Total Income - Total Expenses).
+     * Balance-integrity check. Pass-through to the domain use case, which
+     * reconciles every wallet's stored balance against its ledger (the single
+     * authoritative implementation). No business logic lives in the hook.
      */
     const verifyFinancialIntegrity = useCallback(async (): Promise<boolean> => {
         try {
-            const allWallets = await walletRepo.getAll();
-            const allTransactions = await transactionRepo.getAll();
-
-            const sumWallets = allWallets.reduce((acc, w) => acc + w.balance, 0);
-
-            let calculatedBalance = 0;
-            allTransactions.forEach(t => {
-                if (t.type === TransactionType.INCOME) calculatedBalance += t.amount;
-                if (t.type === TransactionType.EXPENSE) calculatedBalance -= t.amount;
-            });
-
-            if (sumWallets !== calculatedBalance) {
-                console.warn(`[Financial Integrity] Mismatch! Real Wallets sum to ${sumWallets}, but Transactions state implies ${calculatedBalance}`);
-                return false;
-            }
-
-            return true;
+            return await verifyFinancialIntegrityUC(getUseCaseDeps());
         } catch (err) {
             console.error('Failed financial integrity check', err);
             return false;
         }
-    }, [walletRepo, transactionRepo]);
+    }, []);
 
     // Load wallets on mount and subscribe to wallet events
     useEffect(() => {

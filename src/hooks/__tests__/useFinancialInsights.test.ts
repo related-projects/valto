@@ -6,14 +6,15 @@
  */
 
 import { renderHook, waitFor } from '@testing-library/react-native';
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { TransactionType, getCurrentMonth } from '../../domain/entities';
 
-let mockStorage: InMemoryStorage;
+let mockDb: SqlDatabase;
 let mockTransactionRepo: TransactionRepository;
 let mockCategoryRepo: CategoryRepository;
 let mockBudgetRepo: BudgetRepository;
@@ -25,6 +26,7 @@ jest.mock('../../core/di', () => ({
     getBudgetRepository: () => mockBudgetRepo,
     getWalletRepository: () => mockWalletRepo,
     getUseCaseDeps: () => ({
+        runInTransaction: (work: any) => mockDb.runInTransaction(work),
         transactionRepo: mockTransactionRepo,
         walletRepo: mockWalletRepo,
         categoryRepo: mockCategoryRepo,
@@ -46,12 +48,12 @@ describe('useFinancialInsights', () => {
     const currentMonth = getCurrentMonth();
     const [year, month] = currentMonth.split('-').map(Number);
 
-    beforeEach(() => {
-        mockStorage = new InMemoryStorage();
-        mockTransactionRepo = new TransactionRepository(mockStorage);
-        mockCategoryRepo = new CategoryRepository(mockStorage);
-        mockBudgetRepo = new BudgetRepository(mockStorage);
-        mockWalletRepo = new WalletRepository(mockStorage);
+    beforeEach(async () => {
+        mockDb = await createTestDb();
+        mockTransactionRepo = new TransactionRepository(mockDb);
+        mockCategoryRepo = new CategoryRepository(mockDb);
+        mockBudgetRepo = new BudgetRepository(mockDb);
+        mockWalletRepo = new WalletRepository(mockDb);
     });
 
     it('returns all four insight types', async () => {

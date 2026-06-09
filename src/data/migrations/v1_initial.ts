@@ -11,7 +11,7 @@ import type { Migration } from './migrationRunner';
 export const v1_initial: Migration = {
     version: 1,
     name: 'initial_schema',
-    up: async (_storage) => {
+    up: async () => {
         // No-op: baseline migration
         // All existing storage keys and data shapes are already in place.
         // This migration exists to establish version tracking.

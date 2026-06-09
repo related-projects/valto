@@ -10,17 +10,18 @@ jest.mock('@react-native-async-storage/async-storage', () =>
     require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { Wallet, WalletType } from '../../domain/entities/Wallet';
 import { RepositoryError, RepositoryErrorType } from '../repositories/IRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
 
 describe('WalletRepository', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: WalletRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new WalletRepository(storage);
     });
 

@@ -23,7 +23,7 @@ import { runMigrations } from '@/src/data/migrations';
 import { initializeSeedData } from '@/src/data/seed';
 import { loadSettings } from '@/src/data/services/settingsService';
 import { processRecurringRules } from '@/src/data/services/RecurringTransactionEngine';
-import { container } from '@/src/core/di/container';
+import { container, getUseCaseDeps } from '@/src/core/di/container';
 import { dataEvents } from '@/src/core/events/dataEvents';
 import { ThemeProvider, useThemeContext } from '@/src/theme/ThemeContext';
 import { useTheme } from '@/src/theme/theme';
@@ -83,6 +83,7 @@ function RootLayout() {
           transactionRepo: container.transactionRepository,
           walletRepo: container.walletRepository,
           eventBus: dataEvents,
+          runInTransaction: getUseCaseDeps().runInTransaction,
         });
 
         // Sync i18n with persisted language preference

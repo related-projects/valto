@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Wallet, WalletType } from '../../domain/entities';
 import { useWallets } from '../../hooks/useWallets';
+import { normalizeAmount } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -75,8 +76,8 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({ visible, walle
             return;
         }
 
-        // Convert major units (dollars) to minor units (cents) for storage
-        const balanceMinor = Math.round(balanceNum * 100);
+        // Single input→storage conversion point (major units → integer cents).
+        const balanceMinor = normalizeAmount(balanceNum);
 
         try {
             setSaving(true);

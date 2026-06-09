@@ -8,21 +8,17 @@
  * picks up the same mock that the test creates.
  */
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
 
-// We need to mock the exact module that seedService.ts imports.
-// seedService.ts: import { asyncStorageAdapter } from '../storage';
-// which resolves to src/data/storage/index.ts -> re-exports from AsyncStorageAdapter.ts
-// Let's mock the actual AsyncStorageAdapter module directly.
-
-const mockInMemory = new InMemoryStorage();
+// The seed flag (SEED_INITIALIZED) is still key-value, so AsyncStorageAdapter
+// is mocked with an in-memory KV store. The financial entities, however, now
+// live in SQLite, so the repos are backed by an in-memory SqlDatabase.
 
 jest.mock('../storage/AsyncStorageAdapter', () => {
     const mem = new (require('../../../tests/helpers/InMemoryStorage').InMemoryStorage)();
-    // Store reference on global so we can access in tests
-    (global as any).__testSeedStorage = mem;
+    (global as any).__testSeedStorage = mem; // KV store: holds the seed flag
     return {
         __esModule: true,
         AsyncStorageAdapter: jest.fn(),
@@ -30,12 +26,12 @@ jest.mock('../storage/AsyncStorageAdapter', () => {
     };
 });
 
-// Mock the DI container
+// Mock the DI container — repos are backed by the per-test SQLite db.
 jest.mock('../../core/di', () => ({
     getWalletRepository: () =>
-        new (require('../repositories/WalletRepository').WalletRepository)((global as any).__testSeedStorage),
+        new (require('../repositories/WalletRepository').WalletRepository)((global as any).__testSeedDb),
     getCategoryRepository: () =>
-        new (require('../repositories/CategoryRepository').CategoryRepository)((global as any).__testSeedStorage),
+        new (require('../repositories/CategoryRepository').CategoryRepository)((global as any).__testSeedDb),
     getTransactionRepository: () => ({
         getAll: jest.fn().mockResolvedValue([]),
     }),
@@ -45,7 +41,8 @@ import { initializeSeedData, resetSeedFlag } from '../seed/seedService';
 
 describe('Seed Service', () => {
     beforeEach(async () => {
-        // Clear the storage between tests
+        // Fresh in-memory SQLite per test + clear the KV seed flag.
+        (global as any).__testSeedDb = await createTestDb();
         await (global as any).__testSeedStorage.clear();
     });
 
@@ -56,11 +53,11 @@ describe('Seed Service', () => {
         expect(result.walletsCreated).toBeGreaterThan(0);
         expect(result.categoriesCreated).toBeGreaterThan(0);
 
-        const walletRepo = new WalletRepository((global as any).__testSeedStorage);
+        const walletRepo = new WalletRepository((global as any).__testSeedDb);
         const wallets = await walletRepo.getAll();
         expect(wallets.length).toBe(result.walletsCreated);
 
-        const categoryRepo = new CategoryRepository((global as any).__testSeedStorage);
+        const categoryRepo = new CategoryRepository((global as any).__testSeedDb);
         const categories = await categoryRepo.getAll();
         expect(categories.length).toBe(result.categoriesCreated);
     });

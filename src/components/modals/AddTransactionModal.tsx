@@ -18,10 +18,12 @@ import {
     View,
 } from 'react-native';
 import { TransactionType } from '../../domain/entities';
+import { InsufficientFundsError } from '../../domain/useCases';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
+import { normalizeAmount } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -151,7 +153,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
 
     const handleSave = async () => {
         const parsedAmount = parseFloat(amount);
-        const amountNum = Math.round(parsedAmount * 100);
+        // Single input→storage conversion point (major units → integer cents).
+        const amountNum = normalizeAmount(parsedAmount);
 
         if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
             Alert.alert(t('modals.addTransaction.invalidAmount'), t('modals.addTransaction.invalidAmountMessage'));
@@ -173,13 +176,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 Alert.alert(t('modals.addTransaction.invalidTransfer'), t('modals.addTransaction.invalidTransferMessage'));
                 return;
             }
-            if (selectedWallet && amountNum > selectedWallet.balance) {
-                Alert.alert(t('modals.addTransaction.insufficientBalance'), t('modals.addTransaction.insufficientBalanceMessage', { amount: formatAmount(selectedWallet.balance) }));
-                return;
-            }
-
             try {
                 setSaving(true);
+                // Sufficiency is decided in the transferFunds use case (within the
+                // DB transaction). The modal only catches and displays.
                 await transferBetweenWallets(selectedWalletId, destWalletId, amountNum);
                 setAmount('');
                 setNotes('');
@@ -187,7 +187,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 onSuccess?.();
                 onClose();
             } catch (error) {
-                Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.transferFailed'));
+                if (error instanceof InsufficientFundsError) {
+                    Alert.alert(t('modals.addTransaction.insufficientBalance'), t('modals.addTransaction.insufficientBalanceMessage', { amount: formatAmount(selectedWallet?.balance ?? 0) }));
+                } else {
+                    Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.transferFailed'));
+                }
             } finally {
                 setSaving(false);
             }

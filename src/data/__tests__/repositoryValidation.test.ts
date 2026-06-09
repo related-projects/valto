@@ -11,7 +11,8 @@ import { WalletType, type Wallet } from '../../domain/entities/Wallet';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { RepositoryErrorType } from '../../data/repositories/IRepository';
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -42,11 +43,11 @@ function validWallet(overrides: Partial<Wallet> = {}): Wallet {
 // ─── TransactionRepository Validation ─────────────────────────────────
 
 describe('TransactionRepository validation', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: TransactionRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new TransactionRepository(storage);
     });
 
@@ -99,11 +100,11 @@ describe('TransactionRepository validation', () => {
 // ─── WalletRepository Validation ──────────────────────────────────────
 
 describe('WalletRepository validation', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: WalletRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new WalletRepository(storage);
     });
 

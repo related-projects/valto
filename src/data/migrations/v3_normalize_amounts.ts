@@ -15,7 +15,7 @@ import type { Migration } from './migrationRunner';
 export const v3_normalize_amounts: Migration = {
     version: 3,
     name: 'normalize_amounts',
-    up: async (storage) => {
+    up: async ({ storage }) => {
         const transactions = await storage.get<SerializableTransaction[]>(StorageKeys.TRANSACTIONS);
         if (!transactions || !Array.isArray(transactions)) return;
 

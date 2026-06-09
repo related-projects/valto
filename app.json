@@ -48,7 +48,8 @@
           "project": "valto-app",
           "organization": "valto-org"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "updates": {
       "url": "https://u.expo.dev/placeholder-project-id"
