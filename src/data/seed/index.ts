@@ -6,7 +6,7 @@
 
 export { defaultCategories, defaultWallets } from './seedData';
 export {
-    hasExistingData, initializeSeedData,
+    initializeSeedData,
     resetSeedFlag, type SeedResult
 } from './seedService';
 
