@@ -49,7 +49,11 @@
           "organization": "valto-org"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native",
+      "expo-font",
+      "expo-web-browser"
     ],
     "updates": {
       "url": "https://u.expo.dev/placeholder-project-id"
