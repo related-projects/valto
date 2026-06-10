@@ -13,7 +13,6 @@ import { UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
 import {
     createWallet as createWalletUC,
     transferFunds as transferFundsUC,
-    verifyFinancialIntegrity as verifyFinancialIntegrityUC,
 } from '../domain/useCases';
 
 interface UseWalletsResult {
@@ -28,7 +27,6 @@ interface UseWalletsResult {
     deleteWallet: (id: string) => Promise<void>;
     transferBetweenWallets: (fromId: string, toId: string, amount: number) => Promise<void>;
     hasTransactions: (walletId: string) => Promise<boolean>;
-    verifyFinancialIntegrity: () => Promise<boolean>;
 }
 
 /**
@@ -178,20 +176,6 @@ export function useWallets(): UseWalletsResult {
         }
     }, [loadWallets]);
 
-    /**
-     * Balance-integrity check. Pass-through to the domain use case, which
-     * reconciles every wallet's stored balance against its ledger (the single
-     * authoritative implementation). No business logic lives in the hook.
-     */
-    const verifyFinancialIntegrity = useCallback(async (): Promise<boolean> => {
-        try {
-            return await verifyFinancialIntegrityUC(getUseCaseDeps());
-        } catch (err) {
-            console.error('Failed financial integrity check', err);
-            return false;
-        }
-    }, []);
-
     // Load wallets on mount and subscribe to wallet events
     useEffect(() => {
         loadWallets();
@@ -216,6 +200,5 @@ export function useWallets(): UseWalletsResult {
         deleteWallet,
         transferBetweenWallets,
         hasTransactions,
-        verifyFinancialIntegrity,
     };
 }
