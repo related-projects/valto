@@ -36,12 +36,14 @@ interface AddTransactionModalProps {
     visible: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    /** Pre-selected transaction type from the quick-action intent. */
+    initialType?: 'expense' | 'income' | 'transfer';
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 
-export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess }) => {
+export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess, initialType = 'expense' }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const { t, i18n } = useTranslation();
     const { formatAmount } = useFormatting();
@@ -62,6 +64,26 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     const [selectedWalletId, setSelectedWalletId] = useState<string>('');
     const [destWalletId, setDestWalletId] = useState<string>('');
     const [saving, setSaving] = useState(false);
+
+    // One coherent on-open initialization (runs only on the closed→open edge):
+    //   (A) set the type from the quick-action intent, and
+    //   (B) clear any fields entered during a previous open.
+    // Cleared category/wallet ids let the auto-select effects below repopulate
+    // sensible defaults for the chosen type.
+    const wasVisible = React.useRef(false);
+    useEffect(() => {
+        if (visible && !wasVisible.current) {
+            setTransactionType(initialType);
+            setAmount('');
+            setNotes('');
+            setDate(new Date());
+            setSelectedCategoryId('');
+            setSelectedWalletId('');
+            setDestWalletId('');
+            setShowDatePicker(false);
+        }
+        wasVisible.current = visible;
+    }, [visible, initialType]);
 
     // Auto-select first wallet
     useEffect(() => {
