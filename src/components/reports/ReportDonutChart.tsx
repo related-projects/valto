@@ -2,15 +2,21 @@
  * ReportDonutChart Component
  *
  * SVG donut chart showing expense distribution by category.
- * Follows the same SVG pattern as SpendingChart but shows all categories.
+ * Composes the shared DonutChart primitive (ring + bounded center label +
+ * clockwise draw-in); this component owns the data prep, legend and layout.
+ *
+ * - Center label is bounded to the inner circle with auto-shrinking text so it
+ *   never crosses the ring at any value/locale.
+ * - The ring draws in as a single continuous clockwise sweep on mount and on
+ *   data change (reduce-motion aware). The center label fades in.
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, G } from 'react-native-svg';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
+import { DonutChart } from '../charts/DonutChart';
 import { Card } from '../ui/Card';
 
 interface DonutDataItem {
@@ -32,6 +38,10 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
     const { t } = useTranslation();
     const { colors, typography, spacing } = useTheme();
     const { formatAmount } = useFormatting();
+
+    // Donut chart parameters
+    const size = 160;
+    const strokeWidth = 28;
 
     // Handle empty state
     if (data.length === 0) {
@@ -59,15 +69,6 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
         );
     }
 
-    // Donut chart parameters
-    const size = 160;
-    const strokeWidth = 28;
-    const center = size / 2;
-    const chartRadius = (size - strokeWidth) / 2;
-    const circumference = 2 * Math.PI * chartRadius;
-
-    let startAngle = -90;
-
     return (
         <Card>
             <Text
@@ -83,43 +84,41 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
 
             {/* Chart */}
             <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
-                <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-                    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                        <G rotation={0} origin={`${center}, ${center}`}>
-                            {data.map((item, index) => {
-                                const percentage = item.value / totalExpense;
-                                const strokeDasharray = `${circumference * percentage} ${circumference}`;
-                                const angle = startAngle;
-                                startAngle += percentage * 360;
-
-                                return (
-                                    <Circle
-                                        key={index}
-                                        cx={center}
-                                        cy={center}
-                                        r={chartRadius}
-                                        stroke={item.color}
-                                        strokeWidth={strokeWidth}
-                                        fill="transparent"
-                                        strokeDasharray={strokeDasharray}
-                                        strokeDashoffset={0}
-                                        rotation={angle}
-                                        origin={`${center}, ${center}`}
-                                        strokeLinecap="butt"
-                                    />
-                                );
-                            })}
-                        </G>
-                    </Svg>
-                    <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, fontWeight: typography.weights.medium }}>
-                            {t('components.spendingBreakdown.total')}
-                        </Text>
-                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
-                            {formatAmount(totalExpense)}
-                        </Text>
-                    </View>
-                </View>
+                <DonutChart
+                    segments={data}
+                    size={size}
+                    strokeWidth={strokeWidth}
+                    total={totalExpense}
+                    centerLabel={
+                        <>
+                            <Text
+                                numberOfLines={1}
+                                style={{
+                                    color: colors.mutedForeground,
+                                    fontSize: typography.sizes.xs,
+                                    fontWeight: typography.weights.medium,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                {t('components.spendingBreakdown.total')}
+                            </Text>
+                            <Text
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.5}
+                                ellipsizeMode="tail"
+                                style={{
+                                    color: colors.foreground,
+                                    fontSize: typography.sizes.lg,
+                                    fontWeight: typography.weights.bold,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                {formatAmount(totalExpense)}
+                            </Text>
+                        </>
+                    }
+                />
             </View>
 
             {/* Legend */}

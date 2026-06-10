@@ -9,9 +9,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, G } from 'react-native-svg';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
+import { DonutChart } from '../charts/DonutChart';
 import { Card } from '../ui/Card';
 
 interface SpendingBreakdownProps {
@@ -47,11 +47,6 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data }) =>
     // Donut chart parameters
     const size = 130;
     const strokeWidth = 26;
-    const center = size / 2;
-    const chartRadius = (size - strokeWidth) / 2;
-    const circumference = 2 * Math.PI * chartRadius;
-
-    let startAngle = -90;
 
     return (
         <Card>
@@ -61,43 +56,27 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data }) =>
 
             <View style={styles.chartRow}>
                 {/* Donut Chart */}
-                <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-                    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                        <G rotation={0} origin={`${center}, ${center}`}>
-                            {data.map((item, index) => {
-                                const pct = item.value / total;
-                                const strokeDasharray = `${circumference * pct} ${circumference}`;
-                                const angle = startAngle;
-                                startAngle += pct * 360;
-
-                                return (
-                                    <Circle
-                                        key={index}
-                                        cx={center}
-                                        cy={center}
-                                        r={chartRadius}
-                                        stroke={item.color}
-                                        strokeWidth={strokeWidth}
-                                        fill="transparent"
-                                        strokeDasharray={strokeDasharray}
-                                        strokeDashoffset={0}
-                                        rotation={angle}
-                                        origin={`${center}, ${center}`}
-                                        strokeLinecap="butt"
-                                    />
-                                );
-                            })}
-                        </G>
-                    </Svg>
-                    <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, fontWeight: typography.weights.medium }}>
-                            {t('components.spendingBreakdown.total')}
-                        </Text>
-                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.bold }}>
-                            {formatAmountCompact(total)}
-                        </Text>
-                    </View>
-                </View>
+                <DonutChart
+                    segments={data}
+                    size={size}
+                    strokeWidth={strokeWidth}
+                    centerLabel={
+                        <>
+                            <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, fontWeight: typography.weights.medium, textAlign: 'center' }}>
+                                {t('components.spendingBreakdown.total')}
+                            </Text>
+                            <Text
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.5}
+                                ellipsizeMode="tail"
+                                style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.bold, textAlign: 'center' }}
+                            >
+                                {formatAmountCompact(total)}
+                            </Text>
+                        </>
+                    }
+                />
 
                 {/* Legend */}
                 <View style={styles.legend}>
