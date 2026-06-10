@@ -9,7 +9,6 @@ import 'react-native-reanimated';
 
 import i18n from '@/src/localization/i18n';
 import * as Sentry from '@sentry/react-native';
-import { analyticsService } from '@/src/data/services/AnalyticsService';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || 'https://placeholder@sentry.io/placeholder',
@@ -24,6 +23,7 @@ import { initializeSeedData } from '@/src/data/seed';
 import { loadSettings } from '@/src/data/services/settingsService';
 import { processRecurringRules } from '@/src/data/services/RecurringTransactionEngine';
 import { container, getUseCaseDeps } from '@/src/core/di/container';
+import { verifyFinancialIntegrity } from '@/src/domain/useCases';
 import { dataEvents } from '@/src/core/events/dataEvents';
 import { ThemeProvider, useThemeContext } from '@/src/theme/ThemeContext';
 import { useTheme } from '@/src/theme/theme';
@@ -75,7 +75,6 @@ function RootLayout() {
       try {
         await runMigrations();
         await initializeSeedData();
-        analyticsService.init(); // Init after migrations safe check
 
         // Process recurring transaction rules (idempotent)
         await processRecurringRules({
@@ -95,6 +94,22 @@ function RootLayout() {
         // Check if onboarding is needed
         if (!settings.onboardingCompleted) {
           setNeedsOnboarding(true);
+        }
+
+        // Dev-only, non-blocking, non-fatal balance-integrity assertion.
+        // Dead-stripped from release builds. Reconciles every wallet's stored
+        // balance against its ledger via the authoritative domain use case.
+        if (__DEV__) {
+          try {
+            const ok = await verifyFinancialIntegrity(getUseCaseDeps());
+            if (!ok) {
+              const msg = '[integrity] Wallet balance drift detected at boot — stored balances do not reconcile with their transaction ledgers.';
+              console.warn(msg);
+              Sentry.captureMessage(msg, 'warning');
+            }
+          } catch (integrityErr) {
+            console.warn('[integrity] Boot integrity check failed to run:', integrityErr);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize app:', error);
