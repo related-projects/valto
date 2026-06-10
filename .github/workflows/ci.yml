@@ -42,6 +42,13 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # Native/SDK drift guard: the Node test job can't see version skew between
+      # Expo SDK 54 and its sibling packages (the kind that broke the dev build).
+      # expo-doctor surfaces it in CI. Legitimate, non-fixable checks should be
+      # narrowed via expo.install.exclude in package.json, not by dropping this step.
+      - name: Expo Doctor
+        run: npx --yes expo-doctor
+
       # --ci: no snapshot writes; --coverage: enforces the scoped coverageThreshold
       # (src/domain, src/data) configured in jest.config.js.
       - name: Test
