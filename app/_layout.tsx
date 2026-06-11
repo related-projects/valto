@@ -15,7 +15,7 @@ Sentry.init({
   debug: false,
 });
 
-import { AuthGate } from '@/src/components/security/AuthGate';
+import { SecurityGate } from '@/src/components/security/SecurityGate';
 import { ErrorBoundary } from '@/src/core/error/ErrorBoundary';
 import { SecurityProvider } from '@/src/core/security/SecurityContext';
 import { runMigrations } from '@/src/data/migrations';
@@ -37,31 +37,36 @@ function RootNavigator() {
   const { isDark } = useThemeContext();
   const { colors } = useTheme();
 
+  // True gate: while locked, SecurityGate renders the lock screen INSTEAD of the
+  // navigator, so the authenticated screens never mount and their data hooks
+  // never read financial data. (Bootstrap/migrations ran earlier in RootLayout,
+  // outside the gate.)
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="transaction/[id]"
-          options={{
-            title: 'Transaction Details',
-            presentation: 'modal',
-            headerBackTitle: '',
-            headerLeft: () => (
-              <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8 }}>
-                <Ionicons name="close" size={24} color={colors.foreground} />
-              </TouchableOpacity>
-            ),
-          }}
-        />
-        <Stack.Screen name="about" options={{ headerShown: false }} />
-        <Stack.Screen name="categories" options={{ headerShown: false }} />
-        <Stack.Screen name="export" options={{ headerShown: false }} />
-        <Stack.Screen name="help" options={{ headerShown: false }} />
-        <Stack.Screen name="recurring-rules" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-      <AuthGate />
+      <SecurityGate>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="transaction/[id]"
+            options={{
+              title: 'Transaction Details',
+              presentation: 'modal',
+              headerBackTitle: '',
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8 }}>
+                  <Ionicons name="close" size={24} color={colors.foreground} />
+                </TouchableOpacity>
+              ),
+            }}
+          />
+          <Stack.Screen name="about" options={{ headerShown: false }} />
+          <Stack.Screen name="categories" options={{ headerShown: false }} />
+          <Stack.Screen name="export" options={{ headerShown: false }} />
+          <Stack.Screen name="help" options={{ headerShown: false }} />
+          <Stack.Screen name="recurring-rules" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </SecurityGate>
     </NavThemeProvider>
   );
 }
