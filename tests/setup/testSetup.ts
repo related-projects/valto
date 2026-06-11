@@ -58,5 +58,6 @@ jest.mock('react-native-get-random-values', () => { });
 jest.mock('expo-secure-store', () => ({
     getItemAsync: jest.fn(async () => null),
     setItemAsync: jest.fn(async () => undefined),
+    deleteItemAsync: jest.fn(async () => undefined),
     AFTER_FIRST_UNLOCK: 'AFTER_FIRST_UNLOCK',
 }));
