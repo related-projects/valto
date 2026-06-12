@@ -50,3 +50,14 @@ jest.mock('uuid', () => ({
 
 // --- react-native-get-random-values ---
 jest.mock('react-native-get-random-values', () => { });
+
+// --- expo-secure-store (native keystore) ---
+// The production DB module statically imports the encryption-key helper, which
+// imports expo-secure-store. Tests never open the encrypted DB, but importing
+// the module chain would otherwise fail with "Cannot find native module".
+jest.mock('expo-secure-store', () => ({
+    getItemAsync: jest.fn(async () => null),
+    setItemAsync: jest.fn(async () => undefined),
+    deleteItemAsync: jest.fn(async () => undefined),
+    AFTER_FIRST_UNLOCK: 'AFTER_FIRST_UNLOCK',
+}));

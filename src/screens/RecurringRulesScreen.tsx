@@ -18,7 +18,7 @@ import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '../components/EmptyState';
 import { RecurringRuleForm } from '../components/recurring/RecurringRuleForm';
-import { container } from '../core/di/container';
+import { container, getUseCaseDeps } from '../core/di/container';
 import { dataEvents } from '../core/events/dataEvents';
 import { processRecurringRules } from '../data/services/RecurringTransactionEngine';
 import { RecurrenceFrequency, type CreateRecurringTransactionDTO, type RecurringTransaction, type UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
@@ -201,6 +201,7 @@ export const RecurringRulesScreen: React.FC = () => {
                     transactionRepo: container.transactionRepository,
                     walletRepo: container.walletRepository,
                     eventBus: dataEvents,
+                    runInTransaction: getUseCaseDeps().runInTransaction,
                 });
                 // Refresh transaction list
                 dataEvents.emit('transactions');

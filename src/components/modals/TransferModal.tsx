@@ -16,8 +16,10 @@ import {
     View,
 } from 'react-native';
 import { Wallet } from '../../domain/entities';
+import { InsufficientFundsError } from '../../domain/useCases';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
+import { normalizeAmount } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -89,9 +91,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
     };
 
     const handleTransfer = async () => {
-        // Convert to cents
+        // Single input→storage conversion point (major units → integer cents).
         const parsedAmount = parseFloat(amount);
-        const amountNum = Math.round(parsedAmount * 100);
+        const amountNum = normalizeAmount(parsedAmount);
 
         if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
             Alert.alert(t('modals.transfer.invalidAmount'), t('modals.transfer.invalidAmountMessage'));
@@ -113,24 +115,25 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
             return;
         }
 
-        if (sourceWallet && amountNum > sourceWallet.balance) {
-            Alert.alert(t('modals.transfer.insufficientBalance'), t('modals.transfer.insufficientBalanceMessage', { amount: formatAmount(sourceWallet.balance) }));
-            return;
-        }
-
         try {
             setTransferring(true);
 
+            // Sufficiency is decided in the transferFunds use case (within the
+            // DB transaction). The modal only catches and displays.
             await transferBetweenWallets(sourceWalletId, destWalletId, amountNum);
 
             resetForm();
             onSuccess?.();
             onClose();
         } catch (error) {
-            Alert.alert(
-                t('modals.transfer.error'),
-                error instanceof Error ? error.message : t('modals.transfer.transferFailed')
-            );
+            if (error instanceof InsufficientFundsError) {
+                Alert.alert(t('modals.transfer.insufficientBalance'), t('modals.transfer.insufficientBalanceMessage', { amount: formatAmount(sourceWallet?.balance ?? 0) }));
+            } else {
+                Alert.alert(
+                    t('modals.transfer.error'),
+                    error instanceof Error ? error.message : t('modals.transfer.transferFailed')
+                );
+            }
         } finally {
             setTransferring(false);
         }

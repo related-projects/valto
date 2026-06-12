@@ -9,21 +9,21 @@ import 'react-native-reanimated';
 
 import i18n from '@/src/localization/i18n';
 import * as Sentry from '@sentry/react-native';
-import { analyticsService } from '@/src/data/services/AnalyticsService';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || 'https://placeholder@sentry.io/placeholder',
   debug: false,
 });
 
-import { AuthGate } from '@/src/components/security/AuthGate';
+import { SecurityGate } from '@/src/components/security/SecurityGate';
 import { ErrorBoundary } from '@/src/core/error/ErrorBoundary';
 import { SecurityProvider } from '@/src/core/security/SecurityContext';
 import { runMigrations } from '@/src/data/migrations';
 import { initializeSeedData } from '@/src/data/seed';
 import { loadSettings } from '@/src/data/services/settingsService';
 import { processRecurringRules } from '@/src/data/services/RecurringTransactionEngine';
-import { container } from '@/src/core/di/container';
+import { container, getUseCaseDeps } from '@/src/core/di/container';
+import { verifyFinancialIntegrity } from '@/src/domain/useCases';
 import { dataEvents } from '@/src/core/events/dataEvents';
 import { ThemeProvider, useThemeContext } from '@/src/theme/ThemeContext';
 import { useTheme } from '@/src/theme/theme';
@@ -37,31 +37,36 @@ function RootNavigator() {
   const { isDark } = useThemeContext();
   const { colors } = useTheme();
 
+  // True gate: while locked, SecurityGate renders the lock screen INSTEAD of the
+  // navigator, so the authenticated screens never mount and their data hooks
+  // never read financial data. (Bootstrap/migrations ran earlier in RootLayout,
+  // outside the gate.)
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="transaction/[id]"
-          options={{
-            title: 'Transaction Details',
-            presentation: 'modal',
-            headerBackTitle: '',
-            headerLeft: () => (
-              <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8 }}>
-                <Ionicons name="close" size={24} color={colors.foreground} />
-              </TouchableOpacity>
-            ),
-          }}
-        />
-        <Stack.Screen name="about" options={{ headerShown: false }} />
-        <Stack.Screen name="categories" options={{ headerShown: false }} />
-        <Stack.Screen name="export" options={{ headerShown: false }} />
-        <Stack.Screen name="help" options={{ headerShown: false }} />
-        <Stack.Screen name="recurring-rules" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-      <AuthGate />
+      <SecurityGate>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="transaction/[id]"
+            options={{
+              title: 'Transaction Details',
+              presentation: 'modal',
+              headerBackTitle: '',
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8 }}>
+                  <Ionicons name="close" size={24} color={colors.foreground} />
+                </TouchableOpacity>
+              ),
+            }}
+          />
+          <Stack.Screen name="about" options={{ headerShown: false }} />
+          <Stack.Screen name="categories" options={{ headerShown: false }} />
+          <Stack.Screen name="export" options={{ headerShown: false }} />
+          <Stack.Screen name="help" options={{ headerShown: false }} />
+          <Stack.Screen name="recurring-rules" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </SecurityGate>
     </NavThemeProvider>
   );
 }
@@ -75,7 +80,6 @@ function RootLayout() {
       try {
         await runMigrations();
         await initializeSeedData();
-        analyticsService.init(); // Init after migrations safe check
 
         // Process recurring transaction rules (idempotent)
         await processRecurringRules({
@@ -83,6 +87,7 @@ function RootLayout() {
           transactionRepo: container.transactionRepository,
           walletRepo: container.walletRepository,
           eventBus: dataEvents,
+          runInTransaction: getUseCaseDeps().runInTransaction,
         });
 
         // Sync i18n with persisted language preference
@@ -94,6 +99,22 @@ function RootLayout() {
         // Check if onboarding is needed
         if (!settings.onboardingCompleted) {
           setNeedsOnboarding(true);
+        }
+
+        // Dev-only, non-blocking, non-fatal balance-integrity assertion.
+        // Dead-stripped from release builds. Reconciles every wallet's stored
+        // balance against its ledger via the authoritative domain use case.
+        if (__DEV__) {
+          try {
+            const ok = await verifyFinancialIntegrity(getUseCaseDeps());
+            if (!ok) {
+              const msg = '[integrity] Wallet balance drift detected at boot — stored balances do not reconcile with their transaction ledgers.';
+              console.warn(msg);
+              Sentry.captureMessage(msg, 'warning');
+            }
+          } catch (integrityErr) {
+            console.warn('[integrity] Boot integrity check failed to run:', integrityErr);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize app:', error);

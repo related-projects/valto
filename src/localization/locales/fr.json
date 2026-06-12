@@ -545,6 +545,7 @@
         "pinMismatch": "Les PIN ne correspondent pas. Réessayez.",
         "wrongPin": "PIN incorrect. {{remaining}} tentatives restantes.",
         "tooManyAttempts": "Trop de tentatives. Réessayez plus tard.",
+    "lockedFor": "Trop de tentatives. Réessayez dans {{seconds}} s.",
         "enableBiometricTitle": "Activer {{types}} ?",
         "enableBiometricSubtitle": "Utilisez l'authentification biométrique comme alternative rapide à votre PIN."
     },

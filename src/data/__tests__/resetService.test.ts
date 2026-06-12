@@ -23,6 +23,13 @@ jest.mock('../seed', () => ({
     initializeSeedData: () => mockInitializeSeedData(),
 }));
 
+// resetService now clears the SQLite financial tables via getDb().
+jest.mock('../storage/sql/database', () => ({
+    getDb: () => ({
+        execute: jest.fn().mockResolvedValue({ rows: [], rowsAffected: 0 }),
+    }),
+}));
+
 // We need to mock the storage adapter via the module
 jest.mock('../storage', () => {
     // Use a closure to share state

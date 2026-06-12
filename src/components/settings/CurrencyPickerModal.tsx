@@ -38,7 +38,7 @@ interface CurrencyRowProps {
     onPress: () => void;
 }
 
-const CurrencyRow: React.FC<CurrencyRowProps> = React.memo(({ item, selected, onPress }) => {
+const CurrencyRow: React.FC<CurrencyRowProps> = React.memo(function CurrencyRow({ item, selected, onPress }: CurrencyRowProps) {
     const { colors, spacing, typography } = useTheme();
     return (
         <TouchableOpacity

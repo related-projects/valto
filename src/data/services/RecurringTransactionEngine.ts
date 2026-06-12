@@ -23,7 +23,7 @@ import { RecurrenceFrequency, type RecurringTransaction } from '../../domain/ent
 import type { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import type { TransactionRepository } from '../repositories/TransactionRepository';
 import type { WalletRepository } from '../repositories/WalletRepository';
-import type { EventBus } from '../../domain/useCases/types';
+import type { EventBus, RunInTransaction } from '../../domain/useCases/types';
 import { createTransaction } from '../../domain/useCases/createTransaction';
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -47,6 +47,7 @@ export interface RecurringEngineDeps {
     transactionRepo: TransactionRepository;
     walletRepo: WalletRepository;
     eventBus: EventBus;
+    runInTransaction: RunInTransaction;
 }
 
 export interface RecurringEngineResult {
@@ -200,6 +201,7 @@ async function generateForRule(
                 transactionRepo: deps.transactionRepo,
                 walletRepo: deps.walletRepo,
                 eventBus: deps.eventBus,
+                runInTransaction: deps.runInTransaction,
             },
             dto,
         );

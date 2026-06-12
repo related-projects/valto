@@ -6,14 +6,15 @@
  */
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
 import { TransactionType, RecurrenceFrequency } from '../../domain/entities';
 
-let mockStorage: InMemoryStorage;
+let mockDb: SqlDatabase;
 let mockRecurringRepo: RecurringTransactionRepository;
 
-const mockEmit = jest.fn((event: string, data?: any) => {});
+const mockEmit = jest.fn((event: string) => {});
 const mockSubscribe = jest.fn((event: string, callback: any) => jest.fn());
 
 jest.mock('../../core/di/container', () => ({
@@ -27,7 +28,9 @@ jest.mock('../../core/di/container', () => ({
 jest.mock('../../core/events/dataEvents', () => ({
     dataEvents: {
         subscribe: (event: string, callback: any) => mockSubscribe(event, callback),
-        emit: (event: string, data?: any) => mockEmit(event, data),
+        // Forward only the event so `toHaveBeenCalledWith('recurringRules')`
+        // matches the hook's single-argument emit('recurringRules') call.
+        emit: (event: string) => mockEmit(event),
         emitMultiple: jest.fn(),
     },
 }));
@@ -35,9 +38,9 @@ jest.mock('../../core/events/dataEvents', () => ({
 import { useRecurringRules } from '../useRecurringRules';
 
 describe('useRecurringRules', () => {
-    beforeEach(() => {
-        mockStorage = new InMemoryStorage();
-        mockRecurringRepo = new RecurringTransactionRepository(mockStorage);
+    beforeEach(async () => {
+        mockDb = await createTestDb();
+        mockRecurringRepo = new RecurringTransactionRepository(mockDb);
         mockEmit.mockClear();
         mockSubscribe.mockClear();
         mockSubscribe.mockReturnValue(jest.fn());

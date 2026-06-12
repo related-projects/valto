@@ -31,7 +31,7 @@ interface InfoRowProps {
     value: string;
 }
 
-const InfoRow: React.FC<InfoRowProps> = React.memo(({ label, value }) => {
+const InfoRow: React.FC<InfoRowProps> = React.memo(function InfoRow({ label, value }: InfoRowProps) {
     const { colors, spacing, typography } = useTheme();
     return (
         <View

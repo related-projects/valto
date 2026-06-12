@@ -7,7 +7,8 @@
 
 import { TransactionType, type Transaction } from '../../domain/entities/Transaction';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 
 function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
     return {
@@ -23,11 +24,11 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
 }
 
 describe('TransactionRepository.getTransactionsPage', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: TransactionRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new TransactionRepository(storage);
     });
 
@@ -104,11 +105,11 @@ describe('TransactionRepository.getTransactionsPage', () => {
 });
 
 describe('TransactionRepository.getCount', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: TransactionRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new TransactionRepository(storage);
     });
 

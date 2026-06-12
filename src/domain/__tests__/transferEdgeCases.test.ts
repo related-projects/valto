@@ -6,26 +6,24 @@
  * insufficient balance, and successful double-entry creation.
  */
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
-import { TransactionRepository } from '../../data/repositories/TransactionRepository';
-import { WalletRepository } from '../../data/repositories/WalletRepository';
+import { createMockRepositories, type MockRepositoryBundle } from '../../test-utils/mockRepositories';
 import { WalletType } from '../entities';
+import { InsufficientFundsError } from '../useCases/errors';
 import { transferFunds } from '../useCases/transferFunds';
 
 describe('transferFunds edge cases', () => {
-    let storage: InMemoryStorage;
-    let walletRepo: WalletRepository;
-    let transactionRepo: TransactionRepository;
-    let eventBus: { emit: jest.Mock; emitMultiple: jest.Mock };
+    // Concrete repositories built by the test-utils helper — no data-layer import.
+    let repos: MockRepositoryBundle;
+    let walletRepo: MockRepositoryBundle['walletRepo'];
+    let transactionRepo: MockRepositoryBundle['transactionRepo'];
+    let eventBus: MockRepositoryBundle['eventBus'];
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
-        walletRepo = new WalletRepository(storage);
-        transactionRepo = new TransactionRepository(storage);
-        eventBus = { emit: jest.fn(), emitMultiple: jest.fn() };
+    beforeEach(async () => {
+        repos = await createMockRepositories();
+        ({ walletRepo, transactionRepo, eventBus } = repos);
     });
 
-    const deps = () => ({ transactionRepo, walletRepo, eventBus });
+    const deps = () => ({ transactionRepo, walletRepo, eventBus, runInTransaction: repos.runInTransaction });
 
     it('rejects transfer to same wallet', async () => {
         const wallet = await walletRepo.create({
@@ -104,6 +102,28 @@ describe('transferFunds edge cases', () => {
                 amount: 10000,
             })
         ).rejects.toThrow('Insufficient balance');
+    });
+
+    it('rejects insufficient balance with a typed INSUFFICIENT_FUNDS error', async () => {
+        const source = await walletRepo.create({
+            name: 'Cash', balance: 5000, type: WalletType.CASH,
+        });
+        const dest = await walletRepo.create({
+            name: 'Bank', balance: 0, type: WalletType.BANK,
+        });
+
+        const error = await transferFunds(deps(), {
+            fromWalletId: source.id,
+            toWalletId: dest.id,
+            amount: 10000,
+        }).catch((e) => e);
+
+        expect(error).toBeInstanceOf(InsufficientFundsError);
+        expect(error.code).toBe('INSUFFICIENT_FUNDS');
+
+        // No partial writes — the whole transfer rolled back.
+        expect(await transactionRepo.getAll()).toHaveLength(0);
+        expect((await walletRepo.getById(source.id))!.balance).toBe(5000);
     });
 
     it('creates paired double-entry transfer records', async () => {

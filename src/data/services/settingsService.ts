@@ -10,32 +10,18 @@ import { DEFAULT_LANGUAGE_CODE, getDeviceLanguage, isSupportedLanguage } from '.
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
 // ─── Types ────────────────────────────────────────────────────────────
+// Settings types live in the domain layer. Re-exported here for backward
+// compatibility with existing importers of this service.
 
-export type ThemePreference = 'light' | 'dark' | 'system';
-export type DateFormatPreference = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
-export type FirstDayOfWeek = 'monday' | 'sunday';
-export type DecimalSeparator = 'dot' | 'comma';
+export type {
+    AppSettings,
+    DateFormatPreference,
+    DecimalSeparator,
+    FirstDayOfWeek,
+    ThemePreference,
+} from '../../domain/entities/Settings';
 
-export interface AppSettings {
-    /** User's theme preference */
-    theme: ThemePreference;
-    /** ISO 4217 currency code */
-    currency: string;
-    /** Whether the currency selection is locked (cannot be changed) */
-    currencyLocked: boolean;
-    /** Whether notifications are enabled */
-    notificationsEnabled: boolean;
-    /** ISO 639-1 language code */
-    language: string;
-    /** Date display format */
-    dateFormat: DateFormatPreference;
-    /** First day of the week for calendars and reports */
-    firstDayOfWeek: FirstDayOfWeek;
-    /** Decimal separator for monetary display */
-    decimalSeparator: DecimalSeparator;
-    /** Whether the user has completed the onboarding flow */
-    onboardingCompleted: boolean;
-}
+import type { AppSettings, DateFormatPreference, DecimalSeparator, FirstDayOfWeek } from '../../domain/entities/Settings';
 
 // ─── Defaults ─────────────────────────────────────────────────────────
 

@@ -12,9 +12,10 @@ import { authenticateWithBiometrics, checkBiometricCapability } from '../../data
 import {
     clearSecurityConfig,
     loadSecurityConfig,
+    pinLockoutService,
     setupSecurity,
-    verifyPin,
 } from '../../data/services/securityService';
+import type { VerifyResult } from '../../domain/security/lockout';
 import type { BiometricCapability, SecurityConfig } from '../../domain/security/types';
 
 // ─── Context Value ────────────────────────────────────────────────────
@@ -28,8 +29,8 @@ interface SecurityContextValue {
     securityConfig: SecurityConfig | null;
     /** Device biometric capability */
     biometrics: BiometricCapability;
-    /** Attempt to unlock with PIN */
-    unlockWithPin: (pin: string) => Promise<boolean>;
+    /** Attempt to unlock with PIN. Returns the lock-out-aware verify result. */
+    unlockWithPin: (pin: string) => Promise<VerifyResult>;
     /** Attempt to unlock with biometrics */
     unlockWithBiometrics: () => Promise<boolean>;
     /** Lock the session (called on background) */
@@ -42,6 +43,8 @@ interface SecurityContextValue {
     reloadConfig: () => Promise<void>;
     /** Number of consecutive failed PIN attempts */
     failedAttempts: number;
+    /** Epoch ms the PIN pad is locked until (brute-force throttle), or null. */
+    lockedUntil: number | null;
     /** Whether loading is in progress */
     loading: boolean;
 }
@@ -59,6 +62,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         biometricTypes: [],
     });
     const [failedAttempts, setFailedAttempts] = useState(0);
+    const [lockedUntil, setLockedUntil] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
@@ -66,12 +70,17 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const reloadConfig = useCallback(async () => {
         setLoading(true);
         try {
-            const [savedConfig, bioCap] = await Promise.all([
+            const [savedConfig, bioCap, lockoutState] = await Promise.all([
                 loadSecurityConfig(),
                 checkBiometricCapability(),
+                pinLockoutService.getState(),
             ]);
             setConfig(savedConfig);
             setBiometrics(bioCap);
+            // Hydrate the durable brute-force state so the UI reflects any
+            // lock-out that survived a restart.
+            setFailedAttempts(lockoutState.failedAttempts);
+            setLockedUntil(lockoutState.lockedUntil);
 
             // If security is enabled, start locked
             if (savedConfig) {
@@ -99,10 +108,11 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
             // If going from active to background/inactive AND security is enabled
             if (prev === 'active' && nextState !== 'active' && config) {
-                // For autoLockTimeout === 0 (immediate), lock right away
+                // For autoLockTimeout === 0 (immediate), lock right away.
+                // NOTE: do NOT reset the failed-attempt counter here — the
+                // brute-force throttle must survive backgrounding/restart.
                 if (config.autoLockTimeout === 0) {
                     setIsUnlocked(false);
-                    setFailedAttempts(0);
                 }
             }
         });
@@ -111,18 +121,24 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, [config]);
 
     // ── PIN unlock ────────────────────────────────────────────────────
-    const unlockWithPin = useCallback(async (pin: string): Promise<boolean> => {
-        if (!config) return true; // No security configured
-
-        const valid = await verifyPin(pin, config.pinHash);
-        if (valid) {
+    const unlockWithPin = useCallback(async (pin: string): Promise<VerifyResult> => {
+        if (!config) {
             setIsUnlocked(true);
-            setFailedAttempts(0);
-            return true;
-        } else {
-            setFailedAttempts(prev => prev + 1);
-            return false;
+            return { ok: true }; // No security configured
         }
+
+        // Lock-out-aware verify: while locked it short-circuits without ever
+        // comparing the PIN hash (the throttle). Mirror the durable state into
+        // React state so the pad can disable + count down.
+        const result = await pinLockoutService.verify(pin, config.pinHash);
+        const state = await pinLockoutService.getState();
+        setFailedAttempts(state.failedAttempts);
+        setLockedUntil(state.lockedUntil);
+
+        if (result.ok) {
+            setIsUnlocked(true);
+        }
+        return result;
     }, [config]);
 
     // ── Biometric unlock ──────────────────────────────────────────────
@@ -132,8 +148,12 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const success = await authenticateWithBiometrics();
         if (success) {
+            // Biometrics is a stronger, non-brute-forceable factor — a success
+            // clears any PIN lock-out.
+            await pinLockoutService.reset();
             setIsUnlocked(true);
             setFailedAttempts(0);
+            setLockedUntil(null);
         }
         return success;
     }, [config, biometrics]);
@@ -141,25 +161,29 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // ── Lock ──────────────────────────────────────────────────────────
     const lock = useCallback(() => {
         if (config) {
+            // Lock the session but preserve the brute-force counter.
             setIsUnlocked(false);
-            setFailedAttempts(0);
         }
     }, [config]);
 
     // ── Enable security ───────────────────────────────────────────────
     const enableSecurity = useCallback(async (pin: string, useBiometrics: boolean) => {
         const newConfig = await setupSecurity(pin, useBiometrics);
+        await pinLockoutService.reset();
         setConfig(newConfig);
         setIsUnlocked(true); // Stay unlocked after setup
         setFailedAttempts(0);
+        setLockedUntil(null);
     }, []);
 
     // ── Disable security ──────────────────────────────────────────────
     const disableSecurity = useCallback(async () => {
         await clearSecurityConfig();
+        await pinLockoutService.reset();
         setConfig(null);
         setIsUnlocked(true);
         setFailedAttempts(0);
+        setLockedUntil(null);
     }, []);
 
     const value: SecurityContextValue = {
@@ -174,6 +198,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         disableSecurity,
         reloadConfig,
         failedAttempts,
+        lockedUntil,
         loading,
     };
 

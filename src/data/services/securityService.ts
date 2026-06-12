@@ -7,7 +7,16 @@
  */
 
 import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
 import { PIN_LENGTH, type SecurityConfig } from '../../domain/security/types';
+import {
+    applyAttempt,
+    INITIAL_LOCKOUT_STATE,
+    isLockedOut,
+    lockoutRemainingMs,
+    type LockoutState,
+    type VerifyResult,
+} from '../../domain/security/lockout';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
 // ─── PIN Hashing ──────────────────────────────────────────────────────
@@ -99,3 +108,112 @@ export async function setupSecurity(
     await saveSecurityConfig(config);
     return config;
 }
+
+// ─── PIN Lock-out (brute-force throttle) ──────────────────────────────
+//
+// The durable lock-out state lives in the device secure keystore
+// (expo-secure-store → iOS Keychain / Android Keystore), NOT AsyncStorage,
+// so a kill+restart cannot reset the failed-attempt counter and it resists
+// tampering. The exponential-backoff policy itself is the pure domain module
+// `domain/security/lockout`.
+
+/** Secure-store key holding the serialized {@link LockoutState}. */
+const LOCKOUT_KEY = 'valto.pin.lockout';
+
+/** Port for persisting lock-out state (so tests can inject a fake). */
+export interface LockoutPersistence {
+    load(): Promise<LockoutState>;
+    save(state: LockoutState): Promise<void>;
+}
+
+/** Default persistence backed by the device secure keystore. */
+export const secureStoreLockoutStore: LockoutPersistence = {
+    async load(): Promise<LockoutState> {
+        try {
+            const raw = await SecureStore.getItemAsync(LOCKOUT_KEY);
+            if (!raw) return { ...INITIAL_LOCKOUT_STATE };
+            const parsed = JSON.parse(raw) as Partial<LockoutState>;
+            return {
+                failedAttempts:
+                    typeof parsed.failedAttempts === 'number' ? parsed.failedAttempts : 0,
+                lockedUntil:
+                    typeof parsed.lockedUntil === 'number' ? parsed.lockedUntil : null,
+            };
+        } catch {
+            return { ...INITIAL_LOCKOUT_STATE };
+        }
+    },
+    async save(state: LockoutState): Promise<void> {
+        await SecureStore.setItemAsync(LOCKOUT_KEY, JSON.stringify(state), {
+            keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+        });
+    },
+};
+
+/** Injectable time source — defaults to wall clock. */
+export type Clock = () => number;
+
+/**
+ * Lock-out-aware PIN verifier.
+ *
+ * Reads its state from the injected persistence on every call (no in-memory
+ * cache), so a fresh instance over the same store observes the same lock-out —
+ * a kill+restart cannot clear it. The clock is injectable for deterministic
+ * tests.
+ */
+export class PinLockoutService {
+    constructor(
+        private readonly store: LockoutPersistence,
+        private readonly clock: Clock = () => Date.now(),
+    ) {}
+
+    /** Current durable state. */
+    getState(): Promise<LockoutState> {
+        return this.store.load();
+    }
+
+    async isLockedOut(now: number = this.clock()): Promise<boolean> {
+        return isLockedOut(await this.store.load(), now);
+    }
+
+    async lockoutRemainingMs(now: number = this.clock()): Promise<number> {
+        return lockoutRemainingMs(await this.store.load(), now);
+    }
+
+    /** Clear the lock-out (used after a successful biometric unlock / setup). */
+    async reset(): Promise<void> {
+        await this.store.save({ ...INITIAL_LOCKOUT_STATE });
+    }
+
+    /**
+     * Verify a PIN under the lock-out policy.
+     *
+     * While locked the call is rejected as locked WITHOUT comparing the hash —
+     * the short-circuit IS the throttle. `compare` is injectable so tests can
+     * assert it is never invoked during a lock-out.
+     */
+    async verify(
+        pin: string,
+        storedHash: string,
+        compare: (pin: string, hash: string) => Promise<boolean> = verifyPin,
+        now: number = this.clock(),
+    ): Promise<VerifyResult> {
+        const current = await this.store.load();
+
+        if (isLockedOut(current, now)) {
+            return {
+                ok: false,
+                locked: true,
+                remainingMs: lockoutRemainingMs(current, now),
+            };
+        }
+
+        const correct = await compare(pin, storedHash);
+        const { state, result } = applyAttempt(current, correct, now);
+        await this.store.save(state);
+        return result;
+    }
+}
+
+/** App-wide singleton wired to the secure keystore. */
+export const pinLockoutService = new PinLockoutService(secureStoreLockoutStore);

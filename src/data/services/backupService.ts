@@ -136,8 +136,9 @@ export function validateSnapshot(data: unknown): ValidationResult {
 
 /**
  * Create a full backup snapshot of all app data.
+ * Module-private — consumed only by createAndShareBackup below.
  */
-export async function createBackupSnapshot(): Promise<BackupSnapshot> {
+async function createBackupSnapshot(): Promise<BackupSnapshot> {
     const [wallets, transactions, categories, budgets, settings] = await Promise.all([
         getWalletRepository().getAll(),
         getTransactionRepository().getAll(),

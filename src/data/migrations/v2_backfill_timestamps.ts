@@ -16,7 +16,7 @@ import type { Migration } from './migrationRunner';
 export const v2_backfill_timestamps: Migration = {
     version: 2,
     name: 'backfill_timestamps',
-    up: async (storage) => {
+    up: async ({ storage }) => {
         const fallback = new Date().toISOString();
 
         // ── Transactions ──────────────────────────────────────────

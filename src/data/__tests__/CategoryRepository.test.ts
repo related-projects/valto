@@ -4,18 +4,19 @@
  * Tests CRUD operations, validation, and domain-specific query methods.
  */
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { CategoryType } from '../../domain/entities/Category';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { RepositoryError, RepositoryErrorType } from '../repositories/IRepository';
 import { makeCategory, resetFactoryCounters } from '../../test-utils/testFactories';
 
 describe('CategoryRepository', () => {
-    let storage: InMemoryStorage;
+    let storage: SqlDatabase;
     let repo: CategoryRepository;
 
-    beforeEach(() => {
-        storage = new InMemoryStorage();
+    beforeEach(async () => {
+        storage = await createTestDb();
         repo = new CategoryRepository(storage);
         resetFactoryCounters();
     });

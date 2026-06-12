@@ -1,25 +1,19 @@
 /**
  * Wallet Repository
- * 
- * Repository for managing Wallet entities.
- * Handles CRUD operations and wallet-specific business logic.
- * 
- * Architecture Note:
- * This repository manages wallet persistence and provides methods for
- * balance management. It enforces business rules like balance validation.
- * 
+ *
+ * Repository for managing Wallet entities, backed by relational SQLite.
+ * Handles CRUD, balance management, and ledger-based balance auditing.
+ *
  * Data Integrity:
  * - Validates all entities before persistence via WalletValidator
- * - Retains validateWalletBalance as additional business rule check
- * - Safe writes: on failure, previous valid state is preserved
+ * - Retains validateWalletBalance as an additional business rule check
+ * - `balance` is stored for fast reads but is always recomputable from the
+ *   ledger via recomputeBalanceFromLedger() (anchored by `opening_balance`)
  */
 
 import { v4 as uuidv4 } from 'uuid';
 import {
     CreateWalletDTO,
-    deserializeWallet,
-    SerializableWallet,
-    serializeWallet,
     UpdateWalletDTO,
     validateWalletBalance,
     Wallet,
@@ -27,58 +21,36 @@ import {
 } from '../../domain/entities/Wallet';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import { validateWallet } from '../../domain/validators/WalletValidator';
-import { IStorage, StorageKeys } from '../storage';
-import { IRepository, RepositoryError, RepositoryErrorType } from './IRepository';
+import type { BalanceReconciliation, IWalletRepository } from '../../domain/repositories';
+import { walletMapper, sqlDelete, sqlGetAll, sqlGetById, sqlExists, sqlUpdate } from '../storage/sql/mappers';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
+import { RepositoryError, RepositoryErrorType } from './IRepository';
+import { ledgerEffect } from './ledger';
 
-/**
- * Wallet repository implementation
- */
-export class WalletRepository implements IRepository<Wallet> {
-    constructor(private storage: IStorage) { }
+// Re-exported for backward compatibility; the canonical type lives in the domain.
+export type { BalanceReconciliation } from '../../domain/repositories';
 
-    /**
-     * Get all wallets
-     */
+export class WalletRepository implements IWalletRepository {
+    constructor(private db: SqlDatabase) { }
+
     async getAll(): Promise<Wallet[]> {
         try {
-            const data = await this.storage.get<SerializableWallet[]>(StorageKeys.WALLETS);
-
-            if (!data) {
-                return [];
-            }
-
-            return data.map(deserializeWallet);
+            return await sqlGetAll(this.db, walletMapper);
         } catch (error) {
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to get all wallets',
-                error as Error
-            );
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to get all wallets', error as Error);
         }
     }
 
-    /**
-     * Get a wallet by ID
-     */
     async getById(id: string): Promise<Wallet | null> {
         try {
-            const wallets = await this.getAll();
-            return wallets.find(w => w.id === id) || null;
+            return await sqlGetById(this.db, walletMapper, id);
         } catch (error) {
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                `Failed to get wallet with id: ${id}`,
-                error as Error
-            );
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, `Failed to get wallet with id: ${id}`, error as Error);
         }
     }
 
-    /**
-     * Save a new wallet
-     */
     async save(wallet: Wallet): Promise<Wallet> {
         try {
-            // Full entity validation
             try {
                 validateWallet(wallet);
             } catch (error) {
@@ -89,50 +61,45 @@ export class WalletRepository implements IRepository<Wallet> {
                 throw error;
             }
 
-            // Business rule: balance constraints
             if (!validateWalletBalance(wallet)) {
                 throw new RepositoryError(
                     RepositoryErrorType.VALIDATION_ERROR,
-                    `${wallet.type} wallets cannot have negative balance`
+                    `${wallet.type} wallets cannot have negative balance`,
                 );
             }
 
-            const wallets = await this.getAll();
-
-            // Check for duplicate ID
-            if (wallets.some(w => w.id === wallet.id)) {
+            if (await sqlExists(this.db, walletMapper, wallet.id)) {
                 throw new RepositoryError(
                     RepositoryErrorType.DUPLICATE_ERROR,
-                    `Wallet with id ${wallet.id} already exists`
+                    `Wallet with id ${wallet.id} already exists`,
                 );
             }
 
-            wallets.push(wallet);
-
-            const serialized = wallets.map(serializeWallet);
-            await this.storage.set(StorageKeys.WALLETS, serialized);
+            // opening_balance (ledger anchor) is set once here = initial balance.
+            await this.db.execute(
+                `INSERT INTO wallets (id, name, balance, opening_balance, type, color, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    wallet.id,
+                    wallet.name,
+                    wallet.balance,
+                    wallet.balance,
+                    wallet.type,
+                    wallet.color ?? null,
+                    wallet.createdAt.toISOString(),
+                ],
+            );
 
             return wallet;
         } catch (error) {
-            if (error instanceof RepositoryError) {
-                throw error;
-            }
-
-            console.error('[WalletRepository] Unexpected save failure — previous state preserved:', error);
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to save wallet',
-                error as Error
-            );
+            if (error instanceof RepositoryError) throw error;
+            console.error('[WalletRepository] Unexpected save failure:', error);
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to save wallet', error as Error);
         }
     }
 
-    /**
-     * Update an existing wallet
-     */
     async update(wallet: Wallet): Promise<Wallet> {
         try {
-            // Full entity validation
             try {
                 validateWallet(wallet);
             } catch (error) {
@@ -143,77 +110,39 @@ export class WalletRepository implements IRepository<Wallet> {
                 throw error;
             }
 
-            // Business rule: balance constraints
             if (!validateWalletBalance(wallet)) {
                 throw new RepositoryError(
                     RepositoryErrorType.VALIDATION_ERROR,
-                    `${wallet.type} wallets cannot have negative balance`
+                    `${wallet.type} wallets cannot have negative balance`,
                 );
             }
 
-            const wallets = await this.getAll();
-            const index = wallets.findIndex(w => w.id === wallet.id);
-
-            if (index === -1) {
-                throw new RepositoryError(
-                    RepositoryErrorType.NOT_FOUND,
-                    `Wallet with id ${wallet.id} not found`
-                );
+            // sqlUpdate does not touch opening_balance (not in the mapper).
+            const affected = await sqlUpdate(this.db, walletMapper, wallet);
+            if (affected === 0) {
+                throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${wallet.id} not found`);
             }
-
-            wallets[index] = wallet;
-
-            const serialized = wallets.map(serializeWallet);
-            await this.storage.set(StorageKeys.WALLETS, serialized);
 
             return wallet;
         } catch (error) {
-            if (error instanceof RepositoryError) {
-                throw error;
-            }
-
-            console.error('[WalletRepository] Unexpected update failure — previous state preserved:', error);
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to update wallet',
-                error as Error
-            );
+            if (error instanceof RepositoryError) throw error;
+            console.error('[WalletRepository] Unexpected update failure:', error);
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to update wallet', error as Error);
         }
     }
 
-    /**
-     * Delete a wallet
-     */
     async delete(id: string): Promise<void> {
         try {
-            const wallets = await this.getAll();
-            const filtered = wallets.filter(w => w.id !== id);
-
-            if (filtered.length === wallets.length) {
-                throw new RepositoryError(
-                    RepositoryErrorType.NOT_FOUND,
-                    `Wallet with id ${id} not found`
-                );
+            const affected = await sqlDelete(this.db, walletMapper, id);
+            if (affected === 0) {
+                throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${id} not found`);
             }
-
-            const serialized = filtered.map(serializeWallet);
-            await this.storage.set(StorageKeys.WALLETS, serialized);
         } catch (error) {
-            if (error instanceof RepositoryError) {
-                throw error;
-            }
-
-            throw new RepositoryError(
-                RepositoryErrorType.STORAGE_ERROR,
-                'Failed to delete wallet',
-                error as Error
-            );
+            if (error instanceof RepositoryError) throw error;
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to delete wallet', error as Error);
         }
     }
 
-    /**
-     * Create a new wallet from DTO
-     */
     async create(dto: CreateWalletDTO): Promise<Wallet> {
         const wallet: Wallet = {
             id: uuidv4(),
@@ -223,21 +152,13 @@ export class WalletRepository implements IRepository<Wallet> {
             color: dto.color,
             createdAt: new Date(),
         };
-
         return this.save(wallet);
     }
 
-    /**
-     * Update wallet from DTO
-     */
     async updateFromDTO(dto: UpdateWalletDTO): Promise<Wallet> {
         const existing = await this.getById(dto.id);
-
         if (!existing) {
-            throw new RepositoryError(
-                RepositoryErrorType.NOT_FOUND,
-                `Wallet with id ${dto.id} not found`
-            );
+            throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${dto.id} not found`);
         }
 
         const updated: Wallet = {
@@ -251,44 +172,80 @@ export class WalletRepository implements IRepository<Wallet> {
         return this.update(updated);
     }
 
-    // Domain-specific methods
+    // ─── Domain-specific methods ────────────────────────────────────────
 
     /**
-     * Update wallet balance
-     * @param id Wallet ID
-     * @param amount Amount to add (positive) or subtract (negative)
+     * Atomically add `amount` (signed) to the stored balance.
+     * Single UPDATE statement — no read-modify-write race.
      */
     async updateBalance(id: string, amount: number): Promise<Wallet> {
-        const wallet = await this.getById(id);
-
-        if (!wallet) {
-            throw new RepositoryError(
-                RepositoryErrorType.NOT_FOUND,
-                `Wallet with id ${id} not found`
-            );
+        const { rowsAffected } = await this.db.execute(
+            `UPDATE wallets SET balance = balance + ? WHERE id = ?`,
+            [amount, id],
+        );
+        if (rowsAffected === 0) {
+            throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${id} not found`);
         }
-
-        const updated: Wallet = {
-            ...wallet,
-            balance: wallet.balance + amount,
-        };
-
-        return this.update(updated);
+        // Non-null: the row exists (we just updated it).
+        return (await this.getById(id))!;
     }
 
-    /**
-     * Get wallets by type
-     */
     async getByType(type: WalletType): Promise<Wallet[]> {
         const wallets = await this.getAll();
-        return wallets.filter(w => w.type === type);
+        return wallets.filter((w) => w.type === type);
     }
 
-    /**
-     * Get total balance across all wallets
-     */
     async getTotalBalance(): Promise<number> {
         const wallets = await this.getAll();
         return wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
+    }
+
+    // ─── Balance auditing ───────────────────────────────────────────────
+
+    /**
+     * Recompute a wallet's balance purely from its ledger:
+     *   opening_balance + Σ ledgerEffect(transactions of the wallet).
+     * The stored balance should always equal this value.
+     */
+    async recomputeBalanceFromLedger(walletId: string): Promise<number> {
+        const { rows: walletRows } = await this.db.execute(
+            `SELECT opening_balance FROM wallets WHERE id = ? LIMIT 1`,
+            [walletId],
+        );
+        if (walletRows.length === 0) {
+            throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${walletId} not found`);
+        }
+        const opening = Number(walletRows[0].opening_balance);
+
+        const { rows: txRows } = await this.db.execute(
+            `SELECT type, amount, category_id FROM transactions WHERE wallet_id = ?`,
+            [walletId],
+        );
+        const ledgerSum = txRows.reduce(
+            (sum, r) =>
+                sum +
+                ledgerEffect({
+                    type: String(r.type) as never,
+                    amount: Number(r.amount),
+                    categoryId: String(r.category_id),
+                }),
+            0,
+        );
+
+        return opening + ledgerSum;
+    }
+
+    /**
+     * Compare every wallet's stored balance against its recomputed ledger
+     * value. A non-zero `drift` flags a corrupted stored balance.
+     */
+    async reconcile(): Promise<BalanceReconciliation[]> {
+        const wallets = await this.getAll();
+        const results: BalanceReconciliation[] = [];
+        for (const w of wallets) {
+            const computed = await this.recomputeBalanceFromLedger(w.id);
+            results.push({ walletId: w.id, stored: w.balance, computed, drift: w.balance - computed });
+        }
+        return results;
     }
 }

@@ -5,7 +5,7 @@
  * All checks are pure and side-effect-free.
  */
 
-import type { AppSettings } from '../../data/services/settingsService';
+import type { AppSettings } from '../entities/Settings';
 import { ValidationError } from './ValidationError';
 
 const VALID_THEMES = ['light', 'dark', 'system'] as const;

@@ -4,13 +4,14 @@
  * Tests reassignCategoryBulk and mergeCategories operations.
  */
 
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { BudgetRepository } from '../repositories/BudgetRepository';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { CategoryType, TransactionType } from '../../domain/entities';
 
-let mockStorage: InMemoryStorage;
+let mockDb: SqlDatabase;
 let mockCategoryRepo: CategoryRepository;
 let mockTransactionRepo: TransactionRepository;
 let mockBudgetRepo: BudgetRepository;
@@ -34,11 +35,11 @@ jest.mock('../../core/events', () => ({
 import { reassignCategoryBulk, mergeCategories } from '../services/categoryService';
 
 describe('categoryService', () => {
-    beforeEach(() => {
-        mockStorage = new InMemoryStorage();
-        mockCategoryRepo = new CategoryRepository(mockStorage);
-        mockTransactionRepo = new TransactionRepository(mockStorage);
-        mockBudgetRepo = new BudgetRepository(mockStorage);
+    beforeEach(async () => {
+        mockDb = await createTestDb();
+        mockCategoryRepo = new CategoryRepository(mockDb);
+        mockTransactionRepo = new TransactionRepository(mockDb);
+        mockBudgetRepo = new BudgetRepository(mockDb);
         mockEmit.mockClear();
     });
 

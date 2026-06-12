@@ -9,7 +9,7 @@
  * It NEVER overwrites existing user data, making it safe to call on every app launch.
  */
 
-import { getCategoryRepository, getTransactionRepository, getWalletRepository } from '../../core/di';
+import { getCategoryRepository, getWalletRepository } from '../../core/di';
 import { asyncStorageAdapter } from '../storage';
 import { StorageKeys } from '../storage/StorageKeys';
 import { defaultCategories, defaultWallets } from './seedData';
@@ -116,22 +116,4 @@ export async function initializeSeedData(): Promise<SeedResult> {
  */
 export async function resetSeedFlag(): Promise<void> {
     await asyncStorageAdapter.remove(StorageKeys.SEED_INITIALIZED);
-}
-
-/**
- * Check if storage has any data
- * This is a safety check to ensure we don't override user data
- */
-export async function hasExistingData(): Promise<boolean> {
-    const walletRepo = getWalletRepository();
-    const categoryRepo = getCategoryRepository();
-    const transactionRepo = getTransactionRepository();
-
-    const [wallets, categories, transactions] = await Promise.all([
-        walletRepo.getAll(),
-        categoryRepo.getAll(),
-        transactionRepo.getAll(),
-    ]);
-
-    return wallets.length > 0 || categories.length > 0 || transactions.length > 0;
 }

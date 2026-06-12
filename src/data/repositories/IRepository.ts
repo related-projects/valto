@@ -10,45 +10,10 @@
  * domain layer free from persistence concerns.
  */
 
-/**
- * Generic repository interface for CRUD operations
- * @template T The entity type this repository manages
- */
-export interface IRepository<T> {
-    /**
-     * Get all entities
-     * @returns Promise resolving to array of all entities
-     */
-    getAll(): Promise<T[]>;
-
-    /**
-     * Get a single entity by ID
-     * @param id Entity ID
-     * @returns Promise resolving to the entity or null if not found
-     */
-    getById(id: string): Promise<T | null>;
-
-    /**
-     * Save a new entity
-     * @param entity Entity to save
-     * @returns Promise resolving to the saved entity (with generated ID if applicable)
-     */
-    save(entity: T): Promise<T>;
-
-    /**
-     * Update an existing entity
-     * @param entity Entity to update
-     * @returns Promise resolving to the updated entity
-     */
-    update(entity: T): Promise<T>;
-
-    /**
-     * Delete an entity by ID
-     * @param id Entity ID
-     * @returns Promise resolving when deletion is complete
-     */
-    delete(id: string): Promise<void>;
-}
+// The generic repository contract is declared in the domain layer (the
+// abstraction use cases depend on). Re-exported here so existing data-layer
+// imports keep working without reaching across the boundary.
+export type { IRepository } from '../../domain/repositories/IRepository';
 
 /**
  * Repository error types

@@ -216,6 +216,7 @@ export const DashboardScreen = () => {
 
             <AddTransactionModal
                 visible={modalVisible}
+                initialType={modalType}
                 onClose={() => setModalVisible(false)}
                 onSuccess={async () => {
                     await Promise.all([refreshTransactions(), refreshWallets()]);

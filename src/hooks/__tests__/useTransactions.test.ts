@@ -7,13 +7,14 @@
  */
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { InMemoryStorage } from '../../../tests/helpers/InMemoryStorage';
+import { createTestDb } from '../../../tests/helpers/createTestDb';
+import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { TransactionType, WalletType } from '../../domain/entities';
 
 // Shared state — mock-prefixed for jest.mock() hoisting
-let mockStorage: InMemoryStorage;
+let mockDb: SqlDatabase;
 let mockWalletRepo: WalletRepository;
 let mockTransactionRepo: TransactionRepository;
 
@@ -22,6 +23,7 @@ jest.mock('../../core/di', () => ({
     getWalletRepository: () => mockWalletRepo,
     getTransactionRepository: () => mockTransactionRepo,
     getUseCaseDeps: () => ({
+        runInTransaction: (work: any) => mockDb.runInTransaction(work),
         transactionRepo: mockTransactionRepo,
         walletRepo: mockWalletRepo,
         categoryRepo: { getAll: jest.fn().mockResolvedValue([]) },
@@ -41,10 +43,10 @@ jest.mock('../../core/events', () => ({
 import { useTransactions } from '../useTransactions';
 
 describe('useTransactions', () => {
-    beforeEach(() => {
-        mockStorage = new InMemoryStorage();
-        mockWalletRepo = new WalletRepository(mockStorage);
-        mockTransactionRepo = new TransactionRepository(mockStorage);
+    beforeEach(async () => {
+        mockDb = await createTestDb();
+        mockWalletRepo = new WalletRepository(mockDb);
+        mockTransactionRepo = new TransactionRepository(mockDb);
     });
 
     it('loads transactions on mount', async () => {

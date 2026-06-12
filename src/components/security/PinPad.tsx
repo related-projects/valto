@@ -24,6 +24,8 @@ interface PinPadProps {
     subtitle?: string;
     /** Whether to show error state (shake/red) */
     error?: boolean;
+    /** Disable all input (e.g. during a brute-force lock-out) */
+    disabled?: boolean;
 }
 
 export const PinPad: React.FC<PinPadProps> = ({
@@ -33,11 +35,13 @@ export const PinPad: React.FC<PinPadProps> = ({
     title = 'Enter PIN',
     subtitle,
     error = false,
+    disabled = false,
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
     const [pin, setPin] = useState('');
 
     const handleDigit = useCallback((digit: string) => {
+        if (disabled) return;
         setPin(prev => {
             const next = prev + digit;
             if (next.length === PIN_LENGTH) {
@@ -50,11 +54,12 @@ export const PinPad: React.FC<PinPadProps> = ({
             }
             return next;
         });
-    }, [onComplete]);
+    }, [onComplete, disabled]);
 
     const handleBackspace = useCallback(() => {
+        if (disabled) return;
         setPin(prev => prev.slice(0, -1));
-    }, []);
+    }, [disabled]);
 
     // ── Dots ──────────────────────────────────────────────────────────
     const renderDots = () => (
@@ -80,8 +85,9 @@ export const PinPad: React.FC<PinPadProps> = ({
     const renderButton = (label: string, onPress: () => void, icon?: string) => (
         <TouchableOpacity
             key={label}
-            style={[styles.key, { borderRadius: radius.full }]}
+            style={[styles.key, { borderRadius: radius.full, opacity: disabled ? 0.35 : 1 }]}
             onPress={onPress}
+            disabled={disabled}
             activeOpacity={0.6}
         >
             {icon ? (
