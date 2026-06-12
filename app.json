@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.valto.app"
+      "bundleIdentifier": "com.renkakpo.valto.app",
+      "appleTeamId": "2Z64XRNQZU"
     },
     "android": {
       "adaptiveIcon": {
@@ -51,9 +52,9 @@
       ],
       "expo-secure-store",
       "@react-native-community/datetimepicker",
-      "@sentry/react-native",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withoutApsEnvironment"
     ],
     "updates": {
       "url": "https://u.expo.dev/placeholder-project-id"
