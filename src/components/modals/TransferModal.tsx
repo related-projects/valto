@@ -19,7 +19,6 @@ import { Wallet } from '../../domain/entities';
 import { InsufficientFundsError } from '../../domain/useCases';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
-import { normalizeAmount } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -37,7 +36,7 @@ const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, onSuccess }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const { t } = useTranslation();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, parseAmountToCents } = useFormatting();
 
     // Hooks
     const { wallets, refreshWallets, transferBetweenWallets } = useWallets();
@@ -92,10 +91,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
 
     const handleTransfer = async () => {
         // Single input→storage conversion point (major units → integer cents).
-        const parsedAmount = parseFloat(amount);
-        const amountNum = normalizeAmount(parsedAmount);
+        const amountNum = parseAmountToCents(amount);
 
-        if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+        if (amountNum === null) {
             Alert.alert(t('modals.transfer.invalidAmount'), t('modals.transfer.invalidAmountMessage'));
             return;
         }

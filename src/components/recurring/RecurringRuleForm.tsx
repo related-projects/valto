@@ -19,7 +19,8 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpac
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionType } from '../../domain/entities/Transaction';
 import { RecurrenceFrequency } from '../../domain/entities/RecurringTransaction';
-import { normalizeAmount, centsToMajor } from '../../utils/normalizeAmount';
+import { useFormatting } from '../../hooks/useFormatting';
+import { centsToMajor } from '../../utils/normalizeAmount';
 import { getButtonA11y } from '../../utils/accessibility';
 import type { CreateRecurringTransactionDTO, UpdateRecurringTransactionDTO } from '../../domain/entities/RecurringTransaction';
 import type { RecurringTransaction } from '../../domain/entities/RecurringTransaction';
@@ -50,6 +51,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     const insets = useSafeAreaInsets();
     const { wallets } = useWallets();
     const { categories } = useCategories();
+    const { parseAmountToCents } = useFormatting();
 
     const isEdit = !!existingRule;
 
@@ -108,12 +110,11 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     };
 
     const handleSubmit = async () => {
-        const parsedAmount = parseFloat(amount);
-        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        const amountCents = parseAmountToCents(amount);
+        if (amountCents === null) {
             Alert.alert(t('recurring.invalidAmount'), t('recurring.invalidAmountMessage'));
             return;
         }
-        const amountCents = normalizeAmount(parsedAmount);
         if (!walletId) {
             Alert.alert(t('recurring.walletRequired'), t('recurring.walletRequiredMessage'));
             return;

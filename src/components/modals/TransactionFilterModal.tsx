@@ -30,6 +30,7 @@ import {
 import { TransactionType } from '../../domain/entities';
 import { TransactionFilters } from '../../domain/filters/filterTransactions';
 import { useCategories } from '../../hooks/useCategories';
+import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
@@ -63,6 +64,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     const { t, i18n } = useTranslation();
     const { categories } = useCategories();
     const { wallets } = useWallets();
+    const { parseAmount } = useFormatting();
 
     // ── Local filter state (copied from current on open) ──────────────
 
@@ -152,14 +154,14 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
         if (startDate) filters.startDate = startDate;
         if (endDate) filters.endDate = endDate;
 
-        const parsedMin = parseFloat(minAmount);
-        const parsedMax = parseFloat(maxAmount);
-        if (!isNaN(parsedMin) && parsedMin >= 0) filters.minAmount = parsedMin;
-        if (!isNaN(parsedMax) && parsedMax >= 0) filters.maxAmount = parsedMax;
+        const parsedMin = parseAmount(minAmount);
+        const parsedMax = parseAmount(maxAmount);
+        if (parsedMin !== null && parsedMin >= 0) filters.minAmount = parsedMin;
+        if (parsedMax !== null && parsedMax >= 0) filters.maxAmount = parsedMax;
 
         onApply(filters);
         onClose();
-    }, [selectedTypes, selectedCategoryIds, selectedWalletIds, startDate, endDate, minAmount, maxAmount, onApply, onClose]);
+    }, [selectedTypes, selectedCategoryIds, selectedWalletIds, startDate, endDate, minAmount, maxAmount, parseAmount, onApply, onClose]);
 
     const handleReset = useCallback(() => {
         setSelectedTypes([]);

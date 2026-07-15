@@ -87,6 +87,52 @@ describe('useFormatting', () => {
         expect(formatted).toContain(',');
     });
 
+    it('parses amounts with the persisted comma separator', async () => {
+        mockLoadSettings.mockResolvedValue({
+            currency: 'USD',
+            decimalSeparator: 'comma',
+            dateFormat: 'MM/DD/YYYY',
+        });
+
+        const { result } = renderHook(() => useFormatting());
+
+        await waitFor(() => {
+            expect(result.current.settings).not.toBeNull();
+        });
+
+        expect(result.current.parseAmount('12,50')).toBe(12.5);
+        expect(result.current.parseAmountToCents('12,50')).toBe(1250);
+        expect(result.current.parseAmountToCents('2.000,50')).toBe(200050);
+        expect(result.current.parseAmountToCents('abc')).toBeNull();
+    });
+
+    it('parses amounts with the persisted dot separator', async () => {
+        mockLoadSettings.mockResolvedValue({
+            currency: 'USD',
+            decimalSeparator: 'dot',
+            dateFormat: 'MM/DD/YYYY',
+        });
+
+        const { result } = renderHook(() => useFormatting());
+
+        await waitFor(() => {
+            expect(result.current.settings).not.toBeNull();
+        });
+
+        expect(result.current.parseAmountToCents('12.50')).toBe(1250);
+        expect(result.current.parseAmountToCents('2,000.50')).toBe(200050);
+        // A comma-locale user typing a comma under the default dot preference.
+        expect(result.current.parseAmountToCents('12,50')).toBe(1250);
+    });
+
+    it('parses with the dot fallback before settings load', () => {
+        mockLoadSettings.mockReturnValue(new Promise(() => {}));
+
+        const { result } = renderHook(() => useFormatting());
+
+        expect(result.current.parseAmountToCents('12.50')).toBe(1250);
+    });
+
     it('subscribes to settings events on mount', () => {
         mockLoadSettings.mockResolvedValue({
             currency: 'USD',

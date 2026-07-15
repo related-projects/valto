@@ -23,7 +23,6 @@ import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
-import { normalizeAmount } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -46,7 +45,7 @@ const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess, initialType = 'expense' }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const { t, i18n } = useTranslation();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, parseAmountToCents } = useFormatting();
     const scrollViewRef = React.useRef<ScrollView>(null);
 
     // Hooks
@@ -174,11 +173,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     };
 
     const handleSave = async () => {
-        const parsedAmount = parseFloat(amount);
         // Single input→storage conversion point (major units → integer cents).
-        const amountNum = normalizeAmount(parsedAmount);
+        const amountNum = parseAmountToCents(amount);
 
-        if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+        if (amountNum === null) {
             Alert.alert(t('modals.addTransaction.invalidAmount'), t('modals.addTransaction.invalidAmountMessage'));
             return;
         }

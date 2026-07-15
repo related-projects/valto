@@ -26,6 +26,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../../domain/constants/currencies';
 import { WalletType } from '../../../domain/entities';
+import { useFormatting } from '../../../hooks/useFormatting';
 import { useTheme } from '../../../theme/theme';
 import { getButtonA11y } from '../../../utils/accessibility';
 import { normalizeAmount } from '../../../utils/normalizeAmount';
@@ -48,6 +49,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
+    const { parseAmount } = useFormatting();
     const {
         step,
         next,
@@ -80,7 +82,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
     const handleCreateWallet = async () => {
         const name = walletName.trim() || t('onboarding.walletNamePlaceholder');
-        const balance = parseFloat(initialBalance) || 0;
+        const balance = parseAmount(initialBalance) ?? 0;
         const balanceCents = normalizeAmount(balance);
         await createWallet(name, walletType, balanceCents);
     };
