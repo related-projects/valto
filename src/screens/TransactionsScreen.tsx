@@ -43,7 +43,7 @@ export const TransactionsScreen = () => {
         if (filters.categoryIds && filters.categoryIds.length > 0) count++;
         if (filters.walletIds && filters.walletIds.length > 0) count++;
         if (filters.startDate || filters.endDate) count++;
-        if (filters.minAmount !== undefined || filters.maxAmount !== undefined) count++;
+        if (filters.minAmountCents !== undefined || filters.maxAmountCents !== undefined) count++;
         return count;
     }, [filters]);
 
