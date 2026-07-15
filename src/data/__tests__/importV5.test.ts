@@ -1,14 +1,15 @@
 /**
- * v5 Import Invariant & Reconciliation (Points 4 & 5 proof)
+ * v5 Import Invariant & Balance Audit (Points 4 & 5 proof)
  *
  * Point 4: for every wallet migrated out of AsyncStorage, the recomputed ledger
  *   balance must equal the stored balance — no double-counting of
  *   opening_balance + transactions. v5 derives opening_balance = balance −
  *   Σ ledgerEffect(imported txns), which must make the invariant hold including
  *   for double-entry transfer legs.
- * Point 5: the import path must actually INVOKE reconcile() (otherwise the
- *   balance-auditing code is decorative), and post-import every wallet reconciles
- *   with zero drift.
+ * Point 5: the import path must actually INVOKE auditBalances() (otherwise the
+ *   balance-auditing code is decorative), and post-import every wallet must show
+ *   zero drift. The import is detect-only — it never rewrites a stored balance,
+ *   so zero drift here is the derivation's doing, not a cleanup pass.
  *
  * The fixture is seeded the way the legacy AsyncStorageAdapter stored data
  * (Serializable* arrays under StorageKeys), then v5.up runs against an in-memory
@@ -50,7 +51,7 @@ const transactions: SerializableTransaction[] = [
     tx('t-tin', TransactionType.TRANSFER, 25000, 'transfer-in', 'w-bank'),
 ];
 
-describe('v5 import — recompute invariant & reconciliation', () => {
+describe('v5 import — recompute invariant & balance audit', () => {
     let db: SqlDatabase;
     let storage: InMemoryStorage;
 
@@ -72,22 +73,22 @@ describe('v5 import — recompute invariant & reconciliation', () => {
         }
     });
 
-    it('(Point 5) the import invokes reconcile() and leaves zero drift', async () => {
-        const reconcileSpy = jest.spyOn(WalletRepository.prototype, 'reconcile');
+    it('(Point 5) the import invokes auditBalances() and leaves zero drift', async () => {
+        const auditSpy = jest.spyOn(WalletRepository.prototype, 'auditBalances');
 
         await v5_import_from_asyncstorage.up({ storage, db });
 
-        expect(reconcileSpy).toHaveBeenCalled();
+        expect(auditSpy).toHaveBeenCalled();
 
-        // Post-import: an independent reconcile sees no drift anywhere.
-        const drifts = await new WalletRepository(db).reconcile();
+        // Post-import: an independent audit sees no drift anywhere.
+        const drifts = await new WalletRepository(db).auditBalances();
         expect(drifts).toHaveLength(2);
         for (const d of drifts) {
             expect(d.drift).toBe(0);
             expect(d.stored).toBe(d.computed);
         }
 
-        reconcileSpy.mockRestore();
+        auditSpy.mockRestore();
     });
 
     it('is idempotent: re-running the import does not double-count', async () => {

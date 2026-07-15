@@ -128,14 +128,15 @@ function RootLayout() {
       setNeedsOnboarding(!settings.onboardingCompleted);
 
       // Dev-only, non-blocking, non-fatal balance-integrity assertion.
-      // Dead-stripped from release builds. Reconciles every wallet's stored
-      // balance against its ledger via the authoritative domain use case.
+      // Dead-stripped from release builds. Audits every wallet's stored balance
+      // against its ledger via the authoritative domain use case. Report-only:
+      // drift is surfaced here, never corrected behind the user's back.
       if (__DEV__) {
         try {
           const ok = await verifyFinancialIntegrity(getUseCaseDeps());
           if (!ok) {
             const msg =
-              "[integrity] Wallet balance drift detected at boot — stored balances do not reconcile with their transaction ledgers.";
+              "[integrity] Wallet balance drift detected at boot — stored balances disagree with their transaction ledgers.";
             console.warn(msg);
             Sentry.captureMessage(msg, "warning");
           }

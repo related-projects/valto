@@ -68,7 +68,7 @@ describe('TransactionRepository.updateFromDTO ledger guard', () => {
         });
     });
 
-    it('allows ledger-neutral edits (note/date) and keeps the balance reconciled', async () => {
+    it('allows ledger-neutral edits (note/date) and keeps the stored balance in agreement with the ledger', async () => {
         const updated = await txRepo.updateFromDTO({ id: txId, note: 'groceries', date: new Date('2026-03-05') });
         expect(updated.note).toBe('groceries');
         expect(updated.amount).toBe(15000); // unchanged

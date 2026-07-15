@@ -3,7 +3,7 @@
  *
  * Pure rule mapping a transaction to its signed effect (in cents) on its
  * wallet balance. Single source of truth for "how a transaction moves money",
- * used by balance recomputation/reconciliation and by the import migration to
+ * used by balance recomputation/auditing and by the import migration to
  * derive each wallet's opening balance anchor.
  */
 

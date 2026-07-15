@@ -6,6 +6,6 @@
  */
 
 export type { IRepository } from './IRepository';
-export type { BalanceReconciliation, IWalletRepository } from './IWalletRepository';
+export type { BalanceAudit, IWalletRepository } from './IWalletRepository';
 export type { ITransactionRepository } from './ITransactionRepository';
 export type { ICategoryRepository } from './ICategoryRepository';
