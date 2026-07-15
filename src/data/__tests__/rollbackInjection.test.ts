@@ -94,7 +94,7 @@ describe('atomic rollback under fault injection', () => {
     });
 
     it('successful createTransaction keeps stored balance == recomputed ledger', async () => {
-        // Sanity counterpart: the happy path must also reconcile.
+        // Sanity counterpart: the happy path must leave zero drift too.
         const db = await createTestDb();
         const walletRepo = new WalletRepository(db);
         const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
