@@ -40,7 +40,7 @@ function stripTrailingSlash(p: string): string {
  * Android to the databases directory. The native module is required lazily so
  * importing this file never touches native code under Jest.
  */
-function resolveDbDirectory(): string {
+export function resolveDbDirectory(): string {
     try {
         const raw = getDb().getDbPath?.();
         if (raw) {
@@ -71,7 +71,7 @@ function dbFileNames(): string[] {
  * `valto.db[-wal|-shm]` file — never a directory and never a `/..` traversal — so
  * a bad path resolution aborts instead of deleting the wrong thing.
  */
-function buildTargetPaths(dir: string): string[] {
+export function buildTargetPaths(dir: string): string[] {
     const directory = stripTrailingSlash(dir);
     return dbFileNames().map((name) => {
         const target = `${directory}/${name}`;

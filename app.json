@@ -20,7 +20,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.valto.app",
+      "package": "com.renkakpo.valto.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
