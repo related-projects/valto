@@ -11,6 +11,7 @@ import { type AppSettings, loadSettings } from '../data/services/settingsService
 import { getCurrencyByCode } from '../domain/constants/currencies';
 import { formatAmountCompact as formatAmountCompactUtil, formatAmount as formatAmountUtil, formatAmountWhole as formatAmountWholeUtil } from '../utils/formatAmount';
 import { formatDate as formatDateUtil } from '../utils/formatDate';
+import { parseAmountInput as parseAmountInputUtil, parseAndNormalizeAmount as parseAndNormalizeAmountUtil } from '../utils/normalizeAmount';
 
 export function useFormatting() {
     const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -50,11 +51,25 @@ export function useFormatting() {
         [dateFormat],
     );
 
+    /** Parse a typed amount to major units, or null if invalid. Caller applies its own zero/sign policy. */
+    const parseAmount = useCallback(
+        (input: string) => parseAmountInputUtil(input, separator),
+        [separator],
+    );
+
+    /** Parse a typed amount straight to integer cents, or null if invalid or not positive. */
+    const parseAmountToCents = useCallback(
+        (input: string) => parseAndNormalizeAmountUtil(input, separator),
+        [separator],
+    );
+
     return {
         formatAmount,
         formatAmountCompact,
         formatAmountWhole,
         formatDate,
+        parseAmount,
+        parseAmountToCents,
         settings,
     };
 }

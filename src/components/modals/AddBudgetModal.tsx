@@ -21,11 +21,11 @@ import {
   getCurrentMonth,
 } from "../../domain/entities";
 import { useCategories } from "../../hooks/useCategories";
+import { useFormatting } from "../../hooks/useFormatting";
 import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
 import { useTheme } from "../../theme/theme";
 import { typography } from "../../theme/typography";
-import { normalizeAmount } from "../../utils/normalizeAmount";
 
 interface AddBudgetModalProps {
   visible: boolean;
@@ -47,6 +47,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
   const { colors, spacing, typography, radius } = useTheme();
   const { t } = useTranslation();
   const { expenseCategories } = useCategories();
+  const { parseAmountToCents } = useFormatting();
 
   // Form state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -78,11 +79,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
       return;
     }
 
-    const parsedAmount = parseFloat(limitAmount);
     // Single input→storage conversion point (major units → integer cents).
-    const amountNum = normalizeAmount(parsedAmount);
+    const amountNum = parseAmountToCents(limitAmount);
 
-    if (!limitAmount || isNaN(parsedAmount) || parsedAmount <= 0) {
+    if (amountNum === null) {
       Alert.alert(
         t("modals.addBudget.invalidAmount"),
         t("modals.addBudget.invalidAmountMessage"),

@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { WalletType } from "../../domain/entities";
+import { useFormatting } from "../../hooks/useFormatting";
 import { useWallets } from "../../hooks/useWallets";
 import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
@@ -43,6 +44,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
 
   // Hooks
   const { createWallet } = useWallets();
+  const { parseAmount } = useFormatting();
 
   // Form state
   const [name, setName] = useState("");
@@ -68,9 +70,9 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
       return;
     }
 
-    const balanceNum = balance ? parseFloat(balance) : 0;
+    const balanceNum = balance ? parseAmount(balance) : 0;
 
-    if (isNaN(balanceNum) || balanceNum < 0) {
+    if (balanceNum === null || balanceNum < 0) {
       Alert.alert(
         t("modals.addWallet.invalidBalance"),
         t("modals.addWallet.invalidBalanceMessage"),
