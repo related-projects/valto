@@ -632,5 +632,17 @@
         "submitForm": "Submit form",
         "expandFaq": "Expand answer",
         "collapseFaq": "Collapse answer"
+    },
+    "storeRecovery": {
+        "title": "Couldn't open your data",
+        "body": "Your stored data couldn't be loaded — the local database may be corrupted or unreadable. Try again, or reset to start fresh.",
+        "tryAgain": "Try again",
+        "reset": "Reset data",
+        "confirmTitle": "Erase local data?",
+        "confirmBody": "This permanently deletes all data on this device — wallets, transactions, categories and budgets. There is no backup or server copy, so this cannot be undone.",
+        "confirmCta": "Erase everything",
+        "cancel": "Cancel",
+        "resetFailedTitle": "Reset failed",
+        "resetFailedMessage": "Could not reset the data. Please try again."
     }
 }
