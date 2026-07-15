@@ -18,7 +18,7 @@ The interesting part of Valto is how a few problems were solved, not the feature
 
 **Atomicity through a single connection and a serializing mutex.** All financial writes that touch a balance — transfers, expense creation, deletion — run inside one `BEGIN/COMMIT/ROLLBACK` on a shared connection, so a failure mid-write rolls back entirely instead of leaving a wallet debited but the counter-entry missing. Because the driver is async, a mutex serializes transactions so two concurrent operations can't interleave on the same connection. This is the guarantee, not a `try/catch` wrapped around sequential writes.
 
-**Balances are stored _and_ recomputable.** The stored balance gives fast reads; `recomputeBalanceFromLedger` derives the same value from the transactions, so any drift is detectable and correctable (`reconcile`). A dev-only boot assertion recomputes on startup and warns if the stored balance ever disagrees with the ledger.
+**Balances are stored _and_ recomputable.** The stored balance gives fast reads; `recomputeBalanceFromLedger` derives the same value from the transactions, so any drift is detectable (`auditBalances`). The audit deliberately stops at detection: atomic writes should make drift impossible, so silently rewriting a stored balance would hide the bug that caused it. A dev-only boot assertion recomputes on startup and warns if the stored balance ever disagrees with the ledger.
 
 **Transfers are bounded by the source balance; expenses may overdraw.** This asymmetry is intentional, not an oversight: a transfer _moves tracked funds_ between your own wallets, so it cannot exceed what's there; an expense _records a real-world outflow_, which may legitimately push a wallet negative. Blocking it would force the app to misrepresent reality.
 
@@ -48,7 +48,7 @@ Versioned, idempotent migrations run at boot: `v4` creates the relational schema
 ## Data integrity & security
 
 - **Atomic writes.** Transfers, expense creation, and deletion are all-or-nothing.
-- **Auditable balances.** Stored for speed, recomputable from the ledger for verification; reconciled on demand and asserted in development at boot.
+- **Auditable balances.** Stored for speed, recomputable from the ledger for verification; audited on demand and asserted in development at boot. Drift is reported, never silently corrected.
 - **Encryption at rest.** SQLCipher encrypts the database file; the key is generated on first launch and stored only in the device keystore (`expo-secure-store`). This was verified manually: a standard `sqlite3` cannot open the on-disk file without the key (it reports "file is not a database", and the file header is not the plaintext SQLite magic).
 - **App lock.** Hashed PIN with exponential-backoff lockout (durable across restart and backgrounding). The authenticated UI is rendered only when unlocked, so financial data is not loaded into memory before authentication.
 

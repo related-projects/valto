@@ -9,7 +9,7 @@ import type { CreateWalletDTO, UpdateWalletDTO, Wallet } from '../entities';
 import type { IRepository } from './IRepository';
 
 /** Result of comparing a wallet's stored balance against its ledger. */
-export interface BalanceReconciliation {
+export interface BalanceAudit {
     walletId: string;
     stored: number;
     computed: number;
@@ -30,6 +30,12 @@ export interface IWalletRepository extends IRepository<Wallet> {
     /** Recompute a wallet's balance purely from its ledger (opening + Σ effects). */
     recomputeBalanceFromLedger(walletId: string): Promise<number>;
 
-    /** Compare every wallet's stored balance against its recomputed ledger value. */
-    reconcile(): Promise<BalanceReconciliation[]>;
+    /**
+     * Compare every wallet's stored balance against its recomputed ledger value.
+     *
+     * Audit-only: this detects drift and deliberately does not correct it.
+     * Atomic writes should prevent drift from ever occurring, so a non-zero
+     * drift is a bug — silently rewriting the stored balance would hide it.
+     */
+    auditBalances(): Promise<BalanceAudit[]>;
 }

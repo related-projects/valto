@@ -21,14 +21,14 @@ import {
 } from '../../domain/entities/Wallet';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import { validateWallet } from '../../domain/validators/WalletValidator';
-import type { BalanceReconciliation, IWalletRepository } from '../../domain/repositories';
+import type { BalanceAudit, IWalletRepository } from '../../domain/repositories';
 import { walletMapper, sqlDelete, sqlGetAll, sqlGetById, sqlExists, sqlUpdate } from '../storage/sql/mappers';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
 import { ledgerEffect } from './ledger';
 
 // Re-exported for backward compatibility; the canonical type lives in the domain.
-export type { BalanceReconciliation } from '../../domain/repositories';
+export type { BalanceAudit } from '../../domain/repositories';
 
 export class WalletRepository implements IWalletRepository {
     constructor(private db: SqlDatabase) { }
@@ -238,10 +238,15 @@ export class WalletRepository implements IWalletRepository {
     /**
      * Compare every wallet's stored balance against its recomputed ledger
      * value. A non-zero `drift` flags a corrupted stored balance.
+     *
+     * Audit-only: this detects drift and deliberately does not correct it.
+     * Atomic writes should prevent drift from ever occurring, so a non-zero
+     * drift means something upstream is broken; silently rewriting the stored
+     * balance here would hide that bug instead of surfacing it.
      */
-    async reconcile(): Promise<BalanceReconciliation[]> {
+    async auditBalances(): Promise<BalanceAudit[]> {
         const wallets = await this.getAll();
-        const results: BalanceReconciliation[] = [];
+        const results: BalanceAudit[] = [];
         for (const w of wallets) {
             const computed = await this.recomputeBalanceFromLedger(w.id);
             results.push({ walletId: w.id, stored: w.balance, computed, drift: w.balance - computed });

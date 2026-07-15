@@ -1,9 +1,10 @@
 /**
  * verifyFinancialIntegrity Use Case Tests
  *
- * The integrity check delegates to the authoritative ledger reconciliation
- * (WalletRepository.reconcile). It returns true only when every wallet's stored
- * balance matches its recomputed ledger value (drift 0).
+ * The integrity check delegates to the authoritative ledger audit
+ * (WalletRepository.auditBalances). It returns true only when every wallet's
+ * stored balance matches its recomputed ledger value (drift 0). It reports
+ * drift; it never corrects it.
  */
 
 import { createMockRepositories, type MockRepositoryBundle } from '../../test-utils/mockRepositories';

@@ -95,24 +95,24 @@ export const v5_import_from_asyncstorage: Migration = {
         for (const b of budgets) await sqlInsert(db, budgetMapper, b, true);
         for (const r of recurring) await sqlInsert(db, recurringMapper, r, true);
 
-        // Reconcile every migrated wallet against its ledger. This is the real
-        // runtime entry point for the balance-auditing code (recompute/reconcile
+        // Audit every migrated wallet against its ledger. This is the real
+        // runtime entry point for the balance-auditing code (recompute/audit
         // are otherwise only exercised in tests). The opening_balance anchor set
-        // above should make drift zero; any residual drift from inconsistent
-        // legacy data is healed by trusting the ledger.
+        // above makes the invariant hold by construction, so drift must be zero.
+        //
+        // Detect-only, on purpose: a non-zero drift here would mean the
+        // opening_balance derivation above is broken. Healing it by rewriting
+        // the stored balance would hide that bug rather than surface it, so we
+        // report and leave the data exactly as imported.
         const walletRepo = new WalletRepository(db);
-        const reconciliations = await walletRepo.reconcile();
-        for (const r of reconciliations) {
-            if (r.drift !== 0) {
-                await db.execute(`UPDATE wallets SET balance = ? WHERE id = ?`, [
-                    r.computed,
-                    r.walletId,
-                ]);
-                console.warn(
-                    `[Migration v5] Reconciled wallet ${r.walletId}: stored ${r.stored} ` +
-                        `→ ledger ${r.computed} (drift ${r.drift})`,
-                );
-            }
+        const drifted = (await walletRepo.auditBalances()).filter((a) => a.drift !== 0);
+        if (drifted.length > 0) {
+            console.warn(
+                `[import] Balance drift after v5 import — opening_balance derivation is suspect: ` +
+                    drifted
+                        .map((a) => `${a.walletId} (stored ${a.stored}, ledger ${a.computed}, drift ${a.drift})`)
+                        .join(', '),
+            );
         }
 
         await storage.set(IMPORT_FLAG, true);
