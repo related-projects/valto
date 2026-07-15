@@ -632,5 +632,17 @@
         "submitForm": "Soumettre le formulaire",
         "expandFaq": "Développer la réponse",
         "collapseFaq": "Réduire la réponse"
+    },
+    "storeRecovery": {
+        "title": "Impossible d'ouvrir vos données",
+        "body": "Vos données enregistrées n'ont pas pu être chargées — la base de données locale est peut-être corrompue ou illisible. Réessayez, ou réinitialisez pour repartir de zéro.",
+        "tryAgain": "Réessayer",
+        "reset": "Réinitialiser les données",
+        "confirmTitle": "Effacer les données locales ?",
+        "confirmBody": "Cette action supprime définitivement toutes les données de cet appareil — portefeuilles, transactions, catégories et budgets. Il n'existe aucune sauvegarde ni copie serveur : cette action est irréversible.",
+        "confirmCta": "Tout effacer",
+        "cancel": "Annuler",
+        "resetFailedTitle": "Échec de la réinitialisation",
+        "resetFailedMessage": "Impossible de réinitialiser les données. Veuillez réessayer."
     }
 }

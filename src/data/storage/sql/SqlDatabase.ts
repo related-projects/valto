@@ -34,4 +34,18 @@ export interface SqlDatabase {
      * invoked inside another transaction stays safe.
      */
     runInTransaction<T>(work: () => Promise<T>): Promise<T>;
+
+    /**
+     * Absolute on-disk path of the backing database file, when the driver can
+     * report it (op-sqlite). Returns null for drivers with no file (in-memory
+     * test DB). Used by the corrupted-store recovery path to delete the file.
+     */
+    getDbPath?(): string | null;
+
+    /**
+     * Release the underlying native handle / file locks, if the driver has one.
+     * No-op for drivers that don't need it. Used before deleting the DB file
+     * during corrupted-store recovery.
+     */
+    close?(): void;
 }

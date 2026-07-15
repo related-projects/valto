@@ -13,7 +13,7 @@ import { getOrCreateEncryptionKey } from './encryptionKey';
 import { SqlDatabase, SqlQueryResult } from './SqlDatabase';
 import { createTransactionRunner } from './transaction';
 
-const DB_NAME = 'valto.db';
+export const DB_NAME = 'valto.db';
 
 export class OpSQLiteDatabase implements SqlDatabase {
     private db: any;
@@ -64,4 +64,22 @@ export class OpSQLiteDatabase implements SqlDatabase {
         const rows = (res?.rows?._array ?? res?.rows ?? []) as Record<string, unknown>[];
         return { rows, rowsAffected: res?.rowsAffected ?? 0 };
     };
+
+    /** Absolute on-disk path of `valto.db`, as reported by the native driver. */
+    getDbPath(): string | null {
+        try {
+            return this.db.getDbPath?.() ?? null;
+        } catch {
+            return null;
+        }
+    }
+
+    /** Close the native handle to release file locks before file-level deletion. */
+    close(): void {
+        try {
+            this.db.close?.();
+        } catch {
+            // Best-effort: a corrupted/half-open handle may throw on close.
+        }
+    }
 }

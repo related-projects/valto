@@ -1,6 +1,6 @@
 # Valto
 
-[![CI](https://github.com/related-projects/valto/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/related-projects/valto/actions/workflows/ci.yml)
+[![CI](https://github.com/related-projects/valto/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/related-projects/valto/actions/workflows/ci.yml)
 
 Valto is a local-first personal finance app for iOS and Android. All financial data lives on the device in an **encrypted SQLite database** — there is no backend, no account, and no sync server. The focus of the project is correctness and data integrity rather than feature count: money writes are transactional, balances are auditable against their own ledger, and the database is encrypted at rest.
 
