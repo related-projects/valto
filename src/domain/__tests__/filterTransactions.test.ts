@@ -101,8 +101,8 @@ describe('filterTransactions', () => {
             walletIds: undefined,
             startDate: undefined,
             endDate: undefined,
-            minAmount: undefined,
-            maxAmount: undefined,
+            minAmountCents: undefined,
+            maxAmountCents: undefined,
         };
         const result = filterTransactions(MOCK_TRANSACTIONS, filters);
         expect(result).toHaveLength(MOCK_TRANSACTIONS.length);
@@ -243,7 +243,7 @@ describe('filterTransactions', () => {
 
     it('filters by min amount only', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            minAmount: 15000,
+            minAmountCents: 15000,
         });
         // tx-2 (200000), tx-3 (15000), tx-4 (50000), tx-6 (30000)
         expect(result).toHaveLength(4);
@@ -252,7 +252,7 @@ describe('filterTransactions', () => {
 
     it('filters by max amount only', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            maxAmount: 8000,
+            maxAmountCents: 8000,
         });
         // tx-1 (5000), tx-5 (8000), tx-7 (3000)
         expect(result).toHaveLength(3);
@@ -261,8 +261,8 @@ describe('filterTransactions', () => {
 
     it('filters by both min and max amount', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            minAmount: 5000,
-            maxAmount: 50000,
+            minAmountCents: 5000,
+            maxAmountCents: 50000,
         });
         // tx-1 (5000), tx-3 (15000), tx-4 (50000), tx-5 (8000), tx-6 (30000)
         expect(result).toHaveLength(5);
@@ -271,8 +271,8 @@ describe('filterTransactions', () => {
 
     it('handles exact boundary amounts (inclusive)', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            minAmount: 5000,
-            maxAmount: 5000,
+            minAmountCents: 5000,
+            maxAmountCents: 5000,
         });
         // tx-1 only (exactly 5000)
         expect(result).toHaveLength(1);
@@ -305,7 +305,7 @@ describe('filterTransactions', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
             types: [TransactionType.EXPENSE],
             categoryIds: ['food'],
-            maxAmount: 6000,
+            maxAmountCents: 6000,
         });
         // tx-1 (expense, food, 5000)
         expect(result).toHaveLength(1);
@@ -319,8 +319,8 @@ describe('filterTransactions', () => {
             walletIds: ['wallet-cash'],
             startDate: new Date('2026-03-01'),
             endDate: new Date('2026-03-15'),
-            minAmount: 1000,
-            maxAmount: 20000,
+            minAmountCents: 1000,
+            maxAmountCents: 20000,
         });
         // tx-1 (expense, food, cash, Mar 1, 5000) ✓
         // tx-3 (expense, transport, cash, Mar 10, 15000) ✓
@@ -351,13 +351,13 @@ describe('filterTransactions', () => {
     it('normalises invalid amount range (min > max — swaps them)', () => {
         // min=50000, max=5000 → normalised to min=5000, max=50000
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            minAmount: 50000,
-            maxAmount: 5000,
+            minAmountCents: 50000,
+            maxAmountCents: 5000,
         });
-        // Same as minAmount: 5000, maxAmount: 50000
+        // Same as minAmountCents: 5000, maxAmountCents: 50000
         const expected = filterTransactions(MOCK_TRANSACTIONS, {
-            minAmount: 5000,
-            maxAmount: 50000,
+            minAmountCents: 5000,
+            maxAmountCents: 50000,
         });
         expect(result).toEqual(expected);
     });
@@ -401,8 +401,8 @@ describe('filterTransactions', () => {
         const result = filterTransactions(largeDataset, {
             types: [TransactionType.EXPENSE],
             walletIds: ['wallet-0', 'wallet-1'],
-            minAmount: 500,
-            maxAmount: 100000,
+            minAmountCents: 500,
+            maxAmountCents: 100000,
         });
         const elapsed = performance.now() - start;
 
