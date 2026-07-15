@@ -1,0 +1,206 @@
+/**
+ * Help & FAQ Screen
+ *
+ * Displays expandable/collapsible FAQ items.
+ * Fully offline and fully i18n-driven — content sourced from translation files.
+ */
+
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+    LayoutAnimation,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../theme/theme';
+import { getButtonA11y } from '../utils/accessibility';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// ─── Types ────────────────────────────────────────────────────────────
+
+export interface FAQItem {
+    id: string;
+    question: string;
+    answer: string;
+}
+
+// ─── FAQ Item Component ───────────────────────────────────────────────
+
+interface FAQItemCardProps {
+    item: FAQItem;
+    expanded: boolean;
+    onToggle: () => void;
+}
+
+const FAQItemCard: React.FC<FAQItemCardProps> = React.memo(function FAQItemCard({ item, expanded, onToggle }: FAQItemCardProps) {
+    const { t } = useTranslation();
+    const { colors, spacing, typography, radius, shadows } = useTheme();
+
+    return (
+        <TouchableOpacity
+            style={[
+                styles.faqCard,
+                {
+                    backgroundColor: colors.card,
+                    borderRadius: radius.md,
+                    padding: spacing.md,
+                    marginBottom: spacing.sm,
+                    ...shadows.card,
+                },
+            ]}
+            onPress={onToggle}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={item.question}
+            accessibilityHint={expanded ? t('a11y.collapseFaq') : t('a11y.expandFaq')}
+            accessibilityState={{ expanded }}
+        >
+            <View style={styles.questionRow}>
+                <Text
+                    style={[
+                        styles.questionText,
+                        {
+                            color: colors.foreground,
+                            fontSize: typography.sizes.md,
+                        },
+                    ]}
+                >
+                    {item.question}
+                </Text>
+                <Ionicons
+                    name={expanded ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color={colors.mutedForeground}
+                />
+            </View>
+
+            {expanded && (
+                <Text
+                    style={{
+                        color: colors.mutedForeground,
+                        fontSize: typography.sizes.sm,
+                        lineHeight: 20,
+                        marginTop: spacing.sm,
+                    }}
+                >
+                    {item.answer}
+                </Text>
+            )}
+        </TouchableOpacity>
+    );
+});
+
+// ─── Screen ───────────────────────────────────────────────────────────
+
+export const HelpFAQScreen = () => {
+    const { t } = useTranslation();
+    const { colors, spacing, typography } = useTheme();
+    const insets = useSafeAreaInsets();
+    const router = useRouter();
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    // Pull translated FAQ items from i18n — returnObjects is required for arrays
+    const faqItems = t('faq.items', { returnObjects: true }) as FAQItem[];
+    const safeItems: FAQItem[] = Array.isArray(faqItems) ? faqItems : [];
+
+    const handleToggle = useCallback((id: string) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpandedId(prev => (prev === id ? null : id));
+    }, []);
+
+    return (
+        <ScrollView
+            style={[styles.container, { backgroundColor: colors.background }]}
+            contentContainerStyle={{
+                paddingTop: insets.top + spacing.md,
+                paddingBottom: spacing.tabBarOffset,
+                paddingHorizontal: spacing.md,
+            }}
+            showsVerticalScrollIndicator={false}
+        >
+            {/* Header */}
+            <View style={styles.headerRow}>
+                <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }} {...getButtonA11y(t('a11y.backButton'))}>
+                    <Ionicons name="arrow-back" size={24} color={colors.foreground} />
+                </TouchableOpacity>
+                <Text
+                    style={{
+                        color: colors.foreground,
+                        fontSize: typography.sizes['2xl'],
+                        fontWeight: 'bold',
+                        marginLeft: spacing.sm,
+                    }}
+                >
+                    {t('help.title')}
+                </Text>
+            </View>
+
+            <Text
+                style={{
+                    color: colors.mutedForeground,
+                    fontSize: typography.sizes.sm,
+                    marginBottom: spacing.lg,
+                }}
+            >
+                {t('help.subtitle')}
+            </Text>
+
+            {/* FAQ List */}
+            {safeItems.length === 0 ? (
+                <View style={[styles.emptyState, { marginTop: spacing.xl }]}>
+                    <Ionicons name="help-buoy-outline" size={48} color={colors.mutedForeground} />
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md, marginTop: spacing.md }}>
+                        {t('help.noFaqs')}
+                    </Text>
+                </View>
+            ) : (
+                safeItems.map(item => (
+                    <FAQItemCard
+                        key={item.id}
+                        item={item}
+                        expanded={expandedId === item.id}
+                        onToggle={() => handleToggle(item.id)}
+                    />
+                ))
+            )}
+        </ScrollView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    faqCard: {},
+    questionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    questionText: {
+        fontWeight: '600',
+        flex: 1,
+        marginRight: 12,
+    },
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+});

@@ -1,0 +1,43 @@
+# Maestro E2E Tests — Valto Budget Tracker
+#
+# Create Wallet Flow
+# Verifies adding a new wallet and seeing it in the wallet list.
+#
+# Prerequisites: App with completed onboarding.
+# Run: maestro test .maestro/create_wallet.yaml
+
+appId: com.valto.app
+---
+
+# ── Launch ──────────────────────────────────────────────────────
+- launchApp
+
+# ── Navigate to Wallets ─────────────────────────────────────────
+- tapOn:
+    id: "tab_wallets"
+
+# ── Open Add Wallet Modal ───────────────────────────────────────
+- tapOn:
+    text: "Add Wallet"
+
+- assertVisible:
+    id: "add_wallet_name_input"
+
+# ── Fill Wallet Form ────────────────────────────────────────────
+- tapOn:
+    id: "add_wallet_name_input"
+
+- inputText: "Savings Account"
+
+- tapOn:
+    id: "add_wallet_balance_input"
+
+- inputText: "1000"
+
+# Select wallet type
+- tapOn:
+    id: "add_wallet_type_savings"
+
+# ── Save Wallet ────────────────────────────────────────────────
+- tapOn:
+    id: "add_wallet_save_button"

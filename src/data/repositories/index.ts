@@ -1,0 +1,17 @@
+/**
+ * Repository Layer Exports
+ * 
+ * Central export point for all repository interfaces and implementations.
+ */
+
+export {
+    RepositoryError,
+    RepositoryErrorType, type IRepository
+} from './IRepository';
+
+export { BudgetRepository } from './BudgetRepository';
+export { CategoryRepository } from './CategoryRepository';
+export { RecurringTransactionRepository } from './RecurringTransactionRepository';
+export { TransactionRepository } from './TransactionRepository';
+export { WalletRepository } from './WalletRepository';
+

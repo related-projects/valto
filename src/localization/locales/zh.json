@@ -1,0 +1,128 @@
+{
+    "settings": {
+        "title": "设置",
+        "processing": "处理中…",
+        "userName": "Valto 用户",
+        "premiumAccount": "高级账户",
+        "sections": {
+            "references": "参考",
+            "appSettings": "应用设置",
+            "dataManagement": "数据管理",
+            "regional": "区域",
+            "support": "支持"
+        },
+        "currency": "货币",
+        "currencyLocked": "{{symbol}} {{code}} (已锁定)",
+        "currencyUnlocked": "{{symbol}} {{code}}",
+        "language": "语言",
+        "theme": "主题",
+        "themeSystem": "系统",
+        "themeLight": "浅色",
+        "themeDark": "深色",
+        "categories": "类别",
+        "notifications": "通知",
+        "security": "安全",
+        "securityPinBiometrics": "PIN + 生物识别",
+        "securityPin": "已启用PIN",
+        "securityOff": "关闭",
+        "backupData": "备份数据",
+        "restoreData": "恢复数据",
+        "resetAllData": "重置所有数据",
+        "resetCurrency": "重置基础货币",
+        "resetCurrencySubtitle": "更改基础货币",
+        "helpFaq": "帮助与常见问题",
+        "aboutValto": "关于 Valto",
+        "dateFormat": "日期格式",
+        "firstDayOfWeek": "每周第一天",
+        "decimalSeparator": "小数分隔符",
+        "monday": "星期一",
+        "sunday": "星期日",
+        "dot": "点 (1,000.00)",
+        "comma": "逗号 (1.000,00)"
+    },
+    "alerts": {
+        "cancel": "取消",
+        "continue": "继续",
+        "error": "错误",
+        "chooseTheme": "选择主题",
+        "currencyLocked": "货币已锁定",
+        "currencyLockedMessage": "货币一旦选定后无法更改。",
+        "notificationsDenied": "通知被阻止",
+        "notificationsDeniedMessage": "请在设备设置中启用通知。"
+    },
+    "common": {
+        "ok": "确定",
+        "somethingWentWrong": "Something went wrong",
+        "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
+        "reloadApp": "Reload App"
+    },
+    "help": {
+        "title": "帮助与常见问题",
+        "subtitle": "查找有关 Valto 的常见问题解答。",
+        "noFaqs": "暂无常见问题。"
+    },
+    "faq": {
+        "items": [
+            {
+                "id": "add-transaction",
+                "question": "如何添加交易？",
+                "answer": "点击仪表板上的快捷操作，选择「添加支出」或「添加收入」。输入金额，选择分类和钱包，然后保存。"
+            },
+            {
+                "id": "create-wallet",
+                "question": "如何创建新钱包？",
+                "answer": "进入钱包标签页，点击「添加钱包」。您可以为现金、银行账户、手机钱包和储蓄创建钱包。每个钱包独立跟踪自己的余额。"
+            },
+            {
+                "id": "transfer-funds",
+                "question": "如何在钱包之间转账？",
+                "answer": "在仪表板上，点击快捷操作中的「转账」。选择原始钱包、目标钱包和金额。转账将同时从一个钱包扣款并将其添加到另一个钱包。"
+            },
+            {
+                "id": "set-budget",
+                "question": "预算如何运作？",
+                "answer": "预算按每月每个分类设置。进入仪表板，点击预算部分中的「创建预算」。您将看到一个进度条，显示每个预算的使用情况。"
+            },
+            {
+                "id": "backup-data",
+                "question": "如何备份数据？",
+                "answer": "进入设置 → 备份数据。这将创建一个包含所有钱包、交易、分类、预算和设置的 JSON 文件。您可以将此文件分享或保存到您的设备或云存储。"
+            },
+            {
+                "id": "restore-data",
+                "question": "如何从备份恢复？",
+                "answer": "进入设置 → 恢复数据。使用文件选择器选择备份文件。应用程序将验证备份并替换所有当前数据。此操作无法撤销——请先考虑备份。"
+            },
+            {
+                "id": "change-currency",
+                "question": "如何更改货币？",
+                "answer": "进入设置 → 货币。从可用货币中选择。货币符号将在整个应用程序中更新。"
+            },
+            {
+                "id": "dark-mode",
+                "question": "应用支持深色模式吗？",
+                "answer": "支持。进入设置 → 主题，选择浅色、深色或系统（跟随设备设置）。"
+            },
+            {
+                "id": "security",
+                "question": "如何用 PIN 保护数据？",
+                "answer": "进入设置 → 安全，点击设置 PIN。您还可以启用生物识别验证（指纹或人脸）以快速访问。应用程序在切换到后台时会自动锁定。"
+            },
+            {
+                "id": "offline",
+                "question": "应用可以离线使用吗？",
+                "answer": "可以。Valto 完全离线优先。所有数据存储在您的设备本地。添加交易、查看报告或管理钱包无需网络连接。"
+            },
+            {
+                "id": "reset-data",
+                "question": "如何重置所有数据？",
+                "answer": "进入设置 → 重置所有数据。这将永久删除所有钱包、交易、分类、预算和设置。应用程序将回到初始状态并使用默认数据。此操作无法撤销。"
+            },
+            {
+                "id": "categories",
+                "question": "可以自定义分类吗？",
+                "answer": "进入设置 → 分类。您可以查看所有支出和收入分类。自定义分类管理将在未来更新中提供。"
+            }
+        ]
+    }
+}

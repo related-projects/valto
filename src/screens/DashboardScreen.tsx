@@ -1,0 +1,250 @@
+import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BalanceCard } from '../components/dashboard/BalanceCard';
+import { BudgetProgress } from '../components/dashboard/BudgetProgress';
+import { InsightBanner, InsightVariant } from '../components/dashboard/InsightBanner';
+import { QuickActions } from '../components/dashboard/QuickActions';
+import { SpendingBreakdown } from '../components/dashboard/SpendingBreakdown';
+import { WalletList } from '../components/dashboard/WalletList';
+import { AddBudgetModal } from '../components/modals/AddBudgetModal';
+import { AddTransactionModal } from '../components/modals/AddTransactionModal';
+import { TransferModal } from '../components/modals/TransferModal';
+import { TransactionList } from '../components/transactions/TransactionList';
+import { Avatar } from '../components/ui/Avatar';
+import { Card } from '../components/ui/Card';
+import { SectionHeader } from '../components/ui/SectionHeader';
+import { useSecurity } from '../core/security/SecurityContext';
+import { SavingsLevel } from '../domain/insights';
+import { useBudgets } from '../hooks/useBudgets';
+import { useDashboard } from '../hooks/useDashboard';
+import { useFinancialInsights } from '../hooks/useFinancialInsights';
+import { useTransactions } from '../hooks/useTransactions';
+import { useWallets } from '../hooks/useWallets';
+import { useTheme } from '../theme/theme';
+import { getGreeting } from '../utils/getGreeting';
+
+/** Map savings-health level → visual variant */
+const SAVINGS_VARIANT: Record<SavingsLevel, InsightVariant> = {
+    deficit: 'destructive',
+    weak: 'warning',
+    acceptable: 'neutral',
+    strong: 'success',
+};
+
+export const DashboardScreen = () => {
+    const { t } = useTranslation();
+    const { colors, spacing, typography } = useTheme();
+    const greetingKey = useMemo(() => getGreeting(new Date()), []);
+    const insets = useSafeAreaInsets();
+    const [refreshing, setRefreshing] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalType, setModalType] = useState<'expense' | 'income'>('expense');
+    const [transferModalVisible, setTransferModalVisible] = useState(false);
+    const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+
+    // Hooks for real data
+    const { transactions, refreshTransactions } = useTransactions();
+    const { wallets, getTotalBalance, refreshWallets } = useWallets();
+    const {
+        spendingByCategory,
+        currentMonthIncome,
+        currentMonthExpense,
+        netBalance,
+        incomeChange,
+        expenseChange,
+        netBalanceChange,
+    } = useDashboard();
+    const {
+        budgetSummaries,
+        totalBudgetLimit,
+        totalBudgetSpent,
+        hasBudgets,
+        createBudget,
+        refreshBudgets,
+        budgetedCategoryIds,
+    } = useBudgets();
+
+    // Financial Insights
+    const { savingsHealth, categoryRisk, budgetPace } = useFinancialInsights();
+
+    // Security
+    const { isSecurityEnabled, isUnlocked, unlockWithPin, unlockWithBiometrics, securityConfig, biometrics } = useSecurity();
+
+    const handleRequestAuth = useCallback(async (): Promise<boolean> => {
+        // If already unlocked in this session, allow immediately
+        if (isUnlocked) return true;
+
+        // Try biometrics first if enabled
+        if (securityConfig?.biometricsEnabled && biometrics.available && biometrics.enrolled) {
+            const bioSuccess = await unlockWithBiometrics();
+            if (bioSuccess) return true;
+        }
+
+        // Fall back to PIN — handled by the AuthGate overlay
+        // Return false so BalanceCard doesn't reveal; user will use AuthGate
+        return false;
+    }, [isUnlocked, securityConfig, biometrics, unlockWithBiometrics]);
+
+    const onRefresh = React.useCallback(async () => {
+        setRefreshing(true);
+        await Promise.all([refreshTransactions(), refreshWallets(), refreshBudgets()]);
+        setRefreshing(false);
+    }, [refreshTransactions, refreshWallets, refreshBudgets]);
+
+    const totalBalance = getTotalBalance();
+
+    const handleAddExpense = () => {
+        setModalType('expense');
+        setModalVisible(true);
+    };
+
+    const handleAddIncome = () => {
+        setModalType('income');
+        setModalVisible(true);
+    };
+
+    const handleTransfer = () => {
+        setTransferModalVisible(true);
+    };
+
+    return (
+        <ScrollView
+            testID="dashboard_screen"
+            style={[styles.container, { backgroundColor: colors.background }]}
+            contentContainerStyle={{
+                paddingBottom: spacing.tabBarOffset,
+            }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+        >
+            <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
+                    {t(greetingKey)}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text
+                        style={{
+                            color: colors.foreground,
+                            fontSize: typography.sizes['3xl'],
+                            fontWeight: typography.weights.bold,
+                        }}
+                    >
+                        {t('dashboard.title')}
+                    </Text>
+                    <Avatar label="V" size="sm" />
+                </View>
+            </View>
+
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <BalanceCard
+                    totalBalance={totalBalance}
+                    monthlyIncome={currentMonthIncome}
+                    monthlyExpense={currentMonthExpense}
+                    netBalance={netBalance}
+                    incomeChange={incomeChange}
+                    expenseChange={expenseChange}
+                    netBalanceChange={netBalanceChange}
+                    securityEnabled={isSecurityEnabled}
+                    onRequestAuth={handleRequestAuth}
+                />
+            </View>
+
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                <InsightBanner
+                    message={t(savingsHealth.messageKey, savingsHealth.messageParams)}
+                    variant={SAVINGS_VARIANT[savingsHealth.level]}
+                    icon="pulse-outline"
+                />
+            </View>
+
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <BudgetProgress
+                    budgetSummaries={budgetSummaries}
+                    totalSpent={totalBudgetSpent}
+                    totalLimit={totalBudgetLimit}
+                    hasBudgets={hasBudgets}
+                    onCreateBudget={() => setBudgetModalVisible(true)}
+                />
+            </View>
+
+            {budgetPace && (
+                <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                    <InsightBanner
+                        message={t(budgetPace.messageKey, budgetPace.messageParams)}
+                        variant={budgetPace.overBudgetPace ? 'warning' : 'success'}
+                        icon="speedometer-outline"
+                    />
+                </View>
+            )}
+
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <SpendingBreakdown data={spendingByCategory} />
+            </View>
+
+            {categoryRisk.riskLevel !== 'low' && (
+                <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                    <InsightBanner
+                        message={t('insights.categoryRisk', { category: categoryRisk.topCategory, percent: categoryRisk.percentage.toFixed(0) })}
+                        variant={categoryRisk.riskLevel === 'high' ? 'destructive' : 'warning'}
+                        icon="pie-chart-outline"
+                    />
+                </View>
+            )}
+
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <QuickActions
+                    onAddExpense={handleAddExpense}
+                    onAddIncome={handleAddIncome}
+                    onTransfer={handleTransfer}
+                />
+            </View>
+
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <WalletList wallets={wallets} />
+            </View>
+
+            <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
+                <Card>
+                    <SectionHeader title={t('dashboard.recentTransactions')} />
+                    <TransactionList transactions={transactions.slice(0, 5)} showDateHeaders={false} />
+                </Card>
+            </View>
+
+            <AddTransactionModal
+                visible={modalVisible}
+                initialType={modalType}
+                onClose={() => setModalVisible(false)}
+                onSuccess={async () => {
+                    await Promise.all([refreshTransactions(), refreshWallets()]);
+                }}
+            />
+
+            <TransferModal
+                visible={transferModalVisible}
+                onClose={() => setTransferModalVisible(false)}
+                onSuccess={async () => {
+                    await Promise.all([refreshTransactions(), refreshWallets()]);
+                }}
+            />
+
+            <AddBudgetModal
+                visible={budgetModalVisible}
+                onClose={() => setBudgetModalVisible(false)}
+                onCreateBudget={async (dto) => {
+                    await createBudget(dto);
+                }}
+                budgetedCategoryIds={budgetedCategoryIds}
+            />
+        </ScrollView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+});
