@@ -32,6 +32,7 @@ import { TransactionFilters } from '../../domain/filters/filterTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
+import { centsToMajor } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -64,7 +65,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     const { t, i18n } = useTranslation();
     const { categories } = useCategories();
     const { wallets } = useWallets();
-    const { parseAmount } = useFormatting();
+    const { parseAmountToCents } = useFormatting();
 
     // ── Local filter state (copied from current on open) ──────────────
 
@@ -87,8 +88,9 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
             setSelectedWalletIds(currentFilters.walletIds || []);
             setStartDate(currentFilters.startDate);
             setEndDate(currentFilters.endDate);
-            setMinAmount(currentFilters.minAmount !== undefined ? String(currentFilters.minAmount) : '');
-            setMaxAmount(currentFilters.maxAmount !== undefined ? String(currentFilters.maxAmount) : '');
+            // Stored as cents; the inputs show major units, the same way the user typed them.
+            setMinAmount(currentFilters.minAmountCents !== undefined ? String(centsToMajor(currentFilters.minAmountCents)) : '');
+            setMaxAmount(currentFilters.maxAmountCents !== undefined ? String(centsToMajor(currentFilters.maxAmountCents)) : '');
         }
     }, [visible, currentFilters]);
 
@@ -154,14 +156,17 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
         if (startDate) filters.startDate = startDate;
         if (endDate) filters.endDate = endDate;
 
-        const parsedMin = parseAmount(minAmount);
-        const parsedMax = parseAmount(maxAmount);
-        if (parsedMin !== null && parsedMin >= 0) filters.minAmount = parsedMin;
-        if (parsedMax !== null && parsedMax >= 0) filters.maxAmount = parsedMax;
+        // The user types major units; transactions are stored in cents. Convert at this
+        // boundary so the filter compares cents to cents. Unparseable input is dropped
+        // silently, leaving that bound unapplied.
+        const parsedMin = parseAmountToCents(minAmount);
+        const parsedMax = parseAmountToCents(maxAmount);
+        if (parsedMin !== null) filters.minAmountCents = parsedMin;
+        if (parsedMax !== null) filters.maxAmountCents = parsedMax;
 
         onApply(filters);
         onClose();
-    }, [selectedTypes, selectedCategoryIds, selectedWalletIds, startDate, endDate, minAmount, maxAmount, parseAmount, onApply, onClose]);
+    }, [selectedTypes, selectedCategoryIds, selectedWalletIds, startDate, endDate, minAmount, maxAmount, parseAmountToCents, onApply, onClose]);
 
     const handleReset = useCallback(() => {
         setSelectedTypes([]);
