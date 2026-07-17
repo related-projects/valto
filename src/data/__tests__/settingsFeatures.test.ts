@@ -145,6 +145,28 @@ describe('Currency Feature', () => {
         }
     });
 
+    it('every currency declares a minor-unit exponent of 0, 2, or 3', () => {
+        for (const c of SUPPORTED_CURRENCIES) {
+            expect(typeof c.decimals).toBe('number');
+            expect([0, 2, 3]).toContain(c.decimals);
+        }
+    });
+
+    it('declares the exact set of 0-decimal currencies (no silent default to 2)', () => {
+        const zero = SUPPORTED_CURRENCIES.filter(c => c.decimals === 0).map(c => c.code).sort();
+        expect(zero).toEqual(
+            [
+                'BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW',
+                'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF',
+            ].sort(),
+        );
+    });
+
+    it('declares the exact set of 3-decimal currencies', () => {
+        const three = SUPPORTED_CURRENCIES.filter(c => c.decimals === 3).map(c => c.code).sort();
+        expect(three).toEqual(['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'].sort());
+    });
+
     it('currencies are sorted by code', () => {
         const codes = SUPPORTED_CURRENCIES.map(c => c.code);
         const sorted = [...codes].sort();

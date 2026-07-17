@@ -22,7 +22,7 @@ The interesting part of Valto is how a few problems were solved, not the feature
 
 **Transfers are bounded by the source balance; expenses may overdraw.** This asymmetry is intentional, not an oversight: a transfer _moves tracked funds_ between your own wallets, so it cannot exceed what's there; an expense _records a real-world outflow_, which may legitimately push a wallet negative. Blocking it would force the app to misrepresent reality.
 
-**Money is integer cents, converted in one place.** Amounts are stored as integers (cents); user input is converted to cents through a single function (`normalizeAmount`) so floating-point money errors can't enter from scattered call sites.
+**Money is integer minor units, converted in one place.** Amounts are stored as integers in the currency's minor unit (10^decimals per major unit — 2 for most currencies, 0 for JPY/CFA, 3 for KWD/BHD, per the currency registry); user input is converted through a single function (`normalizeAmount`) so floating-point money errors can't enter from scattered call sites.
 
 **The dependency rule is enforced, not just intended.** The domain layer has no imports from the data layer, and an ESLint boundary rule fails the build (and CI) if that is ever violated. "Clean Architecture" here is a constraint the tooling protects, not a label.
 

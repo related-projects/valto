@@ -45,7 +45,7 @@ const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess, initialType = 'expense' }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const { t, i18n } = useTranslation();
-    const { formatAmount, parseAmountToCents } = useFormatting();
+    const { formatAmount, parseAmountToCents, decimals } = useFormatting();
     const scrollViewRef = React.useRef<ScrollView>(null);
 
     // Hooks
@@ -173,7 +173,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     };
 
     const handleSave = async () => {
-        // Single input→storage conversion point (major units → integer cents).
+        // Single input→storage conversion point (major units → integer minor units).
         const amountNum = parseAmountToCents(amount);
 
         if (amountNum === null) {
@@ -307,7 +307,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                         style={[styles.input, { color: colors.foreground }]}
                                         placeholder="0.00"
                                         placeholderTextColor={colors.mutedForeground}
-                                        keyboardType="decimal-pad"
+                                        keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                                         value={amount}
                                         onChangeText={setAmount}
                                         testID="add_tx_amount_input"

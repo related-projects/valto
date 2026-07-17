@@ -22,7 +22,6 @@ import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
 import { useTheme } from "../../theme/theme";
 import { typography } from "../../theme/typography";
-import { normalizeAmount } from "../../utils/normalizeAmount";
 import { WALLET_COLORS, WALLET_TYPES } from "./walletConstants";
 
 interface EditWalletModalProps {
@@ -46,7 +45,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
 
   // Hooks
   const { updateWallet, deleteWallet, hasTransactions } = useWallets();
-  const { parseAmount } = useFormatting();
+  const { parseAmount, normalizeAmount, centsToMajor, decimals } = useFormatting();
 
   // Form state
   const [name, setName] = useState("");
@@ -60,12 +59,12 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
   useEffect(() => {
     if (wallet) {
       setName(wallet.name);
-      // Display balance in major units (dollars) for user editing
-      setBalance((wallet.balance / 100).toString());
+      // Display balance in major units for user editing (per-currency exponent)
+      setBalance(centsToMajor(wallet.balance).toString());
       setWalletType(wallet.type);
       setSelectedColor(wallet.color || WALLET_COLORS[0]);
     }
-  }, [wallet]);
+  }, [wallet, centsToMajor]);
 
   const handleSave = async () => {
     if (!wallet) return;
@@ -89,7 +88,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
       return;
     }
 
-    // Single input→storage conversion point (major units → integer cents).
+    // Single input→storage conversion point (major units → integer minor units).
     const balanceMinor = normalizeAmount(balanceNum);
 
     try {
@@ -301,7 +300,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
                     style={[styles.input, { color: colors.foreground }]}
                     placeholder="0.00"
                     placeholderTextColor={colors.mutedForeground}
-                    keyboardType="decimal-pad"
+                    keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                     value={balance}
                     onChangeText={setBalance}
                   />

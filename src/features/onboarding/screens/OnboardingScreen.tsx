@@ -29,7 +29,6 @@ import { WalletType } from '../../../domain/entities';
 import { useFormatting } from '../../../hooks/useFormatting';
 import { useTheme } from '../../../theme/theme';
 import { getButtonA11y } from '../../../utils/accessibility';
-import { normalizeAmount } from '../../../utils/normalizeAmount';
 import { useOnboarding } from '../hooks/useOnboarding';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -49,7 +48,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
-    const { parseAmount } = useFormatting();
+    const { parseAmount, normalizeAmount, decimals } = useFormatting();
     const {
         step,
         next,
@@ -303,7 +302,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 placeholderTextColor={colors.mutedForeground}
                 value={initialBalance}
                 onChangeText={setInitialBalance}
-                keyboardType="numeric"
+                keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                 testID="onboarding_wallet_balance"
             />
 

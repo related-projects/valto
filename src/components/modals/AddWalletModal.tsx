@@ -22,7 +22,6 @@ import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
 import { useTheme } from "../../theme/theme";
 import { typography } from "../../theme/typography";
-import { normalizeAmount } from "../../utils/normalizeAmount";
 import { WALLET_COLORS, WALLET_TYPES } from "./walletConstants";
 
 interface AddWalletModalProps {
@@ -44,7 +43,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
 
   // Hooks
   const { createWallet } = useWallets();
-  const { parseAmount } = useFormatting();
+  const { parseAmount, normalizeAmount, decimals } = useFormatting();
 
   // Form state
   const [name, setName] = useState("");
@@ -80,7 +79,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
       return;
     }
 
-    // Single input→storage conversion point (major units → integer cents).
+    // Single input→storage conversion point (major units → integer minor units).
     const balanceMinor = normalizeAmount(balanceNum);
 
     try {
@@ -241,7 +240,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
                     style={[styles.input, { color: colors.foreground }]}
                     placeholder="0.00"
                     placeholderTextColor={colors.mutedForeground}
-                    keyboardType="decimal-pad"
+                    keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                     value={balance}
                     onChangeText={setBalance}
                     testID="add_wallet_balance_input"
