@@ -13,14 +13,13 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionType } from '../../domain/entities/Transaction';
 import { RecurrenceFrequency } from '../../domain/entities/RecurringTransaction';
 import { useFormatting } from '../../hooks/useFormatting';
-import { centsToMajor } from '../../utils/normalizeAmount';
 import { getButtonA11y } from '../../utils/accessibility';
 import type { CreateRecurringTransactionDTO, UpdateRecurringTransactionDTO } from '../../domain/entities/RecurringTransaction';
 import type { RecurringTransaction } from '../../domain/entities/RecurringTransaction';
@@ -51,7 +50,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     const insets = useSafeAreaInsets();
     const { wallets } = useWallets();
     const { categories } = useCategories();
-    const { parseAmountToCents } = useFormatting();
+    const { parseAmountToCents, centsToMajor, decimals } = useFormatting();
 
     const isEdit = !!existingRule;
 
@@ -69,7 +68,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
 
     // ─── State ────────────────────────────────────────────────────────
     const [type, setType] = useState<TransactionType>(existingRule?.type ?? TransactionType.EXPENSE);
-    const [amount, setAmount] = useState(existingRule ? String(centsToMajor(existingRule.amount)) : '');
+    const [amount, setAmount] = useState('');
     const [walletId, setWalletId] = useState(existingRule?.walletId ?? (wallets[0]?.id ?? ''));
     const [categoryId, setCategoryId] = useState(existingRule?.categoryId ?? '');
     const [description, setDescription] = useState(existingRule?.description ?? '');
@@ -83,6 +82,14 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     const [showStartPicker, setShowStartPicker] = useState(false);
     const [showEndPicker, setShowEndPicker] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+
+    // Seed the amount field in major units when editing (per-currency exponent).
+    // Re-runs once decimals resolves so a non-2-decimal currency seeds correctly.
+    useEffect(() => {
+        if (existingRule) {
+            setAmount(String(centsToMajor(existingRule.amount)));
+        }
+    }, [existingRule, centsToMajor]);
 
     // Filter categories by type and map to DropdownItem
     const filteredCategories = categories.filter(c => {
@@ -290,7 +297,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         placeholder="0.00"
                         value={amount}
                         onChangeText={setAmount}
-                        keyboardType="numeric"
+                        keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                     />
                 </View>
 

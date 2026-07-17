@@ -111,3 +111,39 @@ describe('formatAmountWhole', () => {
         expect(formatAmountWhole(100000, '¥')).toBe('¥1,000');
     });
 });
+
+// ─── Per-currency exponent (decimals: 0 | 2 | 3) ───────────────────────
+describe('formatAmount — currency exponent', () => {
+    it('renders a 0-decimal currency with no decimal part (DoD 1)', () => {
+        // 100000 minor units in XOF (decimals 0) is 100,000 CFA — a whole amount.
+        expect(formatAmount(100000, 'CFA', 'dot', 0)).toBe('CFA100,000');
+    });
+
+    it('renders a 0-decimal currency under the comma preference', () => {
+        expect(formatAmount(100000, 'CFA', 'comma', 0)).toBe('CFA100.000');
+    });
+
+    it('renders a 2-decimal currency unchanged (DoD 2)', () => {
+        expect(formatAmount(1250, '$', 'dot', 2)).toBe('$12.50');
+    });
+
+    it('renders a 3-decimal currency with three fraction digits (DoD 3)', () => {
+        // 1500 minor units in KWD (decimals 3) is 1.500 dinar.
+        expect(formatAmount(1500, 'KD', 'dot', 3)).toBe('KD1.500');
+    });
+
+    it('renders a 3-decimal currency under the comma preference', () => {
+        expect(formatAmount(1500, 'KD', 'comma', 3)).toBe('KD1,500');
+    });
+
+    it('compact form honours the exponent', () => {
+        // XOF 100000 minor = 100,000 major → 100.0k
+        expect(formatAmountCompact(100000, 'CFA', 'dot', 0)).toBe('CFA100.0k');
+    });
+
+    it('whole form honours the exponent', () => {
+        expect(formatAmountWhole(100000, 'CFA', 'dot', 0)).toBe('CFA100,000');
+        // 1.5 dinar rounds to a whole 2.
+        expect(formatAmountWhole(1500, 'KD', 'dot', 3)).toBe('KD2');
+    });
+});

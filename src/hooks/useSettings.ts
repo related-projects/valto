@@ -14,7 +14,7 @@ import { Alert } from 'react-native';
 import { dataEvents } from '../core/events/dataEvents';
 import { createAndShareBackup, pickAndRestoreBackup } from '../data/services/backupService';
 import { setNotificationsEnabled } from '../data/services/notificationService';
-import { resetAppData } from '../data/services/resetService';
+import { resetAppData, resetFinancialDataForCurrencyReset } from '../data/services/resetService';
 import {
     type AppSettings,
     type DateFormatPreference,
@@ -23,7 +23,6 @@ import {
     loadSettings,
     selectAndLockCurrency,
     type ThemePreference,
-    unlockAndResetCurrency,
     updateSetting,
 } from '../data/services/settingsService';
 import { type CurrencyDefinition, getCurrencyByCode } from '../domain/constants/currencies';
@@ -37,6 +36,7 @@ export interface UseSettingsResult {
     currency: CurrencyDefinition;
     language: LanguageDefinition;
     isCurrencyLocked: boolean;
+    isResettingCurrency: boolean;
     createBackup: () => Promise<void>;
     restoreBackup: () => void;
     resetAllData: () => void;
@@ -45,6 +45,7 @@ export interface UseSettingsResult {
     handleLanguageSelect: (language: LanguageDefinition) => Promise<void>;
     toggleNotifications: () => void;
     resetCurrency: () => void;
+    cancelCurrencyReset: () => void;
     changeDateFormat: () => void;
     changeFirstDayOfWeek: () => void;
     changeDecimalSeparator: () => void;
@@ -204,30 +205,65 @@ export function useSettings(): UseSettingsResult {
 
     // ── Currency ──────────────────────────────────────────────────────
     const handleCurrencySelect = useCallback(async (selected: CurrencyDefinition) => {
-        // Same-currency guard — skip no-op
-        if (selected.code === settings.currency && settings.currencyLocked) {
-            setIsResettingCurrency(false);
+        if (isResettingCurrency) {
+            // Picking the current currency changes nothing — cancel the reset, wipe nothing.
+            if (selected.code === settings.currency) {
+                setIsResettingCurrency(false);
+                setSettings(prev => ({ ...prev, currencyLocked: true }));
+                return;
+            }
+
+            // Final irreversible confirmation before erasing all financial data.
+            Alert.alert(
+                t('alerts.resetIrreversible'),
+                t('alerts.resetCurrencyIrreversibleMessage', { code: selected.code }),
+                [
+                    {
+                        text: t('alerts.cancel'),
+                        style: 'cancel',
+                        onPress: () => {
+                            setIsResettingCurrency(false);
+                            setSettings(prev => ({ ...prev, currencyLocked: true }));
+                        },
+                    },
+                    {
+                        text: t('alerts.deleteEverything'),
+                        style: 'destructive',
+                        onPress: async () => {
+                            try {
+                                setLoading(true);
+                                const updated = await resetFinancialDataForCurrencyReset(selected.code);
+                                setSettings(updated);
+                                setIsResettingCurrency(false);
+                                Alert.alert(
+                                    t('alerts.resetCurrencySuccess'),
+                                    t('alerts.resetCurrencySuccessMessage', { code: selected.code }),
+                                );
+                            } catch (error) {
+                                console.error('Currency reset error:', error);
+                                setIsResettingCurrency(false);
+                                setSettings(prev => ({ ...prev, currencyLocked: true }));
+                                Alert.alert(t('alerts.error'), t('alerts.resetCurrencyFailed'));
+                            } finally {
+                                setLoading(false);
+                            }
+                        },
+                    },
+                ],
+            );
             return;
         }
 
+        // First-time selection (currency not yet locked).
+        if (selected.code === settings.currency && settings.currencyLocked) return;
         try {
-            let updated: AppSettings;
-
-            if (isResettingCurrency) {
-                // Use unlockAndResetCurrency to bypass the lock check
-                updated = await unlockAndResetCurrency(selected.code);
-                setIsResettingCurrency(false);
-            } else {
-                if (settings.currencyLocked) return;
-                updated = await selectAndLockCurrency(selected.code);
-            }
-
+            if (settings.currencyLocked) return;
+            const updated = await selectAndLockCurrency(selected.code);
             setSettings(updated);
             dataEvents.emit('settings');
         } catch (error) {
             console.error('Currency update error:', error);
             Alert.alert(t('alerts.error'), t('alerts.errorCurrency'));
-            setIsResettingCurrency(false);
         }
     }, [settings.currencyLocked, settings.currency, isResettingCurrency, t]);
 
@@ -244,15 +280,23 @@ export function useSettings(): UseSettingsResult {
                     text: t('alerts.continue'),
                     style: 'destructive',
                     onPress: () => {
-                        // Mark as resetting so handleCurrencySelect uses unlockAndResetCurrency
+                        // Arm the reset so the next currency pick routes through the
+                        // destructive wipe path; unlock locally to reveal the picker.
                         setIsResettingCurrency(true);
-                        // Temporarily show picker by unlocking in local state only
                         setSettings(prev => ({ ...prev, currencyLocked: false }));
                     },
                 },
             ],
         );
     }, [settings.currencyLocked, t]);
+
+    // Abandon an armed currency reset (e.g. the user dismissed the picker). Re-locks
+    // the currency and touches no data. No-op when not currently resetting.
+    const cancelCurrencyReset = useCallback(() => {
+        if (!isResettingCurrency) return;
+        setIsResettingCurrency(false);
+        setSettings(prev => ({ ...prev, currencyLocked: true }));
+    }, [isResettingCurrency]);
 
     // ── Language ──────────────────────────────────────────────────────
     const handleLanguageSelect = useCallback(async (selected: LanguageDefinition) => {
@@ -348,6 +392,7 @@ export function useSettings(): UseSettingsResult {
         currency,
         language,
         isCurrencyLocked: settings.currencyLocked,
+        isResettingCurrency,
         createBackup,
         restoreBackup,
         resetAllData,
@@ -356,6 +401,7 @@ export function useSettings(): UseSettingsResult {
         handleLanguageSelect,
         toggleNotifications,
         resetCurrency,
+        cancelCurrencyReset,
         changeDateFormat,
         changeFirstDayOfWeek,
         changeDecimalSeparator,

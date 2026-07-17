@@ -47,7 +47,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
   const { colors, spacing, typography, radius } = useTheme();
   const { t } = useTranslation();
   const { expenseCategories } = useCategories();
-  const { parseAmountToCents } = useFormatting();
+  const { parseAmountToCents, decimals } = useFormatting();
 
   // Form state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -79,7 +79,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
       return;
     }
 
-    // Single input→storage conversion point (major units → integer cents).
+    // Single input→storage conversion point (major units → integer minor units).
     const amountNum = parseAmountToCents(limitAmount);
 
     if (amountNum === null) {
@@ -248,7 +248,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                     style={[styles.input, { color: colors.foreground }]}
                     placeholder="0.00"
                     placeholderTextColor={colors.mutedForeground}
-                    keyboardType="decimal-pad"
+                    keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                     value={limitAmount}
                     onChangeText={setLimitAmount}
                     autoFocus

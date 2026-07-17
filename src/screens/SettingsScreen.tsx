@@ -38,6 +38,7 @@ export const SettingsScreen = () => {
         handleLanguageSelect,
         toggleNotifications,
         resetCurrency,
+        cancelCurrencyReset,
         changeDateFormat,
         changeFirstDayOfWeek,
         changeDecimalSeparator,
@@ -374,7 +375,11 @@ export const SettingsScreen = () => {
             />
             <CurrencyPickerModal
                 visible={currencyPickerVisible}
-                onClose={() => setCurrencyPickerVisible(false)}
+                onClose={() => {
+                    setCurrencyPickerVisible(false);
+                    // Dismissing the picker without choosing abandons an armed reset.
+                    cancelCurrencyReset();
+                }}
                 onSelect={onCurrencySelected}
                 selectedCode={settings.currency}
                 locked={isCurrencyLocked}
