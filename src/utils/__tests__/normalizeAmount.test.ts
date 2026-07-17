@@ -104,8 +104,16 @@ describe('parseAmountInput', () => {
     });
 
     it('reads the decimal separator as a decimal even on a three-digit group', () => {
-        expect(parseAmountInput('1.000', 'dot')).toBe(1);
-        expect(parseAmountInput('1,000', 'comma')).toBe(1);
+        // A 3-digit group after the DECIMAL separator is the fraction, not thousands.
+        // Needs a 3-decimal currency, else the group exceeds the fraction-digit budget.
+        expect(parseAmountInput('1.000', 'dot', 3)).toBe(1);
+        expect(parseAmountInput('1,000', 'comma', 3)).toBe(1);
+    });
+
+    it('rejects a three-digit fraction under the default 2-decimal budget', () => {
+        // Same inputs as above, but 3 fraction digits > 2 allowed → over-precision.
+        expect(parseAmountInput('1.000', 'dot')).toBeNull();
+        expect(parseAmountInput('1,000', 'comma')).toBeNull();
     });
 
     it('parses grouped amounts with decimals', () => {
@@ -174,5 +182,51 @@ describe('centsToMajor', () => {
 
     it('handles zero', () => {
         expect(centsToMajor(0)).toBe(0);
+    });
+});
+
+// ─── Per-currency exponent (decimals: 0 | 2 | 3) ───────────────────────
+describe('currency exponent', () => {
+    it('normalizeAmount scales by 10^decimals', () => {
+        expect(normalizeAmount(1000, 0)).toBe(1000);
+        expect(normalizeAmount(12.5, 2)).toBe(1250);
+        expect(normalizeAmount(1.5, 3)).toBe(1500);
+    });
+
+    it('centsToMajor divides by 10^decimals', () => {
+        expect(centsToMajor(1000, 0)).toBe(1000);
+        expect(centsToMajor(1250, 2)).toBe(12.5);
+        expect(centsToMajor(1500, 3)).toBe(1.5);
+    });
+
+    it('parses a whole amount for a 0-decimal currency without ×100 (DoD 4)', () => {
+        // Under the old 2-decimal assumption this returned 100000.
+        expect(parseAndNormalizeAmount('1000', 'dot', 0)).toBe(1000);
+    });
+
+    it('rejects more fraction digits than a 0-decimal currency allows (DoD 5)', () => {
+        expect(parseAndNormalizeAmount('12.5', 'dot', 0)).toBeNull();
+        expect(parseAmountInput('12.5', 'dot', 0)).toBeNull();
+    });
+
+    it('rejects more fraction digits than a 2-decimal currency allows', () => {
+        expect(parseAmountInput('12.555', 'dot', 2)).toBeNull();
+    });
+
+    it('accepts exactly the fraction digits a 3-decimal currency allows', () => {
+        expect(parseAmountInput('1.500', 'dot', 3)).toBe(1.5);
+        expect(parseAndNormalizeAmount('1.5', 'dot', 3)).toBe(1500);
+    });
+
+    it('round-trips parse(format(x)) === x for one currency of each exponent (DoD 6)', () => {
+        const cases: [number, number][] = [
+            [100000, 0], // XOF
+            [1250, 2], // USD
+            [1500, 3], // KWD
+        ];
+        for (const [minor, decimals] of cases) {
+            const major = String(centsToMajor(minor, decimals));
+            expect(parseAndNormalizeAmount(major, 'dot', decimals)).toBe(minor);
+        }
     });
 });

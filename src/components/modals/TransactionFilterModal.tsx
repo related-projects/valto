@@ -32,7 +32,6 @@ import { TransactionFilters } from '../../domain/filters/filterTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
-import { centsToMajor } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -65,7 +64,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     const { t, i18n } = useTranslation();
     const { categories } = useCategories();
     const { wallets } = useWallets();
-    const { parseAmountToCents } = useFormatting();
+    const { parseAmountToCents, centsToMajor, decimals } = useFormatting();
 
     // ── Local filter state (copied from current on open) ──────────────
 
@@ -88,11 +87,11 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
             setSelectedWalletIds(currentFilters.walletIds || []);
             setStartDate(currentFilters.startDate);
             setEndDate(currentFilters.endDate);
-            // Stored as cents; the inputs show major units, the same way the user typed them.
+            // Stored as minor units; the inputs show major units, the same way the user typed them.
             setMinAmount(currentFilters.minAmountCents !== undefined ? String(centsToMajor(currentFilters.minAmountCents)) : '');
             setMaxAmount(currentFilters.maxAmountCents !== undefined ? String(centsToMajor(currentFilters.maxAmountCents)) : '');
         }
-    }, [visible, currentFilters]);
+    }, [visible, currentFilters, centsToMajor]);
 
     // ── Handlers ──────────────────────────────────────────────────────
 
@@ -407,7 +406,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                                         style={{ color: colors.foreground, fontSize: typography.sizes.sm, flex: 1, padding: 0 }}
                                         placeholder={t('transactions.filter.minAmount')}
                                         placeholderTextColor={colors.mutedForeground}
-                                        keyboardType="decimal-pad"
+                                        keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                                         value={minAmount}
                                         onChangeText={setMinAmount}
                                         testID="filter_min_amount_input"
@@ -419,7 +418,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
                                         style={{ color: colors.foreground, fontSize: typography.sizes.sm, flex: 1, padding: 0 }}
                                         placeholder={t('transactions.filter.maxAmount')}
                                         placeholderTextColor={colors.mutedForeground}
-                                        keyboardType="decimal-pad"
+                                        keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                                         value={maxAmount}
                                         onChangeText={setMaxAmount}
                                         testID="filter_max_amount_input"
