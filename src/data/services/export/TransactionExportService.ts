@@ -15,6 +15,10 @@ import * as Sharing from 'expo-sharing';
 import type { Transaction } from '../../../domain/entities/Transaction';
 import type { Wallet } from '../../../domain/entities/Wallet';
 import type { Category } from '../../../domain/entities/Category';
+import { getCurrencyByCode, type CurrencyDefinition } from '../../../domain/constants/currencies';
+import { loadSettings, type DecimalSeparator } from '../settingsService';
+import { formatAmount } from '../../../utils/formatAmount';
+import { centsToMajor } from '../../../utils/normalizeAmount';
 
 // ─── CSV Export ───────────────────────────────────────────────────────
 
@@ -41,25 +45,39 @@ function buildNameMap(items: Array<{ id: string; name: string }>): Map<string, s
 }
 
 /**
+ * Format an integer minor-unit amount as a machine-readable number for CSV:
+ * dot decimal separator, no thousands grouping, no currency symbol, and exactly
+ * `decimals` fraction digits (0 decimals → no decimal point). Reuses the shared
+ * minor→major scale helper so no scaling logic is duplicated here.
+ */
+function formatCsvAmount(amountMinor: number, decimals: number): string {
+    return centsToMajor(amountMinor, decimals).toFixed(decimals);
+}
+
+/**
  * Generate a CSV string from transactions.
  * Resolves walletId/categoryId to human-readable names.
+ * Amounts are emitted in `currency`'s minor-unit exponent (machine-readable),
+ * with an ISO currency-code column so the amount's scale is self-describing.
  */
 export function generateCSV(
     transactions: Transaction[],
     wallets: Wallet[],
     categories: Category[],
+    currency: CurrencyDefinition,
 ): string {
     const walletNames = buildNameMap(wallets);
     const categoryNames = buildNameMap(categories);
 
-    const header = 'date,type,amount,wallet,category,description';
+    const header = 'date,type,amount,currency,wallet,category,description';
 
     const rows = transactions.map(tx => {
         const date = tx.date.toISOString().split('T')[0]; // YYYY-MM-DD
+        const amount = formatCsvAmount(tx.amount, currency.decimals);
         const wallet = escapeCSV(walletNames.get(tx.walletId) ?? tx.walletId);
         const category = escapeCSV(categoryNames.get(tx.categoryId) ?? tx.categoryId);
         const description = escapeCSV(tx.note ?? '');
-        return `${date},${tx.type},${tx.amount.toFixed(2)},${wallet},${category},${description}`;
+        return `${date},${tx.type},${amount},${currency.code},${wallet},${category},${description}`;
     });
 
     return [header, ...rows].join('\n');
@@ -73,7 +91,9 @@ export async function shareCSV(
     wallets: Wallet[],
     categories: Category[],
 ): Promise<void> {
-    const csv = generateCSV(transactions, wallets, categories);
+    const settings = await loadSettings();
+    const currency = getCurrencyByCode(settings.currency);
+    const csv = generateCSV(transactions, wallets, categories, currency);
     const filename = `valto_transactions_${new Date().toISOString().split('T')[0]}.csv`;
     const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
@@ -96,13 +116,18 @@ export async function shareCSV(
 
 /**
  * Generate an HTML string for a monthly PDF report.
+ * Amounts render as the app displays them: `currency` symbol, the user's
+ * decimal `separator`, and the currency's minor-unit `decimals`.
+ * Exported for unit testing (pure string build, no native modules).
  */
-function generateReportHTML(
+export function generateReportHTML(
     year: number,
     month: number,
     transactions: Transaction[],
     wallets: Wallet[],
     categories: Category[],
+    currency: CurrencyDefinition,
+    separator: DecimalSeparator,
 ): string {
     const walletNames = buildNameMap(wallets);
     const categoryNames = buildNameMap(categories);
@@ -124,7 +149,7 @@ function generateReportHTML(
                 <tr>
                     <td>${tx.date.toISOString().split('T')[0]}</td>
                     <td>${tx.type}</td>
-                    <td style="color: ${color}; font-weight: 600;">${sign}${tx.amount.toFixed(2)}</td>
+                    <td style="color: ${color}; font-weight: 600;">${sign}${formatAmount(tx.amount, currency.symbol, separator, currency.decimals)}</td>
                     <td>${walletNames.get(tx.walletId) ?? tx.walletId}</td>
                     <td>${categoryNames.get(tx.categoryId) ?? tx.categoryId}</td>
                     <td>${tx.note ?? ''}</td>
@@ -168,15 +193,15 @@ function generateReportHTML(
     <div class="summary">
         <div class="stat stat-income">
             <div class="stat-label">Income</div>
-            <div class="stat-value" style="color: #22c55e;">+${totalIncome.toFixed(2)}</div>
+            <div class="stat-value" style="color: #22c55e;">+${formatAmount(totalIncome, currency.symbol, separator, currency.decimals)}</div>
         </div>
         <div class="stat stat-expense">
             <div class="stat-label">Expenses</div>
-            <div class="stat-value" style="color: #ef4444;">-${totalExpense.toFixed(2)}</div>
+            <div class="stat-value" style="color: #ef4444;">-${formatAmount(totalExpense, currency.symbol, separator, currency.decimals)}</div>
         </div>
         <div class="stat stat-net">
             <div class="stat-label">Net Balance</div>
-            <div class="stat-value" style="color: ${netColor};">${netBalance >= 0 ? '+' : ''}${netBalance.toFixed(2)}</div>
+            <div class="stat-value" style="color: ${netColor};">${netBalance >= 0 ? '+' : ''}${formatAmount(netBalance, currency.symbol, separator, currency.decimals)}</div>
         </div>
     </div>
 
@@ -211,7 +236,9 @@ export async function shareMonthlyPDF(
     wallets: Wallet[],
     categories: Category[],
 ): Promise<void> {
-    const html = generateReportHTML(year, month, transactions, wallets, categories);
+    const settings = await loadSettings();
+    const currency = getCurrencyByCode(settings.currency);
+    const html = generateReportHTML(year, month, transactions, wallets, categories, currency, settings.decimalSeparator);
 
     const { uri } = await Print.printToFileAsync({
         html,
