@@ -44,3 +44,15 @@ app-example
 
 # coverage
 coverage/
+
+# Environment
+.env
+
+# Signing credentials & secrets — never commit
+credentials.json
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+.env*.local
