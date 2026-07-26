@@ -68,7 +68,7 @@
       ]
     ],
     "updates": {
-      "url": "https://u.expo.dev/placeholder-project-id"
+      "url": "https://u.expo.dev/d3276823-de41-47a7-affa-4ae3fc8e1391"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -83,6 +83,6 @@
         "projectId": "d3276823-de41-47a7-affa-4ae3fc8e1391"
       }
     },
-    "owner": "related-projetcs"
+    "owner": "related-projects"
   }
 }
