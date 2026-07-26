@@ -49,15 +49,23 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "valto-app",
-          "organization": "valto-org"
+          "project": "valto",
+          "organization": "renekakpo"
         }
       ],
       "expo-secure-store",
       "@react-native-community/datetimepicker",
       "expo-font",
       "expo-web-browser",
-      "./plugins/withoutApsEnvironment"
+      "./plugins/withoutApsEnvironment",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableJetifier": true
+          }
+        }
+      ]
     ],
     "updates": {
       "url": "https://u.expo.dev/placeholder-project-id"
