@@ -11,7 +11,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.renkakpo.valto.app",
-      "appleTeamId": "2Z64XRNQZU"
+      "appleTeamId": "2Z64XRNQZU",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -65,6 +68,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d3276823-de41-47a7-affa-4ae3fc8e1391"
+      }
+    },
+    "owner": "related-projetcs"
   }
 }
