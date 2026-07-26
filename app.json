@@ -49,8 +49,8 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "valto-app",
-          "organization": "valto-org"
+          "project": "valto",
+          "organization": "renekakpo"
         }
       ],
       "expo-secure-store",
