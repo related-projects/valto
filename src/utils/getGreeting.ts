@@ -1,13 +1,13 @@
 /**
- * getGreeting — Pure, deterministic greeting based on time of day.
+ * getGreeting - Pure, deterministic greeting based on time of day.
  *
  * Returns an i18n key (not a raw string) so the UI remains localization-ready.
  *
  * Time ranges:
- *   05:00–11:59  → 'dashboard.greetings.morning'
- *   12:00–16:59  → 'dashboard.greetings.afternoon'
- *   17:00–21:59  → 'dashboard.greetings.evening'
- *   22:00–04:59  → 'dashboard.greetings.night'
+ *   05:00-11:59  -> 'dashboard.greetings.morning'
+ *   12:00-16:59  -> 'dashboard.greetings.afternoon'
+ *   17:00-21:59  -> 'dashboard.greetings.evening'
+ *   22:00-04:59  -> 'dashboard.greetings.night'
  */
 
 export type GreetingKey =

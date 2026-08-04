@@ -25,7 +25,7 @@ import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
 import { getGreeting } from '../utils/getGreeting';
 
-/** Map savings-health level → visual variant */
+/** Map savings-health level -> visual variant */
 const SAVINGS_VARIANT: Record<SavingsLevel, InsightVariant> = {
     deficit: 'destructive',
     weak: 'warning',
@@ -82,7 +82,7 @@ export const DashboardScreen = () => {
             if (bioSuccess) return true;
         }
 
-        // Fall back to PIN — handled by the AuthGate overlay
+        // Fall back to PIN - handled by the AuthGate overlay
         // Return false so BalanceCard doesn't reveal; user will use AuthGate
         return false;
     }, [isUnlocked, securityConfig, biometrics, unlockWithBiometrics]);

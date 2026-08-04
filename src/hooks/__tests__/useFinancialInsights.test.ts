@@ -213,7 +213,7 @@ describe('useFinancialInsights', () => {
             expect(result.current.spendingTrend).toBeDefined();
         });
 
-        // Both months zero → stable
+        // Both months zero -> stable
         expect(result.current.spendingTrend.direction).toBe('stable');
     });
 });

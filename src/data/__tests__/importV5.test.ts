@@ -2,13 +2,13 @@
  * v5 Import Invariant & Balance Audit (Points 4 & 5 proof)
  *
  * Point 4: for every wallet migrated out of AsyncStorage, the recomputed ledger
- *   balance must equal the stored balance — no double-counting of
- *   opening_balance + transactions. v5 derives opening_balance = balance −
+ *   balance must equal the stored balance - no double-counting of
+ *   opening_balance + transactions. v5 derives opening_balance = balance -
  *   Σ ledgerEffect(imported txns), which must make the invariant hold including
  *   for double-entry transfer legs.
  * Point 5: the import path must actually INVOKE auditBalances() (otherwise the
  *   balance-auditing code is decorative), and post-import every wallet must show
- *   zero drift. The import is detect-only — it never rewrites a stored balance,
+ *   zero drift. The import is detect-only - it never rewrites a stored balance,
  *   so zero drift here is the derivation's doing, not a cleanup pass.
  *
  * The fixture is seeded the way the legacy AsyncStorageAdapter stored data
@@ -29,7 +29,7 @@ const ISO = '2026-01-01T00:00:00.000Z';
 
 // Two wallets whose stored balances already reflect their transactions,
 // including a double-entry transfer (out of Cash, into Bank).
-//   Cash: 100000 − 15000 (expense) + 5000 (income) − 25000 (transfer-out) = 65000
+//   Cash: 100000 - 15000 (expense) + 5000 (income) - 25000 (transfer-out) = 65000
 //   Bank: 0 + 25000 (transfer-in) = 25000
 const wallets: SerializableWallet[] = [
     { id: 'w-cash', name: 'Cash', balance: 65000, type: WalletType.CASH, createdAt: ISO },
@@ -93,7 +93,7 @@ describe('v5 import — recompute invariant & balance audit', () => {
 
     it('is idempotent: re-running the import does not double-count', async () => {
         await v5_import_from_asyncstorage.up({ storage, db });
-        await v5_import_from_asyncstorage.up({ storage, db }); // flag set → no-op
+        await v5_import_from_asyncstorage.up({ storage, db }); // flag set -> no-op
 
         const walletRepo = new WalletRepository(db);
         for (const w of wallets) {

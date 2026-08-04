@@ -10,7 +10,7 @@ import { ErrorFallback } from './ErrorFallback';
 
 interface ErrorBoundaryProps {
     children: ReactNode;
-    /** Optional callback invoked when an error is caught — use for telemetry / crash reporting */
+    /** Optional callback invoked when an error is caught - use for telemetry / crash reporting */
     onError?: (error: Error, componentStack: string | null | undefined) => void;
 }
 

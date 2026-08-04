@@ -26,7 +26,7 @@ jest.mock('../storage/AsyncStorageAdapter', () => {
     };
 });
 
-// Mock the DI container — repos are backed by the per-test SQLite db.
+// Mock the DI container - repos are backed by the per-test SQLite db.
 jest.mock('../../core/di', () => ({
     getWalletRepository: () =>
         new (require('../repositories/WalletRepository').WalletRepository)((global as any).__testSeedDb),

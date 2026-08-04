@@ -3,7 +3,7 @@
  *
  * Proves the filesystem-level reset targets the CORRECT files (the db file and
  * its WAL/SHM siblings) regardless of whether op-sqlite's getDbPath() reports a
- * full file path or a bare directory — and never a directory or a `/..` path
+ * full file path or a bare directory - and never a directory or a `/..` path
  * (the on-device ERR_FILE_NOT_WRITABLE regression). Also: clears the rebuild
  * pointers while keeping user settings.
  */
@@ -70,7 +70,7 @@ describe('deleteDatabaseFiles — target paths', () => {
 
     it('Case B: getDbPath() returns a DIRECTORY → still targets <dir>/valto.db (regression)', async () => {
         // The old derivation sliced off the last segment and produced
-        // `<parent-of-Library>/valto.db` — this asserts the corrected behaviour.
+        // `<parent-of-Library>/valto.db` - this asserts the corrected behaviour.
         mockGetDbPath.mockReturnValue(LIBRARY);
 
         await deleteDatabaseFiles();

@@ -206,7 +206,7 @@ export function useSettings(): UseSettingsResult {
     // ── Currency ──────────────────────────────────────────────────────
     const handleCurrencySelect = useCallback(async (selected: CurrencyDefinition) => {
         if (isResettingCurrency) {
-            // Picking the current currency changes nothing — cancel the reset, wipe nothing.
+            // Picking the current currency changes nothing - cancel the reset, wipe nothing.
             if (selected.code === settings.currency) {
                 setIsResettingCurrency(false);
                 setSettings(prev => ({ ...prev, currencyLocked: true }));

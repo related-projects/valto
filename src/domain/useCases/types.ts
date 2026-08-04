@@ -2,12 +2,12 @@
  * Use Case Shared Types
  *
  * Dependency types for domain use cases.
- * Use cases receive their dependencies via injection — no React, no singletons.
+ * Use cases receive their dependencies via injection - no React, no singletons.
  */
 
 import type { ICategoryRepository, ITransactionRepository, IWalletRepository } from '../repositories';
 
-/** Event emitter interface — matches DataEventEmitter shape without importing it */
+/** Event emitter interface - matches DataEventEmitter shape without importing it */
 export interface EventBus {
     emit(event: string): void;
     emitMultiple(events: string[]): void;

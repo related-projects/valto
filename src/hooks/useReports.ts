@@ -42,7 +42,7 @@ export interface UseReportsResult {
     totalIncome: number;
     totalExpense: number;
     netBalance: number;
-    /** Savings rate as 0–100 percentage. null when income is zero. */
+    /** Savings rate as 0-100 percentage. null when income is zero. */
     savingsRate: number | null;
 
     // Category Breakdown

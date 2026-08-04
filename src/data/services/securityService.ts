@@ -2,7 +2,7 @@
  * Security Service
  *
  * Handles PIN hashing, verification, and security config persistence.
- * PIN is never stored in plain text — only the SHA-256 hash is persisted.
+ * PIN is never stored in plain text - only the SHA-256 hash is persisted.
  * Uses the existing storage abstraction.
  */
 
@@ -112,7 +112,7 @@ export async function setupSecurity(
 // ─── PIN Lock-out (brute-force throttle) ──────────────────────────────
 //
 // The durable lock-out state lives in the device secure keystore
-// (expo-secure-store → iOS Keychain / Android Keystore), NOT AsyncStorage,
+// (expo-secure-store -> iOS Keychain / Android Keystore), NOT AsyncStorage,
 // so a kill+restart cannot reset the failed-attempt counter and it resists
 // tampering. The exponential-backoff policy itself is the pure domain module
 // `domain/security/lockout`.
@@ -150,14 +150,14 @@ export const secureStoreLockoutStore: LockoutPersistence = {
     },
 };
 
-/** Injectable time source — defaults to wall clock. */
+/** Injectable time source - defaults to wall clock. */
 export type Clock = () => number;
 
 /**
  * Lock-out-aware PIN verifier.
  *
  * Reads its state from the injected persistence on every call (no in-memory
- * cache), so a fresh instance over the same store observes the same lock-out —
+ * cache), so a fresh instance over the same store observes the same lock-out -
  * a kill+restart cannot clear it. The clock is injectable for deterministic
  * tests.
  */
@@ -188,7 +188,7 @@ export class PinLockoutService {
     /**
      * Verify a PIN under the lock-out policy.
      *
-     * While locked the call is rejected as locked WITHOUT comparing the hash —
+     * While locked the call is rejected as locked WITHOUT comparing the hash -
      * the short-circuit IS the throttle. `compare` is injectable so tests can
      * assert it is never invoked during a lock-out.
      */

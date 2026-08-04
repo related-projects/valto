@@ -1,5 +1,5 @@
 /**
- * Domain Use Cases — Barrel Export
+ * Domain Use Cases - Barrel Export
  */
 
 export { createTransaction, type CreateTransactionInput } from './createTransaction';

@@ -64,7 +64,7 @@ describe('parseAndNormalizeAmount', () => {
     });
 
     it('parses a dot decimal separator when the comma preference is active', () => {
-        // A misread here would store 125000 — a silent 100x error.
+        // A misread here would store 125000 - a silent 100x error.
         expect(parseAndNormalizeAmount('12.50', 'comma')).toBe(1250);
     });
 
@@ -111,7 +111,7 @@ describe('parseAmountInput', () => {
     });
 
     it('rejects a three-digit fraction under the default 2-decimal budget', () => {
-        // Same inputs as above, but 3 fraction digits > 2 allowed → over-precision.
+        // Same inputs as above, but 3 fraction digits > 2 allowed -> over-precision.
         expect(parseAmountInput('1.000', 'dot')).toBeNull();
         expect(parseAmountInput('1,000', 'comma')).toBeNull();
     });
@@ -155,7 +155,7 @@ describe('parseAmountInput', () => {
 
 describe('parse/format round-trip', () => {
     // formatAmount prefixes a currency symbol, but the parser's contract is the
-    // TextInput value, which never contains one — so format with an empty currency.
+    // TextInput value, which never contains one - so format with an empty currency.
     const CENTS = [1250, 200050, 50, 99, 100000, 1234567];
 
     it('parses back what formatAmount produces under the dot preference', () => {

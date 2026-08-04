@@ -90,7 +90,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
     };
 
     const handleTransfer = async () => {
-        // Single input→storage conversion point (major units → integer minor units).
+        // Single input->storage conversion point (major units -> integer minor units).
         const amountNum = parseAmountToCents(amount);
 
         if (amountNum === null) {

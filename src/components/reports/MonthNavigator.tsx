@@ -2,7 +2,7 @@
  * MonthNavigator Component
  *
  * Simple previous/next month navigation header.
- * Purely presentational — receives all data and callbacks as props.
+ * Purely presentational - receives all data and callbacks as props.
  */
 
 import { Ionicons } from '@expo/vector-icons';

@@ -211,7 +211,7 @@ describe('Percentage Change Calculation', () => {
     });
 
     it('handles negative previous value correctly', () => {
-        // current = 10, previous = -20 → ((10 - (-20)) / |-20|) * 100 = (30/20) * 100 = 150%
+        // current = 10, previous = -20 -> ((10 - (-20)) / |-20|) * 100 = (30/20) * 100 = 150%
         expect(calculatePercentageChange(10, -20)).toBe(150);
     });
 });

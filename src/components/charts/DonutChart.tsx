@@ -1,5 +1,5 @@
 /**
- * DonutChart — shared presentational donut primitive.
+ * DonutChart - shared presentational donut primitive.
  *
  * Renders only the SVG ring + an optional center-label overlay bounded to the
  * inner circle. Each consumer keeps its own data prep, legend, title, Card and
@@ -110,7 +110,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     const center = size / 2;
     const chartRadius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * chartRadius;
-    // Inner-circle diameter — bounding box for the center label.
+    // Inner-circle diameter - bounding box for the center label.
     const innerDiameter = 2 * (chartRadius - strokeWidth / 2);
 
     const denom = useMemo(

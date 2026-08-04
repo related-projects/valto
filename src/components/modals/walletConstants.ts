@@ -22,7 +22,7 @@ export const WALLET_COLORS = [
     '#3B82F6', // Blue
 ];
 
-/** Wallet type options for selection — labelKey maps to wallets.type.* in locale */
+/** Wallet type options for selection - labelKey maps to wallets.type.* in locale */
 export const WALLET_TYPES: { labelKey: string; value: WalletType; icon: keyof typeof Ionicons.glyphMap }[] = [
     { labelKey: 'cash', value: WalletType.CASH, icon: 'wallet-outline' },
     { labelKey: 'bank', value: WalletType.BANK, icon: 'card-outline' },

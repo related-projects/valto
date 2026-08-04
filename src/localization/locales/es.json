@@ -318,27 +318,27 @@
       {
         "id": "backup-data",
         "question": "¿Cómo hago una copia de seguridad de mis datos?",
-        "answer": "Ve a Ajustes → Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube."
+        "answer": "Ve a Ajustes > Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube."
       },
       {
         "id": "restore-data",
         "question": "¿Cómo restauro desde una copia de seguridad?",
-        "answer": "Ve a Ajustes → Restaurar datos. Elige tu archivo de copia de seguridad con el selector de archivos. La app validará la copia y reemplazará todos los datos actuales. Esta acción no se puede deshacer — considera hacer primero una copia de seguridad."
+        "answer": "Ve a Ajustes > Restaurar datos. Elige tu archivo de copia de seguridad con el selector de archivos. La app validará la copia y reemplazará todos los datos actuales. Esta acción no se puede deshacer: considera hacer primero una copia de seguridad."
       },
       {
         "id": "change-currency",
         "question": "¿Cómo cambio la moneda?",
-        "answer": "Ve a Ajustes → Moneda. Selecciona entre las monedas disponibles. El símbolo de moneda se actualizará en toda la aplicación."
+        "answer": "Ve a Ajustes > Moneda. Selecciona entre las monedas disponibles. El símbolo de moneda se actualizará en toda la aplicación."
       },
       {
         "id": "dark-mode",
         "question": "¿La app admite modo oscuro?",
-        "answer": "Sí. Ve a Ajustes → Tema y elige Claro, Oscuro o Sistema (sigue la configuración de tu dispositivo)."
+        "answer": "Sí. Ve a Ajustes > Tema y elige Claro, Oscuro o Sistema (sigue la configuración de tu dispositivo)."
       },
       {
         "id": "security",
         "question": "¿Cómo protejo mis datos con un PIN?",
-        "answer": "Ve a Ajustes → Seguridad y toca para configurar un PIN. También puedes activar la autenticación biométrica (huella o cara) para acceso rápido. La app se bloqueará automáticamente al pasar a segundo plano."
+        "answer": "Ve a Ajustes > Seguridad y toca para configurar un PIN. También puedes activar la autenticación biométrica (huella o cara) para acceso rápido. La app se bloqueará automáticamente al pasar a segundo plano."
       },
       {
         "id": "offline",
@@ -348,18 +348,18 @@
       {
         "id": "reset-data",
         "question": "¿Cómo restablezco todos los datos?",
-        "answer": "Ve a Ajustes → Restablecer todos los datos. Esto elimina permanentemente todas tus carteras, transacciones, categorías, presupuestos y ajustes. La app volverá a su estado inicial con datos predeterminados. Esta acción no se puede deshacer."
+        "answer": "Ve a Ajustes > Restablecer todos los datos. Esto elimina permanentemente todas tus carteras, transacciones, categorías, presupuestos y ajustes. La app volverá a su estado inicial con datos predeterminados. Esta acción no se puede deshacer."
       },
       {
         "id": "categories",
         "question": "¿Puedo personalizar las categorías?",
-        "answer": "Ve a Ajustes → Categorías. Puedes ver todas las categorías de gastos e ingresos. La gestión personalizada de categorías estará disponible en una futura actualización."
+        "answer": "Ve a Ajustes > Categorías. Puedes ver todas las categorías de gastos e ingresos. La gestión personalizada de categorías estará disponible en una futura actualización."
       }
     ]
   },
   "settings": {
     "title": "Configuración",
-    "processing": "Procesando…",
+    "processing": "Procesando...",
     "userName": "Usuario Valto",
     "premiumAccount": "Cuenta Premium",
     "sections": {
@@ -432,7 +432,7 @@
     "errorLanguage": "No se pudo actualizar el idioma. Inténtalo de nuevo.",
     "resetCurrency": "Restablecer moneda",
     "resetCurrencyMessage": "Cambiar tu moneda base borra permanentemente TODOS los datos financieros: carteras, transacciones, categorías y presupuestos. Los montos no se pueden convertir (no hay copia de seguridad ni sincronización). ¿Continuar?",
-    "resetCurrencyIrreversibleMessage": "Todos los datos financieros se borrarán permanentemente y {{code}} pasará a ser tu moneda base. No hay copia de seguridad ni sincronización — esto no se puede deshacer.",
+    "resetCurrencyIrreversibleMessage": "Todos los datos financieros se borrarán permanentemente y {{code}} pasará a ser tu moneda base. No hay copia de seguridad ni sincronización, por lo que esto no se puede deshacer.",
     "resetCurrencySuccess": "Moneda actualizada",
     "resetCurrencySuccessMessage": "Su moneda ha sido cambiada a {{code}}.",
     "resetCurrencyFailed": "No se pudo restablecer la moneda. Inténtalo de nuevo.",

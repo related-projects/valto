@@ -9,8 +9,8 @@
  * long-form help copy, which is authored natively rather than machine-translated
  * and is intentionally allowed to fall back to English in partial locales).
  *
- * The remaining locales (ar, hi, bn, ur, zh) are intentionally partial for now —
- * they render truthful English fallback until a native pass is done — so they are
+ * The remaining locales (ar, hi, bn, ur, zh) are intentionally partial for now -
+ * they render truthful English fallback until a native pass is done - so they are
  * only checked for "no extra keys" and "no empty values", not full coverage.
  */
 

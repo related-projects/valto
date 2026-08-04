@@ -29,7 +29,7 @@ export interface FinancialInsights {
 
 /**
  * Hook that derives financial insights from existing dashboard and budget data.
- * All heavy lifting is done by pure domain functions — this hook only wires data.
+ * All heavy lifting is done by pure domain functions - this hook only wires data.
  */
 export function useFinancialInsights(): FinancialInsights {
     const {

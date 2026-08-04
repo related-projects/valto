@@ -88,7 +88,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                 </View>
             </View>
 
-            {/* Floating Action Button — bottom right, above the tab bar */}
+            {/* Floating Action Button - bottom right, above the tab bar */}
             <TouchableOpacity
                 style={[
                     styles.fab,

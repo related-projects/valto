@@ -252,7 +252,7 @@ export const RecurringRulesScreen: React.FC = () => {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Header — matches CategoriesScreen pattern */}
+            {/* Header - matches CategoriesScreen pattern */}
             <View style={{
                 paddingTop: insets.top,
                 paddingHorizontal: spacing.lg,
@@ -292,7 +292,7 @@ export const RecurringRulesScreen: React.FC = () => {
                 ListEmptyComponent={loading ? null : renderEmpty}
             />
 
-            {/* FAB — matches CategoriesScreen pattern */}
+            {/* FAB - matches CategoriesScreen pattern */}
             {rules.length > 0 && (
                 <TouchableOpacity
                     style={{

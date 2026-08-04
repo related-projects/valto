@@ -249,7 +249,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     );
 
     const getItemLayout = (_data: ArrayLike<ListItem> | null | undefined, index: number) => {
-        // Approximate — headers and items have different heights
+        // Approximate - headers and items have different heights
         const item = sectionedData[index];
         const height = item?.type === 'header' ? HEADER_HEIGHT : ITEM_HEIGHT;
         return { length: height, offset: index * ITEM_HEIGHT, index };

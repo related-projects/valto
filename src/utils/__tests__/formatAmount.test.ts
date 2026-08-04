@@ -115,7 +115,7 @@ describe('formatAmountWhole', () => {
 // ─── Per-currency exponent (decimals: 0 | 2 | 3) ───────────────────────
 describe('formatAmount — currency exponent', () => {
     it('renders a 0-decimal currency with no decimal part (DoD 1)', () => {
-        // 100000 minor units in XOF (decimals 0) is 100,000 CFA — a whole amount.
+        // 100000 minor units in XOF (decimals 0) is 100,000 CFA - a whole amount.
         expect(formatAmount(100000, 'CFA', 'dot', 0)).toBe('CFA100,000');
     });
 
@@ -137,7 +137,7 @@ describe('formatAmount — currency exponent', () => {
     });
 
     it('compact form honours the exponent', () => {
-        // XOF 100000 minor = 100,000 major → 100.0k
+        // XOF 100000 minor = 100,000 major -> 100.0k
         expect(formatAmountCompact(100000, 'CFA', 'dot', 0)).toBe('CFA100.0k');
     });
 

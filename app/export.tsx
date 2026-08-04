@@ -1,6 +1,6 @@
 /**
  * Export Route
- * Expo Router route file — hides default header (screen has its own).
+ * Expo Router route file - hides default header (screen has its own).
  */
 
 import { Stack } from 'expo-router';

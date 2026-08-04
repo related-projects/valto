@@ -3,12 +3,12 @@
  *
  * Filesystem-level recovery for an unreadable encrypted database.
  *
- * Unlike `resetService.resetAppData()` — which clears tables via a WORKING
- * `getDb()` connection — this path assumes the store is corrupted/undecryptable
+ * Unlike `resetService.resetAppData()` - which clears tables via a WORKING
+ * `getDb()` connection - this path assumes the store is corrupted/undecryptable
  * and the connection cannot be trusted. It therefore deletes the database file
  * (and its WAL/SHM siblings) directly on disk, then clears the AsyncStorage
  * pointers (schema version + seed flag) so the subsequent boot rebuilds a fresh
- * encrypted DB from scratch. The keystore encryption key is intentionally kept —
+ * encrypted DB from scratch. The keystore encryption key is intentionally kept -
  * the file is the problem, not the key.
  *
  * Re-initialisation (migrations + seed) is NOT done here: the caller re-runs the
@@ -35,7 +35,7 @@ function stripTrailingSlash(p: string): string {
  *
  * op-sqlite's `getDbPath()` (no arg) returns the FULL FILE PATH `<base>/valto.db`
  * (verified against the native source), but older/other backends may hand back a
- * bare directory — so this handles BOTH shapes rather than assuming one. The base
+ * bare directory - so this handles BOTH shapes rather than assuming one. The base
  * dir differs by platform: iOS defaults to the Library directory (NOT Documents),
  * Android to the databases directory. The native module is required lazily so
  * importing this file never touches native code under Jest.
@@ -45,7 +45,7 @@ export function resolveDbDirectory(): string {
         const raw = getDb().getDbPath?.();
         if (raw) {
             const normalised = stripTrailingSlash(raw);
-            // Full file path (".../valto.db") → strip the "/valto.db" suffix.
+            // Full file path (".../valto.db") -> strip the "/valto.db" suffix.
             if (normalised.endsWith(`/${DB_NAME}`)) {
                 return stripTrailingSlash(normalised.slice(0, -(DB_NAME.length + 1)));
             }
@@ -53,7 +53,7 @@ export function resolveDbDirectory(): string {
             return normalised;
         }
     } catch {
-        // No live handle (init threw / already closed) — fall through.
+        // No live handle (init threw / already closed) - fall through.
     }
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { IOS_LIBRARY_PATH, ANDROID_DATABASE_PATH } = require('@op-engineering/op-sqlite');
@@ -68,7 +68,7 @@ function dbFileNames(): string[] {
 /**
  * Build the absolute on-disk paths to delete, joining the directory and each file
  * name with a SINGLE separator. Each target is validated to actually point at a
- * `valto.db[-wal|-shm]` file — never a directory and never a `/..` traversal — so
+ * `valto.db[-wal|-shm]` file - never a directory and never a `/..` traversal - so
  * a bad path resolution aborts instead of deleting the wrong thing.
  */
 export function buildTargetPaths(dir: string): string[] {
@@ -95,7 +95,7 @@ function toFileUri(absolutePath: string): string {
 
 /**
  * Delete `valto.db` and its `-wal` / `-shm` siblings from disk.
- * Idempotent — missing files are skipped via the `exists` guard.
+ * Idempotent - missing files are skipped via the `exists` guard.
  */
 export async function deleteDatabaseFiles(dir?: string): Promise<void> {
     const directory = dir ?? resolveDbDirectory();
@@ -123,7 +123,7 @@ export async function deleteDatabaseFiles(dir?: string): Promise<void> {
 /**
  * Recover from an unreadable store: close the handle, delete the DB files, and
  * clear the AsyncStorage pointers that would otherwise make a re-init skip
- * migrations/seed against the now-empty file. Does NOT re-initialise — the
+ * migrations/seed against the now-empty file. Does NOT re-initialise - the
  * caller re-runs the boot sequence afterwards.
  *
  * Callers MUST require explicit user confirmation before invoking this: it

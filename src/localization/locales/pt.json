@@ -276,7 +276,7 @@
     "about": {
         "title": "Sobre o Valto",
         "about": "Sobre",
-        "description": "O Valto é um app de controle de orçamento pessoal offline-first, feito para simplicidade e privacidade. Todos os seus dados financeiros permanecem no seu dispositivo — sem contas, sem sincronização na nuvem, sem rastreamento. Assuma o controle dos seus gastos com carteiras, orçamentos, categorias e insights financeiros inteligentes.",
+        "description": "O Valto é um app de controle de orçamento pessoal offline-first, feito para simplicidade e privacidade. Todos os seus dados financeiros permanecem no seu dispositivo: sem contas, sem sincronização na nuvem, sem rastreamento. Assuma o controle dos seus gastos com carteiras, orçamentos, categorias e insights financeiros inteligentes.",
         "appVersion": "Versão do app",
         "buildNumber": "Número de build",
         "sdkVersion": "Versão do SDK",
@@ -318,27 +318,27 @@
             {
                 "id": "backup-data",
                 "question": "Como faço o backup dos meus dados?",
-                "answer": "Vá em Configurações → Backup de Dados. Isso cria um arquivo JSON contendo todas as suas carteiras, transações, categorias, orçamentos e configurações. Você pode compartilhar ou salvar este arquivo no dispositivo ou na nuvem."
+                "answer": "Vá em Configurações > Backup de Dados. Isso cria um arquivo JSON contendo todas as suas carteiras, transações, categorias, orçamentos e configurações. Você pode compartilhar ou salvar este arquivo no dispositivo ou na nuvem."
             },
             {
                 "id": "restore-data",
                 "question": "Como restauro a partir de um backup?",
-                "answer": "Vá em Configurações → Restaurar Dados. Escolha o arquivo de backup usando o seletor de arquivos. O app validará o backup e substituirá todos os dados atuais. Essa ação não pode ser desfeita — considere fazer um backup antes."
+                "answer": "Vá em Configurações > Restaurar Dados. Escolha o arquivo de backup usando o seletor de arquivos. O app validará o backup e substituirá todos os dados atuais. Essa ação não pode ser desfeita: considere fazer um backup antes."
             },
             {
                 "id": "change-currency",
                 "question": "Como mudo a moeda?",
-                "answer": "Vá em Configurações → Moeda. Selecione entre as moedas disponíveis. O símbolo da moeda será atualizado em todo o aplicativo."
+                "answer": "Vá em Configurações > Moeda. Selecione entre as moedas disponíveis. O símbolo da moeda será atualizado em todo o aplicativo."
             },
             {
                 "id": "dark-mode",
                 "question": "O app suporta o modo escuro?",
-                "answer": "Sim. Vá em Configurações → Tema e escolha Claro, Escuro ou Sistema (segue a configuração do seu dispositivo)."
+                "answer": "Sim. Vá em Configurações > Tema e escolha Claro, Escuro ou Sistema (segue a configuração do seu dispositivo)."
             },
             {
                 "id": "security",
                 "question": "Como protejo meus dados com um PIN?",
-                "answer": "Vá em Configurações → Segurança e toque para configurar um PIN. Você também pode ativar a autenticação biométrica (impressão digital ou rosto) para acesso rápido. O app trava automaticamente ao ir para o segundo plano."
+                "answer": "Vá em Configurações > Segurança e toque para configurar um PIN. Você também pode ativar a autenticação biométrica (impressão digital ou rosto) para acesso rápido. O app trava automaticamente ao ir para o segundo plano."
             },
             {
                 "id": "offline",
@@ -348,18 +348,18 @@
             {
                 "id": "reset-data",
                 "question": "Como redefinir todos os dados?",
-                "answer": "Vá em Configurações → Redefinir Todos os Dados. Isso exclui permanentemente todas as carteiras, transações, categorias, orçamentos e configurações. O app voltará ao estado inicial com os dados padrão. Essa ação não pode ser desfeita."
+                "answer": "Vá em Configurações > Redefinir Todos os Dados. Isso exclui permanentemente todas as carteiras, transações, categorias, orçamentos e configurações. O app voltará ao estado inicial com os dados padrão. Essa ação não pode ser desfeita."
             },
             {
                 "id": "categories",
                 "question": "Posso personalizar as categorias?",
-                "answer": "Vá em Configurações → Categorias. Você pode ver todas as categorias de despesas e receitas. O gerenciamento personalizado de categorias estará disponível em uma atualização futura."
+                "answer": "Vá em Configurações > Categorias. Você pode ver todas as categorias de despesas e receitas. O gerenciamento personalizado de categorias estará disponível em uma atualização futura."
             }
         ]
     },
     "settings": {
         "title": "Configurações",
-        "processing": "Processando…",
+        "processing": "Processando...",
         "userName": "Usuário Valto",
         "premiumAccount": "Conta Premium",
         "sections": {
@@ -431,8 +431,8 @@
         "errorCurrency": "Não foi possível atualizar a moeda. Tente novamente.",
         "errorLanguage": "Não foi possível atualizar o idioma. Tente novamente.",
         "resetCurrency": "Redefinir moeda base",
-        "resetCurrencyMessage": "Alterar sua moeda base apaga permanentemente TODOS os dados financeiros — carteiras, transações, categorias e orçamentos. Os valores não podem ser convertidos (não há backup nem sincronização). Continuar?",
-        "resetCurrencyIrreversibleMessage": "Todos os dados financeiros serão apagados permanentemente e {{code}} se tornará sua moeda base. Não há backup nem sincronização — isso não pode ser desfeito.",
+        "resetCurrencyMessage": "Alterar sua moeda base apaga permanentemente TODOS os dados financeiros: carteiras, transações, categorias e orçamentos. Os valores não podem ser convertidos (não há backup nem sincronização). Continuar?",
+        "resetCurrencyIrreversibleMessage": "Todos os dados financeiros serão apagados permanentemente e {{code}} se tornará sua moeda base. Não há backup nem sincronização, portanto isso não pode ser desfeito.",
         "resetCurrencySuccess": "Moeda atualizada",
         "resetCurrencySuccessMessage": "Sua moeda base foi alterada para {{code}}.",
         "resetCurrencyFailed": "Falha ao redefinir a moeda. Tente novamente.",
@@ -634,11 +634,11 @@
     },
     "storeRecovery": {
         "title": "Não foi possível abrir seus dados",
-        "body": "Não foi possível carregar seus dados armazenados — o banco de dados local pode estar corrompido ou ilegível. Tente novamente ou redefina para começar do zero.",
+        "body": "Não foi possível carregar seus dados armazenados. O banco de dados local pode estar corrompido ou ilegível. Tente novamente ou redefina para começar do zero.",
         "tryAgain": "Tentar novamente",
         "reset": "Redefinir dados",
         "confirmTitle": "Apagar dados locais?",
-        "confirmBody": "Isso exclui permanentemente todos os dados deste dispositivo — carteiras, transações, categorias e orçamentos. Não há backup nem cópia no servidor, então isso não pode ser desfeito.",
+        "confirmBody": "Isso exclui permanentemente todos os dados deste dispositivo: carteiras, transações, categorias e orçamentos. Não há backup nem cópia no servidor, então isso não pode ser desfeito.",
         "confirmCta": "Apagar tudo",
         "cancel": "Cancelar",
         "resetFailedTitle": "Falha ao redefinir",

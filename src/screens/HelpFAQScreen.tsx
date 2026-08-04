@@ -2,7 +2,7 @@
  * Help & FAQ Screen
  *
  * Displays expandable/collapsible FAQ items.
- * Fully offline and fully i18n-driven — content sourced from translation files.
+ * Fully offline and fully i18n-driven - content sourced from translation files.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -111,7 +111,7 @@ export const HelpFAQScreen = () => {
     const router = useRouter();
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    // Pull translated FAQ items from i18n — returnObjects is required for arrays
+    // Pull translated FAQ items from i18n - returnObjects is required for arrays
     const faqItems = t('faq.items', { returnObjects: true }) as FAQItem[];
     const safeItems: FAQItem[] = Array.isArray(faqItems) ? faqItems : [];
 

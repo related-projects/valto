@@ -1,5 +1,5 @@
 /**
- * v3 — Normalize Transaction Amounts
+ * v3 - Normalize Transaction Amounts
  *
  * Ensures all transaction `amount` fields are non-negative.
  * Historical data may contain negative amounts if the sign was

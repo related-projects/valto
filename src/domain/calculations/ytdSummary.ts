@@ -14,11 +14,11 @@ export interface YearToDateSummary {
     totalIncome: number;
     /** Total expenses for the year (minor units) */
     totalExpenses: number;
-    /** Net = income − expenses (can be negative) */
+    /** Net = income - expenses (can be negative) */
     net: number;
     /**
-     * Savings rate as a decimal (0–1 range, or negative).
-     * Formula: (income − expenses) / income
+     * Savings rate as a decimal (0-1 range, or negative).
+     * Formula: (income - expenses) / income
      * Returns 0 when income is zero.
      */
     savingsRate: number;

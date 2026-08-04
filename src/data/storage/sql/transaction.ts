@@ -2,7 +2,7 @@
  * Transaction Runner
  *
  * Shared `runInTransaction` implementation used by every SqlDatabase adapter.
- * Opens BEGIN → runs work → COMMIT; ROLLBACK + rethrow on any error. Nested
+ * Opens BEGIN -> runs work -> COMMIT; ROLLBACK + rethrow on any error. Nested
  * calls degrade to SAVEPOINTs so a transactional use case invoked inside an
  * outer transaction is still atomic (and never issues an illegal nested BEGIN).
  *
@@ -10,14 +10,14 @@
  * better-sqlite3 is synchronous, so two `runInTransaction` calls can never
  * interleave there. op-sqlite is ASYNC, so without serialization two
  * independent top-level transactions on the single shared connection could
- * overlap — the second BEGIN would hit "cannot start a transaction within a
+ * overlap - the second BEGIN would hit "cannot start a transaction within a
  * transaction", or worse, silently couple two unrelated units of work into one
  * commit/rollback. A promise-chain mutex forces ONE top-level transaction to
  * run to completion before the next starts.
  *
  * Re-entrance stays cheap: a `runInTransaction` issued from inside an active
  * transaction's `work()` (same flow) sees `depth > 0` and nests via SAVEPOINT
- * WITHOUT taking the mutex — taking it would deadlock the flow against its own
+ * WITHOUT taking the mutex - taking it would deadlock the flow against its own
  * outer transaction. Because the mutex is awaited BEFORE `depth` is set, two
  * independent top-level calls issued in the same tick both observe `depth === 0`
  * and serialize, rather than one wrongly nesting into the other.
