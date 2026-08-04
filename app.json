@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#9C7855"
       },
       "package": "com.renkakpo.valto.app",
       "edgeToEdgeEnabled": true,
@@ -39,7 +39,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF",
+          "backgroundColor": "#9C7855",
           "dark": {
             "image": "./assets/images/splash-icon-dark.png",
             "backgroundColor": "#171310"

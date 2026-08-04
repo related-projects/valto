@@ -95,6 +95,35 @@ function idsMatching(filters: TransactionFilters, transactions: Transaction[]): 
     return filterTransactions(transactions, filters).map((t) => t.id);
 }
 
+/**
+ * Pay the one-time cost of realising this tree ONCE, before any test runs.
+ *
+ * The first render in this file resolves React Native's lazily-required modules
+ * (Modal, ScrollView, TextInput), the Ionicons glyphmap and DateTimePicker. With a
+ * cold jest cache that is ~1.6s locally and roughly 3x that on the CI runner - enough
+ * to blow the 5s default timeout of whichever test happens to render first. Paying it
+ * here removes the order dependence: no arbitrary test carries the allowance, and
+ * reordering or adding a test cannot silently move the failure. The 30s allowance is
+ * sized against the CI runner, not against local timings.
+ */
+beforeAll(async () => {
+    // beforeAll runs before beforeEach, so the settings mock must be primed here too.
+    mockedLoadSettings.mockResolvedValue(getDefaultSettings());
+
+    const view = render(
+        <TransactionFilterModal
+            visible
+            onClose={jest.fn()}
+            currentFilters={{}}
+            onApply={jest.fn()}
+            onReset={jest.fn()}
+        />,
+    );
+    // Settle the useFormatting effect before unmounting so no act() noise leaks out.
+    await waitFor(() => expect(mockedLoadSettings).toHaveBeenCalled());
+    view.unmount();
+}, 30_000);
+
 beforeEach(() => {
     jest.clearAllMocks();
     mockedLoadSettings.mockResolvedValue(getDefaultSettings());
