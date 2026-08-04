@@ -26,6 +26,21 @@ function localDate(y: number, m: number, d: number): Date {
     return new Date(y, m - 1, d);
 }
 
+/**
+ * First day of the month `monthsBack` months before the current month (local timezone).
+ *
+ * Engine tests must anchor rule fixtures to the run date: the engine computes due dates
+ * against the real clock, so absolute fixture dates make the due count grow one per month
+ * of elapsed time. With a monthly rule anchored on day 1,
+ * `startDate = monthStart(k)` + `lastGeneratedDate = monthStart(k + 1)` yields exactly
+ * `k + 1` due dates on any run date — the current month's occurrence is always on or before
+ * today, the next month's always after it.
+ */
+function monthStart(monthsBack: number): Date {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+}
+
 /** Format a Date to 'YYYY-MM-DD' using local timezone */
 function toLocalDateString(d: Date): string {
     const y = d.getFullYear();
@@ -245,13 +260,13 @@ describe('RecurringTransactionEngine', () => {
     });
 
     it('generates missing transactions for a rule', async () => {
-        // Rule started Jan 1, today is March 15 → should generate Jan, Feb, Mar
+        // Rule started two months ago, watermark one month before that
+        // → three dues: two months ago, last month, this month
         await recurringRepo.save(validRule({
-            startDate: localDate(2026, 1, 1),
-            lastGeneratedDate: localDate(2025, 12, 1),
+            startDate: monthStart(2),
+            lastGeneratedDate: monthStart(3),
         }));
 
-        // Mock "today" by checking the result
         const result = await processRecurringRules({
             recurringRepo,
             transactionRepo,
@@ -260,20 +275,20 @@ describe('RecurringTransactionEngine', () => {
         });
 
         expect(result.rulesEvaluated).toBe(1);
-        expect(result.transactionsGenerated).toBeGreaterThan(0);
+        expect(result.transactionsGenerated).toBe(3);
         expect(result.errors).toHaveLength(0);
 
         // Transactions should exist
         const txs = await transactionRepo.getAll();
-        expect(txs.length).toBeGreaterThan(0);
+        expect(txs).toHaveLength(3);
         expect(txs[0].walletId).toBe('w-1');
         expect(txs[0].categoryId).toBe('cat-1');
     });
 
     it('is idempotent — running twice produces no duplicates', async () => {
         await recurringRepo.save(validRule({
-            startDate: localDate(2026, 1, 1),
-            lastGeneratedDate: localDate(2025, 12, 1),
+            startDate: monthStart(2),
+            lastGeneratedDate: monthStart(3),
         }));
 
         await processRecurringRules({
@@ -281,6 +296,8 @@ describe('RecurringTransactionEngine', () => {
         });
 
         const countAfterFirst = (await transactionRepo.getAll()).length;
+        // Guard against a vacuous 0 === 0 pass if the first run generated nothing
+        expect(countAfterFirst).toBe(3);
 
         await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -303,18 +320,17 @@ describe('RecurringTransactionEngine', () => {
 
     it('updates lastGeneratedDate after generation', async () => {
         await recurringRepo.save(validRule({
-            startDate: localDate(2026, 1, 1),
-            lastGeneratedDate: localDate(2025, 12, 1),
+            startDate: monthStart(2),
+            lastGeneratedDate: monthStart(3),
         }));
 
         await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
+        // Watermark advanced to the last due date — this month's occurrence
         const updatedRule = await recurringRepo.getById('rule-1');
-        expect(updatedRule!.lastGeneratedDate.getTime()).toBeGreaterThan(
-            localDate(2025, 12, 1).getTime(),
-        );
+        expect(updatedRule!.lastGeneratedDate.getTime()).toBe(monthStart(0).getTime());
     });
 });
 
@@ -343,13 +359,13 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             createdAt: new Date('2025-01-01'),
         });
 
-        // Rule: $100/month expense starting today
+        // Rule: $100/month expense, two dues pending → $200 needed, only $50 available
         await recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
-            startDate: localDate(2026, 3, 1),
-            lastGeneratedDate: localDate(2026, 2, 1),
+            startDate: monthStart(1),
+            lastGeneratedDate: monthStart(2),
         }));
 
         const result = await processRecurringRules({
@@ -369,7 +385,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
         // lastGeneratedDate NOT advanced
         const rule = await recurringRepo.getById('rule-1');
-        expect(rule!.lastGeneratedDate.getTime()).toBe(localDate(2026, 2, 1).getTime());
+        expect(rule!.lastGeneratedDate.getTime()).toBe(monthStart(2).getTime());
     });
 
     it('skips rule when cumulative dues exceed balance (all-or-nothing)', async () => {
@@ -387,17 +403,17 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
-            startDate: localDate(2026, 1, 1),
-            lastGeneratedDate: localDate(2025, 12, 1),
+            startDate: monthStart(2),
+            lastGeneratedDate: monthStart(3),
         }));
 
         const result = await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
-        // ALL skipped — no partial generation
+        // ALL skipped — no partial generation, even though $150 covers a single due
         expect(result.skipped).toHaveLength(1);
-        expect(result.skipped[0].amount).toBeGreaterThan(150);
+        expect(result.skipped[0].amount).toBe(300);
         expect(result.transactionsGenerated).toBe(0);
 
         const txs = await transactionRepo.getAll();
@@ -419,8 +435,8 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             type: TransactionType.INCOME,
             amount: 500,
             walletId: 'w-1',
-            startDate: localDate(2026, 3, 1),
-            lastGeneratedDate: localDate(2026, 2, 1),
+            startDate: monthStart(1),
+            lastGeneratedDate: monthStart(2),
         }));
 
         const result = await processRecurringRules({
@@ -428,7 +444,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         });
 
         expect(result.skipped).toHaveLength(0);
-        expect(result.transactionsGenerated).toBeGreaterThan(0);
+        expect(result.transactionsGenerated).toBe(2);
     });
 
     it('never skips expense rules on bank wallets (overdraft allowed)', async () => {
@@ -445,8 +461,8 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
-            startDate: localDate(2026, 3, 1),
-            lastGeneratedDate: localDate(2026, 2, 1),
+            startDate: monthStart(1),
+            lastGeneratedDate: monthStart(2),
         }));
 
         const result = await processRecurringRules({
@@ -454,7 +470,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         });
 
         expect(result.skipped).toHaveLength(0);
-        expect(result.transactionsGenerated).toBeGreaterThan(0);
+        expect(result.transactionsGenerated).toBe(2);
         expect(result.errors).toHaveLength(0);
     });
 
@@ -475,8 +491,8 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
-            startDate: localDate(2026, 3, 1),
-            lastGeneratedDate: localDate(2026, 2, 1),
+            startDate: monthStart(1),
+            lastGeneratedDate: monthStart(2),
         }));
 
         await processRecurringRules({
@@ -497,21 +513,26 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
     });
 
     it('retryRule succeeds after funds are added', async () => {
+        const RULE_AMOUNT = 100;
+        const DUE_COUNT = 2; // monthStart(1) and monthStart(0)
+        const EXPECTED_COST = RULE_AMOUNT * DUE_COUNT;
+        const INITIAL_BALANCE = 10; // below EXPECTED_COST → the first run must skip
+
         // Start with low balance
         await walletRepo.save({
             id: 'w-1',
             name: 'Cash Wallet',
-            balance: 10,
+            balance: INITIAL_BALANCE,
             type: WalletType.CASH,
             createdAt: new Date('2025-01-01'),
         });
 
         await recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
-            amount: 100,
+            amount: RULE_AMOUNT,
             walletId: 'w-1',
-            startDate: localDate(2026, 3, 1),
-            lastGeneratedDate: localDate(2026, 2, 1),
+            startDate: monthStart(1),
+            lastGeneratedDate: monthStart(2),
         }));
 
         // First run — should be skipped
@@ -519,9 +540,10 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
         expect(firstResult.skipped).toHaveLength(1);
+        expect(firstResult.skipped[0].amount).toBe(EXPECTED_COST);
 
-        // Add funds to wallet
-        await walletRepo.updateBalance('w-1', 500);
+        // Top the wallet up to exactly what the pending dues cost (updateBalance adds a delta)
+        await walletRepo.updateBalance('w-1', EXPECTED_COST - INITIAL_BALANCE);
 
         // Retry the specific rule
         const retryResult = await retryRule(
@@ -529,11 +551,11 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             'rule-1',
         );
 
-        expect(retryResult.generated).toBeGreaterThan(0);
+        expect(retryResult.generated).toBe(DUE_COUNT);
         expect(retryResult.skipped).toBeUndefined();
 
-        // Transaction should now exist
+        // Transactions should now exist
         const txs = await transactionRepo.getAll();
-        expect(txs.length).toBeGreaterThan(0);
+        expect(txs).toHaveLength(DUE_COUNT);
     });
 });
