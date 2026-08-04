@@ -1,14 +1,14 @@
 /**
- * TransactionFilterModal — Amount Filter Units
+ * TransactionFilterModal - Amount Filter Units
  *
  * Covers the boundary the modal owns: the user types MAJOR units ("50") and the
- * filter it emits must be in the same unit the transactions are stored in —
+ * filter it emits must be in the same unit the transactions are stored in -
  * integer cents. A unit mismatch here is silent (both sides are plain numbers),
  * so these tests assert end-to-end BEHAVIOUR: the emitted filter is fed straight
  * into the real filterTransactions and we check which transactions survive.
  *
- * The assertions deliberately never name the filter fields — they exercise
- * set → store → compare as one path, which is where the unit bug actually lives.
+ * The assertions deliberately never name the filter fields - they exercise
+ * set -> store -> compare as one path, which is where the unit bug actually lives.
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
@@ -21,7 +21,7 @@ import { TransactionFilterModal } from '../TransactionFilterModal';
 
 // ─── Mocks ────────────────────────────────────────────────────────────
 // Only the data sources are mocked. useFormatting and the parsing utils run for
-// real — they are the code under test.
+// real - they are the code under test.
 
 jest.mock('../../../hooks/useCategories', () => ({
     useCategories: () => ({ categories: [], loading: false, error: null }),
@@ -45,7 +45,7 @@ const mockedLoadSettings = jest.requireMock('../../../data/services/settingsServ
 
 // ─── Fixtures ─────────────────────────────────────────────────────────
 
-/** Amounts are integer cents, and always positive — type carries the sign. */
+/** Amounts are integer cents, and always positive - type carries the sign. */
 function tx(id: string, amountCents: number, type = TransactionType.EXPENSE): Transaction {
     return {
         id,
@@ -119,9 +119,9 @@ describe('TransactionFilterModal — amount filter units', () => {
         const filters = await applyAmountFilter('10', '50');
 
         const below = tx('below', 999);        // $9.99
-        const lowerEdge = tx('lower-edge', 1000);   // $10.00 — inclusive
+        const lowerEdge = tx('lower-edge', 1000);   // $10.00 - inclusive
         const inside = tx('inside', 2550);     // $25.50
-        const upperEdge = tx('upper-edge', 5000);   // $50.00 — inclusive
+        const upperEdge = tx('upper-edge', 5000);   // $50.00 - inclusive
         const above = tx('above', 5001);       // $50.01
 
         expect(idsMatching(filters, [below, lowerEdge, inside, upperEdge, above])).toEqual([
@@ -152,7 +152,7 @@ describe('TransactionFilterModal — amount filter units', () => {
 
     describe('invalid or empty input leaves that bound unapplied', () => {
         // Silently dropping unparseable input is the established behaviour (no Alert,
-        // no copy change) — these lock in that the dropped bound simply doesn't constrain.
+        // no copy change) - these lock in that the dropped bound simply doesn't constrain.
         it.each([
             ['non-numeric', 'abc'],
             ['negative', '-5'],

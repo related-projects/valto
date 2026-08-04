@@ -252,7 +252,7 @@ describe('Language Feature', () => {
 
     it('getDeviceLanguage falls back to English', () => {
         const lang = getDeviceLanguage();
-        // In test env, mock returns 'en_US' → should resolve to 'en'
+        // In test env, mock returns 'en_US' -> should resolve to 'en'
         expect(lang).toBe('en');
     });
 

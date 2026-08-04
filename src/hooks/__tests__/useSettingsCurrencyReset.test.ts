@@ -1,5 +1,5 @@
 /**
- * useSettings — currency reset gating (DoD 3)
+ * useSettings - currency reset gating (DoD 3)
  *
  * The financial wipe must run ONLY after the user presses the destructive
  * confirmation, never merely on arming the reset or selecting a currency.
@@ -67,13 +67,13 @@ describe('useSettings currency reset gating', () => {
         act(() => lastDestructiveButton(alertSpy).onPress?.());
         await waitFor(() => expect(result.current.isResettingCurrency).toBe(true));
 
-        // Pick a new currency → inner confirm shown, but NO wipe yet.
+        // Pick a new currency -> inner confirm shown, but NO wipe yet.
         await act(async () => {
             await result.current.handleCurrencySelect({ code: 'XOF', symbol: 'CFA', name: 'West African CFA Franc', decimals: 0 });
         });
         expect(resetFinancialDataForCurrencyReset).not.toHaveBeenCalled();
 
-        // Press the inner destructive button → wipe runs exactly once, with the picked code.
+        // Press the inner destructive button -> wipe runs exactly once, with the picked code.
         await act(async () => {
             await lastDestructiveButton(alertSpy).onPress?.();
         });

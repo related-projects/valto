@@ -59,7 +59,7 @@ export const AboutScreen = () => {
 
     const handleEmailPress = () => {
         Linking.openURL(`mailto:${CONTACT_EMAIL}`).catch(() => {
-            // Silently fail — email client may not be configured
+            // Silently fail - email client may not be configured
         });
     };
 

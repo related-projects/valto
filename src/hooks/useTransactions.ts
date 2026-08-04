@@ -6,8 +6,8 @@
  * Retains: UI state, loading/error, event subscription, data refresh.
  * 
  * Supports two modes:
- * - Full load: getAll() — used by dashboard and consumers needing full dataset
- * - Paginated: loadNextPage() — used by TransactionsScreen for lazy loading
+ * - Full load: getAll() - used by dashboard and consumers needing full dataset
+ * - Paginated: loadNextPage() - used by TransactionsScreen for lazy loading
  * 
  * Filtering:
  * - Exposes `filters` / `setFilters` / `resetFilters` for composable filtering
@@ -41,7 +41,7 @@ interface UseTransactionsResult {
     createTransaction: (dto: CreateTransactionDTO) => Promise<Transaction>;
     deleteTransaction: (id: string) => Promise<void>;
     refreshTransactions: () => Promise<void>;
-    /** Paginated loading — appends next page */
+    /** Paginated loading - appends next page */
     loadNextPage: () => Promise<void>;
     /** Whether more pages are available */
     hasMore: boolean;
@@ -113,7 +113,7 @@ export function useTransactions(): UseTransactionsResult {
             const result = await transactionRepo.getTransactionsPage(nextPage, PAGE_SIZE);
 
             setTransactions(prev => {
-                // Deduplicate — merge without re-adding existing ids
+                // Deduplicate - merge without re-adding existing ids
                 const existingIds = new Set(prev.map(t => t.id));
                 const newItems = result.data.filter(t => !existingIds.has(t.id));
                 return [...prev, ...newItems];

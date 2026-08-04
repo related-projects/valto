@@ -1,5 +1,5 @@
 /**
- * Domain Validators — Barrel Exports
+ * Domain Validators - Barrel Exports
  */
 
 export { validateSettings } from './SettingsValidator';

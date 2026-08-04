@@ -19,7 +19,7 @@ export interface CategoryRiskResult {
 /**
  * Evaluate concentration risk from category spending distribution.
  *
- * @param expensesByCategory Map of category name/id → total expense amount
+ * @param expensesByCategory Map of category name/id -> total expense amount
  */
 export function evaluateCategoryRisk(
     expensesByCategory: Record<string, number>,

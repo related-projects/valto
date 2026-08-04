@@ -1,5 +1,5 @@
 /**
- * Atomic Rollback — Fault Injection (DoD proof)
+ * Atomic Rollback - Fault Injection (DoD proof)
  *
  * Proves that financial writes are all-or-nothing. A FaultInjectingDatabase
  * forces a mid-transaction failure; we then assert that:
@@ -25,7 +25,7 @@ describe('atomic rollback under fault injection', () => {
         const source = await seed.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
         const dest = await seed.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
 
-        // Fail the 2nd `UPDATE wallets` — i.e. the destination balance update,
+        // Fail the 2nd `UPDATE wallets` - i.e. the destination balance update,
         // the second write of the transfer (after the source debit).
         const faulty = FaultInjectingDatabase.failOnNthMatch(base, /UPDATE wallets/i, 2);
         const eventBus = { emit: jest.fn(), emitMultiple: jest.fn() };
@@ -60,7 +60,7 @@ describe('atomic rollback under fault injection', () => {
         const seed = new WalletRepository(base);
         const wallet = await seed.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
 
-        // createTransaction inserts the row, then updates the balance — fail the
+        // createTransaction inserts the row, then updates the balance - fail the
         // 1st `UPDATE wallets`.
         const faulty = FaultInjectingDatabase.failOnNthMatch(base, /UPDATE wallets/i, 1);
         const eventBus = { emit: jest.fn(), emitMultiple: jest.fn() };

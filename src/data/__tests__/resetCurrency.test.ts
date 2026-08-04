@@ -2,7 +2,7 @@
  * Currency Reset Tests
  *
  * resetFinancialDataForCurrencyReset wipes all financial data, re-seeds the
- * defaults, and switches the base currency — while preserving the settings
+ * defaults, and switches the base currency - while preserving the settings
  * blob, security config, and keystore key. Uses a real in-memory SQLite db so
  * the wipe + reseed + rollback are exercised end-to-end.
  */
@@ -14,21 +14,21 @@ import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
 
-// Settings + seed flag live in KV — back them with a shared in-memory store.
+// Settings + seed flag live in KV - back them with a shared in-memory store.
 jest.mock('../storage/AsyncStorageAdapter', () => {
     const mem = new (require('../../../tests/helpers/InMemoryStorage').InMemoryStorage)();
     (global as any).__kv = mem;
     return { __esModule: true, AsyncStorageAdapter: jest.fn(), asyncStorageAdapter: mem };
 });
 
-// Seed re-population pulls repos from the DI container — back them with the raw db.
+// Seed re-population pulls repos from the DI container - back them with the raw db.
 jest.mock('../../core/di', () => ({
     getWalletRepository: () => new (require('../repositories/WalletRepository').WalletRepository)((global as any).__testDb),
     getCategoryRepository: () => new (require('../repositories/CategoryRepository').CategoryRepository)((global as any).__testDb),
     getTransactionRepository: () => ({ getAll: jest.fn().mockResolvedValue([]) }),
 }));
 
-// The wipe reads the db via getDb() — swap in the (optionally fault-wrapped) db.
+// The wipe reads the db via getDb() - swap in the (optionally fault-wrapped) db.
 jest.mock('../storage/sql/database', () => ({
     getDb: () => (global as any).__resetDb,
 }));
@@ -138,7 +138,7 @@ describe('resetFinancialDataForCurrencyReset', () => {
         await selectAndLockCurrency('USD');
         const { wallet } = await seedFinancialData(raw);
 
-        // Fail the first DELETE inside the wipe transaction → full rollback.
+        // Fail the first DELETE inside the wipe transaction -> full rollback.
         (global as any).__resetDb = FaultInjectingDatabase.failOnNthMatch(raw, /DELETE FROM/i, 1);
 
         await expect(resetFinancialDataForCurrencyReset('XOF')).rejects.toThrow();
@@ -148,7 +148,7 @@ describe('resetFinancialDataForCurrencyReset', () => {
         expect(settings.currency).toBe('USD');
         expect(settings.currencyLocked).toBe(true);
 
-        // Data rolled back — nothing lost.
+        // Data rolled back - nothing lost.
         const wallets = await new WalletRepository(raw).getAll();
         expect(wallets.some(w => w.id === wallet.id)).toBe(true);
         expect(await countRows(raw, 'transactions')).toBe(1);

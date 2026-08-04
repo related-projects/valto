@@ -2,9 +2,9 @@
  * Database Encryption Key
  *
  * The SQLCipher key lives ONLY in the device's secure keystore
- * (expo-secure-store → iOS Keychain / Android Keystore), never hardcoded and
+ * (expo-secure-store -> iOS Keychain / Android Keystore), never hardcoded and
  * never in JS-readable storage. Generated once with a CSPRNG (expo-crypto) on
- * first launch, then reused. Losing it makes the DB unreadable — which is the
+ * first launch, then reused. Losing it makes the DB unreadable - which is the
  * point: data at rest is useless without the keystore-held key.
  */
 

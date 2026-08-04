@@ -1,5 +1,5 @@
 /**
- * Test Environment Setup (runs via setupFilesAfterSetup — after test framework is ready)
+ * Test Environment Setup (runs via setupFilesAfterSetup - after test framework is ready)
  *
  * Lifecycle hooks that require beforeEach, beforeAll, afterAll, etc.
  */

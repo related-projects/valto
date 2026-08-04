@@ -65,8 +65,8 @@ export async function reassignCategoryBulk(
 
 /**
  * Merge source category into target:
- * 1. Reassign all transactions from source → target
- * 2. Reassign all budgets from source → target
+ * 1. Reassign all transactions from source -> target
+ * 2. Reassign all budgets from source -> target
  * 3. Delete source category
  *
  * Ensures no orphan transactions or budgets.
@@ -111,7 +111,7 @@ export async function mergeCategories(
             );
 
             if (existingTargetBudget) {
-                // Target already has a budget for this month — delete the source budget
+                // Target already has a budget for this month - delete the source budget
                 await budgetRepo.delete(budget.id);
             } else {
                 // Move the budget to the target category

@@ -35,7 +35,7 @@ export function compareMonthlySpending(
     const current = currentMonthData.totalExpenses;
     const previous = previousMonthData.totalExpenses;
 
-    // No previous data — can't compute a meaningful trend
+    // No previous data - can't compute a meaningful trend
     if (previous === 0) {
         return {
             changePercentage: current > 0 ? 100 : 0,

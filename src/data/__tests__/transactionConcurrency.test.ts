@@ -5,15 +5,15 @@
  * shared connection could otherwise overlap their BEGIN/work/COMMIT. These tests
  * use a test-driver that injects an async yield in the MIDDLE of the work to
  * force that overlap, and assert:
- *   (a) Concurrency: two independent transactions serialize — no "transaction
+ *   (a) Concurrency: two independent transactions serialize - no "transaction
  *       within a transaction" error, both effects applied, the 2nd observes the
  *       1st's COMMITTED state (not an interleaved read).
  *   (b) Re-entrance: a runInTransaction nested inside an active one succeeds via
  *       SAVEPOINT, with no deadlock on the serialization mutex.
  *
  * Note: better-sqlite3 is synchronous, but the serialization mutex lives in the
- * shared transaction runner (createTransactionRunner) — the same code op-sqlite
- * uses — so this exercises the real ordering guarantee, not a sync artefact.
+ * shared transaction runner (createTransactionRunner) - the same code op-sqlite
+ * uses - so this exercises the real ordering guarantee, not a sync artefact.
  */
 
 import { BetterSqliteDatabase } from '../../../tests/helpers/BetterSqliteDatabase';
@@ -34,7 +34,7 @@ describe('runInTransaction concurrency & re-entrance', () => {
     it('(a) serializes two independent transactions that yield mid-work', async () => {
         const observed: number[] = [];
 
-        // Each unit: read counter → async yield → write counter+1. If the two
+        // Each unit: read counter -> async yield -> write counter+1. If the two
         // overlapped, both would read 0 (interleaved) and/or the 2nd BEGIN would
         // throw "cannot start a transaction within a transaction".
         const bump = () =>
@@ -58,7 +58,7 @@ describe('runInTransaction concurrency & re-entrance', () => {
 
         await db.runInTransaction(async () => {
             await db.execute(`UPDATE ctr SET n = 10 WHERE id = 1`);
-            // Nested call inside the active transaction's work — must NOT block on
+            // Nested call inside the active transaction's work - must NOT block on
             // the mutex (that would deadlock); it nests via SAVEPOINT.
             await db.runInTransaction(async () => {
                 innerRan = true;
@@ -74,7 +74,7 @@ describe('runInTransaction concurrency & re-entrance', () => {
     it('(b) a failing nested transaction rolls back only to its SAVEPOINT', async () => {
         await db.runInTransaction(async () => {
             await db.execute(`UPDATE ctr SET n = 5 WHERE id = 1`);
-            // Inner fails → ROLLBACK TO savepoint; outer keeps its own write.
+            // Inner fails -> ROLLBACK TO savepoint; outer keeps its own write.
             await db
                 .runInTransaction(async () => {
                     await db.execute(`UPDATE ctr SET n = 99 WHERE id = 1`);
@@ -100,6 +100,6 @@ describe('runInTransaction concurrency & re-entrance', () => {
         await Promise.all(Array.from({ length: N }, bump));
 
         const { rows } = await db.execute(`SELECT n FROM ctr WHERE id = 1`);
-        expect(Number(rows[0].n)).toBe(N); // no lost updates → fully serialized
+        expect(Number(rows[0].n)).toBe(N); // no lost updates -> fully serialized
     });
 });

@@ -44,13 +44,13 @@ export interface RecurringTransaction {
     /** Date from which to start generating transactions */
     readonly startDate: Date;
 
-    /** Optional end date — no transactions generated after this */
+    /** Optional end date - no transactions generated after this */
     readonly endDate?: Date;
 
     /** How often to generate (daily, weekly, monthly, yearly) */
     readonly frequency: RecurrenceFrequency;
 
-    /** Multiplier for frequency (e.g. interval=2 + frequency=weekly → every 2 weeks) */
+    /** Multiplier for frequency (e.g. interval=2 + frequency=weekly -> every 2 weeks) */
     readonly interval: number;
 
     /** Date of the last successfully generated transaction (watermark for idempotency) */
@@ -94,7 +94,7 @@ export interface UpdateRecurringTransactionDTO {
 }
 
 /**
- * Serializable version for storage (dates → ISO strings)
+ * Serializable version for storage (dates -> ISO strings)
  */
 export interface SerializableRecurringTransaction {
     id: string;

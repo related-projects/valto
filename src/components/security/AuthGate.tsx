@@ -2,7 +2,7 @@
  * AuthGate Component
  *
  * The lock screen rendered (by SecurityGate) IN PLACE OF the authenticated app
- * subtree while the session is locked — not as an overlay on top of it. Renders
+ * subtree while the session is locked - not as an overlay on top of it. Renders
  * the PinPad with a biometric shortcut and, during a brute-force lock-out,
  * disables input and shows a live countdown.
  */

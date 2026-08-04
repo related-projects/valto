@@ -25,45 +25,45 @@ interface BalanceCardProps {
 /** Layer opacities for the multi-layer card surface */
 const CARD_SURFACE = {
     light: {
-        // Layer 1 — Base gradient stops (top → mid → bottom)
+        // Layer 1 - Base gradient stops (top -> mid -> bottom)
         gradientTopEdge: 'rgba(255, 255, 255, 0.14)',
         gradientMidBand: 'rgba(255, 255, 255, 0.04)',
         gradientBottomEdge: 'rgba(0, 0, 0, 0.10)',
-        // Layer 2 — Diagonal light reflection
+        // Layer 2 - Diagonal light reflection
         lightReflectionStart: 'rgba(255, 255, 255, 0.12)',
         lightReflectionEnd: 'rgba(255, 255, 255, 0.0)',
-        // Layer 3 — Inner shadow / depth (beveled edges)
+        // Layer 3 - Inner shadow / depth (beveled edges)
         innerBorderTop: 'rgba(255, 255, 255, 0.22)',
         innerBorderLeft: 'rgba(255, 255, 255, 0.10)',
         innerBorderRight: 'rgba(0, 0, 0, 0.08)',
         innerBorderBottom: 'rgba(0, 0, 0, 0.14)',
-        // Layer 4 — Noise texture simulation
+        // Layer 4 - Noise texture simulation
         noiseOpacity: 0.03,
-        // Layer 5 — Gloss strip (top edge highlight)
+        // Layer 5 - Gloss strip (top edge highlight)
         glossOpacity: 0.30,
-        // Layer 6 — Content depth (text shadow)
+        // Layer 6 - Content depth (text shadow)
         textShadowColor: 'rgba(0, 0, 0, 0.15)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
     },
     dark: {
-        // Layer 1 — Base gradient stops
+        // Layer 1 - Base gradient stops
         gradientTopEdge: 'rgba(255, 255, 255, 0.08)',
         gradientMidBand: 'rgba(255, 255, 255, 0.02)',
         gradientBottomEdge: 'rgba(0, 0, 0, 0.16)',
-        // Layer 2 — Diagonal light reflection
+        // Layer 2 - Diagonal light reflection
         lightReflectionStart: 'rgba(255, 255, 255, 0.08)',
         lightReflectionEnd: 'rgba(255, 255, 255, 0.0)',
-        // Layer 3 — Inner shadow / depth (beveled edges)
+        // Layer 3 - Inner shadow / depth (beveled edges)
         innerBorderTop: 'rgba(255, 255, 255, 0.14)',
         innerBorderLeft: 'rgba(255, 255, 255, 0.06)',
         innerBorderRight: 'rgba(0, 0, 0, 0.12)',
         innerBorderBottom: 'rgba(0, 0, 0, 0.20)',
-        // Layer 4 — Noise texture simulation
+        // Layer 4 - Noise texture simulation
         noiseOpacity: 0.04,
-        // Layer 5 — Gloss strip
+        // Layer 5 - Gloss strip
         glossOpacity: 0.18,
-        // Layer 6 — Content depth
+        // Layer 6 - Content depth
         textShadowColor: 'rgba(0, 0, 0, 0.35)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 3,
@@ -148,7 +148,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
     // Select theme-appropriate surface constants
     const surface = isDark ? CARD_SURFACE.dark : CARD_SURFACE.light;
 
-    // Content text shadow for Layer 6 — visual elevation of text
+    // Content text shadow for Layer 6 - visual elevation of text
     const contentTextShadow = {
         textShadowColor: surface.textShadowColor,
         textShadowOffset: surface.textShadowOffset,
@@ -188,11 +188,11 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                     ]}
                 >
                     {/* ════════════════════════════════════════════
-                        LAYER 1 — BASE SURFACE (3-stop gradient)
-                        Darker edge → lighter center → darker edge
+                        LAYER 1 - BASE SURFACE (3-stop gradient)
+                        Darker edge -> lighter center -> darker edge
                         ════════════════════════════════════════════ */}
 
-                    {/* Top edge — lighter, simulates light catching top surface */}
+                    {/* Top edge - lighter, simulates light catching top surface */}
                     <View
                         style={[
                             styles.gradientTopEdge,
@@ -205,7 +205,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                         pointerEvents="none"
                     />
 
-                    {/* Mid band — very subtle brightness in the center */}
+                    {/* Mid band - very subtle brightness in the center */}
                     <View
                         style={[
                             styles.gradientMidBand,
@@ -216,7 +216,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                         pointerEvents="none"
                     />
 
-                    {/* Bottom edge — darker, natural shadow falloff */}
+                    {/* Bottom edge - darker, natural shadow falloff */}
                     <View
                         style={[
                             styles.gradientBottomEdge,
@@ -230,9 +230,9 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                     />
 
                     {/* ════════════════════════════════════════════
-                        LAYER 2 — LIGHT REFLECTION (diagonal)
+                        LAYER 2 - LIGHT REFLECTION (diagonal)
                         Translucent white gradient overlay
-                        positioned top-left → center, very low opacity
+                        positioned top-left -> center, very low opacity
                         ════════════════════════════════════════════ */}
                     <View
                         style={[
@@ -256,9 +256,9 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                     />
 
                     {/* ════════════════════════════════════════════
-                        LAYER 3 — INNER SHADOW / DEPTH
+                        LAYER 3 - INNER SHADOW / DEPTH
                         Beveled border illusion: light top/left,
-                        dark right/bottom → inset surface feel
+                        dark right/bottom -> inset surface feel
                         ════════════════════════════════════════════ */}
                     <View
                         style={[
@@ -273,7 +273,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                         ]}
                         pointerEvents="none"
                     />
-                    {/* Secondary inner border — tighter, adds crispness */}
+                    {/* Secondary inner border - tighter, adds crispness */}
                     <View
                         style={[
                             styles.innerShadowInset,
@@ -289,7 +289,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                     />
 
                     {/* ════════════════════════════════════════════
-                        LAYER 4 — NOISE / TEXTURE
+                        LAYER 4 - NOISE / TEXTURE
                         Micro-dot pattern simulating surface grain
                         Prevents "flat digital" appearance
                         ════════════════════════════════════════════ */}
@@ -323,7 +323,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                     </View>
 
                     {/* ════════════════════════════════════════════
-                        LAYER 5 (bonus) — GLOSS STRIP
+                        LAYER 5 (bonus) - GLOSS STRIP
                         Thin highlight across the very top edge
                         Simulates edge light reflection on plastic
                         ════════════════════════════════════════════ */}
@@ -340,7 +340,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                     />
 
                     {/* ════════════════════════════════════════════
-                        LAYER 6 — CONTENT (with depth)
+                        LAYER 6 - CONTENT (with depth)
                         Text gets subtle shadow for embossed feel
                         ════════════════════════════════════════════ */}
                     <View style={styles.contentLayer}>
@@ -452,7 +452,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
     );
 };
 
-/** Memoized BalanceCard — prevents re-renders from parent style changes */
+/** Memoized BalanceCard - prevents re-renders from parent style changes */
 export const BalanceCard = React.memo(BalanceCardInner);
 
 // ─── STYLES ───────────────────────────────────────────────────────────
@@ -460,7 +460,7 @@ export const BalanceCard = React.memo(BalanceCardInner);
 const styles = StyleSheet.create({
     // ── Layer 5: External dual-shadow system ──
 
-    /** Ambient shadow — large, soft, diffused */
+    /** Ambient shadow - large, soft, diffused */
     shadowAmbient: {
         width: '100%',
         ...Platform.select({
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
         }),
     },
 
-    /** Contact shadow — tight, sharp, close to surface */
+    /** Contact shadow - tight, sharp, close to surface */
     shadowContact: {
         width: '100%',
         ...Platform.select({
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
 
     // ── Layer 1: 3-stop base gradient ──
 
-    /** Top 30% — light, simulates direct light on upper surface */
+    /** Top 30% - light, simulates direct light on upper surface */
     gradientTopEdge: {
         position: 'absolute',
         top: 0,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
         height: '30%',
     },
 
-    /** Middle 40% — very subtle brightness band */
+    /** Middle 40% - very subtle brightness band */
     gradientMidBand: {
         position: 'absolute',
         top: '30%',
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
         height: '40%',
     },
 
-    /** Bottom 30% — darker falloff, natural shadow */
+    /** Bottom 30% - darker falloff, natural shadow */
     gradientBottomEdge: {
         position: 'absolute',
         bottom: 0,
@@ -529,18 +529,18 @@ const styles = StyleSheet.create({
 
     // ── Layer 2: Diagonal light reflection ──
 
-    /** Main reflection — positioned top-left, angled coverage */
+    /** Main reflection - positioned top-left, angled coverage */
     lightReflection: {
         position: 'absolute',
         top: 0,
         left: 0,
         width: '65%',
         height: '55%',
-        // Diagonal clip via border trick — creates triangular light falloff
+        // Diagonal clip via border trick - creates triangular light falloff
         borderBottomRightRadius: 999,
     },
 
-    /** Feathered edge — softens the reflection boundary */
+    /** Feathered edge - softens the reflection boundary */
     lightReflectionFade: {
         position: 'absolute',
         top: 0,
@@ -553,13 +553,13 @@ const styles = StyleSheet.create({
 
     // ── Layer 3: Inner shadow (beveled edge illusion) ──
 
-    /** Primary bevel — outer ring */
+    /** Primary bevel - outer ring */
     innerShadowEdge: {
         ...StyleSheet.absoluteFillObject,
         borderWidth: 1.5,
     },
 
-    /** Secondary bevel — inner ring for crispness */
+    /** Secondary bevel - inner ring for crispness */
     innerShadowInset: {
         position: 'absolute',
         top: 1.5,

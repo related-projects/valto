@@ -136,7 +136,7 @@ function RootLayout() {
           const ok = await verifyFinancialIntegrity(getUseCaseDeps());
           if (!ok) {
             const msg =
-              "[integrity] Wallet balance drift detected at boot — stored balances disagree with their transaction ledgers.";
+              "[integrity] Wallet balance drift detected at boot - stored balances disagree with their transaction ledgers.";
             console.warn(msg);
             Sentry.captureMessage(msg, "warning");
           }

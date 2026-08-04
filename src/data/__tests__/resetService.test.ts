@@ -24,7 +24,7 @@ jest.mock('../seed', () => ({
 }));
 
 // resetService clears the SQLite financial tables via getDb(), inside a
-// transaction — the mock runs the transactional work callback straight through.
+// transaction - the mock runs the transactional work callback straight through.
 jest.mock('../storage/sql/database', () => ({
     getDb: () => ({
         execute: jest.fn().mockResolvedValue({ rows: [], rowsAffected: 0 }),

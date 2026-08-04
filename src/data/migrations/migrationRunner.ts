@@ -5,10 +5,10 @@
  * Tracks the current schema version and runs pending migrations in order.
  *
  * Each migration receives a context exposing BOTH stores:
- *  - `storage`: the legacy key-value store (AsyncStorage) — still home to
+ *  - `storage`: the legacy key-value store (AsyncStorage) - still home to
  *    settings/security/seed flags and the schema-version pointer, and the
  *    source for the one-time SQLite import.
- *  - `db`: the relational SqlDatabase (SQLite/SQLCipher) — home to all
+ *  - `db`: the relational SqlDatabase (SQLite/SQLCipher) - home to all
  *    financial entities.
  *
  * Rules:
@@ -31,11 +31,11 @@ export interface MigrationContext {
 }
 
 export interface Migration {
-    /** Sequential version number (1, 2, 3, …) */
+    /** Sequential version number (1, 2, 3, ...) */
     version: number;
     /** Human-readable migration name */
     name: string;
-    /** Migration function — must be idempotent. */
+    /** Migration function - must be idempotent. */
     up: (ctx: MigrationContext) => Promise<void>;
 }
 
@@ -66,9 +66,9 @@ async function setVersion(storage: IStorage, version: number): Promise<void> {
 /**
  * Executes all pending migrations in sequential order.
  *
- * @param migrations — ordered list of migrations to apply
- * @param storage — legacy key-value store (also holds the version pointer)
- * @param db — relational SqlDatabase passed to each migration
+ * @param migrations - ordered list of migrations to apply
+ * @param storage - legacy key-value store (also holds the version pointer)
+ * @param db - relational SqlDatabase passed to each migration
  * @returns the final schema version after running all applicable migrations
  */
 export async function executeMigrations(

@@ -7,14 +7,14 @@
  * Runs on app launch, after migrations, before UI renders.
  *
  * Idempotency:
- * Uses `lastGeneratedDate` as a watermark — only generates transactions
+ * Uses `lastGeneratedDate` as a watermark - only generates transactions
  * for dates strictly after the watermark up to today.
  *
  * Insufficient Funds Handling:
  * Expense rules targeting cash/mobile wallets are pre-checked before
  * transaction creation. If the wallet cannot cover the total cost of
  * all pending due dates, the rule is skipped (all-or-nothing) and
- * reported as a business outcome — NOT a system error.
+ * reported as a business outcome - NOT a system error.
  */
 
 import { TransactionType, type CreateTransactionDTO } from '../../domain/entities/Transaction';
@@ -92,7 +92,7 @@ export async function processRecurringRules(
 
                 if (genResult.skipped) {
                     result.skipped.push(genResult.skipped);
-                    // Emit event so UI can refresh — this is a business outcome, not an error
+                    // Emit event so UI can refresh - this is a business outcome, not an error
                     deps.eventBus.emit('recurringRules');
                     console.info(
                         `[RecurringEngine] Rule ${rule.id} skipped: ${genResult.skipped.reason} ` +
@@ -163,7 +163,7 @@ async function generateForRule(
             throw new Error(`Wallet ${rule.walletId} not found for rule ${rule.id}`);
         }
 
-        // Cash and mobile wallets cannot go negative — check total cost
+        // Cash and mobile wallets cannot go negative - check total cost
         if (wallet.type === WalletType.CASH || wallet.type === WalletType.MOBILE) {
             const totalCost = rule.amount * dueDates.length;
             if (wallet.balance < totalCost) {
@@ -209,7 +209,7 @@ async function generateForRule(
         lastDate = dueDate;
     }
 
-    // Update watermark — only after all transactions successfully created
+    // Update watermark - only after all transactions successfully created
     await deps.recurringRepo.updateLastGeneratedDate(rule.id, lastDate);
 
     return { generated: dueDates.length };

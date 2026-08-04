@@ -109,7 +109,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             // If going from active to background/inactive AND security is enabled
             if (prev === 'active' && nextState !== 'active' && config) {
                 // For autoLockTimeout === 0 (immediate), lock right away.
-                // NOTE: do NOT reset the failed-attempt counter here — the
+                // NOTE: do NOT reset the failed-attempt counter here - the
                 // brute-force throttle must survive backgrounding/restart.
                 if (config.autoLockTimeout === 0) {
                     setIsUnlocked(false);
@@ -148,7 +148,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const success = await authenticateWithBiometrics();
         if (success) {
-            // Biometrics is a stronger, non-brute-forceable factor — a success
+            // Biometrics is a stronger, non-brute-forceable factor - a success
             // clears any PIN lock-out.
             await pinLockoutService.reset();
             setIsUnlocked(true);

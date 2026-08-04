@@ -3,7 +3,7 @@
  *
  * Shown INSTEAD of the authenticated app when boot detects an unreadable store
  * (DB init / migration failure, or the fast health-check read throwing). It is a
- * dead-end recovery surface — no navigation, no data hooks — so the corrupted
+ * dead-end recovery surface - no navigation, no data hooks - so the corrupted
  * store is never queried in a retry loop.
  *
  * Two actions:

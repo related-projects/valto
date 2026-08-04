@@ -37,7 +37,7 @@ export function getDb(): SqlDatabase {
  * Close the live connection (releasing native file locks) and drop the cached
  * singleton so the next `initDatabase()` re-opens a fresh handle. Used by the
  * corrupted-store recovery flow before the DB file is deleted on disk.
- * Production-safe and idempotent — a no-op when nothing is open.
+ * Production-safe and idempotent - a no-op when nothing is open.
  */
 export function closeDatabase(): void {
     instance?.close?.();
@@ -47,7 +47,7 @@ export function closeDatabase(): void {
 /**
  * Fast boot health probe. A corrupted/undecryptable SQLCipher file can still
  * pass `PRAGMA cipher_version` and let init + migrations succeed, only failing
- * later as repeated read errors inside the data hooks (retry → OOM). This runs
+ * later as repeated read errors inside the data hooks (retry -> OOM). This runs
  * ONE trivial read against a core table during boot so an unreadable store is
  * caught immediately and surfaced as a recoverable boot failure. Throws if the
  * store cannot be read.

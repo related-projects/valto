@@ -2,7 +2,7 @@
  * Security Domain Types
  *
  * Core types for the security module.
- * These are pure domain types — no UI or storage dependencies.
+ * These are pure domain types - no UI or storage dependencies.
  */
 
 /** Supported authentication methods */

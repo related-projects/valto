@@ -1,8 +1,8 @@
 /**
- * v1 — Initial Schema
+ * v1 - Initial Schema
  *
  * Baseline migration that establishes version 1.
- * No data transformation needed — this simply marks the starting point
+ * No data transformation needed - this simply marks the starting point
  * for the migration system.
  */
 

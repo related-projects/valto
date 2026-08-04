@@ -1,5 +1,5 @@
 /**
- * SecurityGate Tests (Part B — true gate)
+ * SecurityGate Tests (Part B - true gate)
  *
  * Proves the authenticated subtree does NOT mount while locked, so the
  * financial repositories are never queried until the session is unlocked.

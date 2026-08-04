@@ -1,5 +1,5 @@
 /**
- * filterTransactions — Unit Tests
+ * filterTransactions - Unit Tests
  *
  * Comprehensive test suite for the pure filterTransactions function.
  * Uses fixed mock data and is fully deterministic with no UI dependency.
@@ -86,7 +86,7 @@ const MOCK_TRANSACTIONS: Transaction[] = [
 // ─── Tests ────────────────────────────────────────────────────────────
 
 describe('filterTransactions', () => {
-    // ── 1. No filters → returns all transactions ──────────────────────
+    // ── 1. No filters -> returns all transactions ──────────────────────
 
     it('returns all transactions when filters are empty', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {});
@@ -349,7 +349,7 @@ describe('filterTransactions', () => {
     // ── 9. Invalid range handling ─────────────────────────────────────
 
     it('normalises invalid amount range (min > max — swaps them)', () => {
-        // min=50000, max=5000 → normalised to min=5000, max=50000
+        // min=50000, max=5000 -> normalised to min=5000, max=50000
         const result = filterTransactions(MOCK_TRANSACTIONS, {
             minAmountCents: 50000,
             maxAmountCents: 5000,

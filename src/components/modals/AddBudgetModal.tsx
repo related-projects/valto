@@ -79,7 +79,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
       return;
     }
 
-    // Single input→storage conversion point (major units → integer minor units).
+    // Single input->storage conversion point (major units -> integer minor units).
     const amountNum = parseAmountToCents(limitAmount);
 
     if (amountNum === null) {

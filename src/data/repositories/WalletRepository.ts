@@ -176,7 +176,7 @@ export class WalletRepository implements IWalletRepository {
 
     /**
      * Atomically add `amount` (signed) to the stored balance.
-     * Single UPDATE statement — no read-modify-write race.
+     * Single UPDATE statement - no read-modify-write race.
      */
     async updateBalance(id: string, amount: number): Promise<Wallet> {
         const { rowsAffected } = await this.db.execute(

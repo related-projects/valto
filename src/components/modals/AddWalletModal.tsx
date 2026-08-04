@@ -79,7 +79,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
       return;
     }
 
-    // Single input→storage conversion point (major units → integer minor units).
+    // Single input->storage conversion point (major units -> integer minor units).
     const balanceMinor = normalizeAmount(balanceNum);
 
     try {

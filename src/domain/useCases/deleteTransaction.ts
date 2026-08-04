@@ -21,7 +21,7 @@ export async function deleteTransaction(
     // or not at all.
     await runInTransaction(async () => {
         if (transaction) {
-            // Revert balance: expense was debited → credit back; income was credited → debit back
+            // Revert balance: expense was debited -> credit back; income was credited -> debit back
             const reversalAmount = transaction.type === TransactionType.EXPENSE
                 ? transaction.amount
                 : -transaction.amount;

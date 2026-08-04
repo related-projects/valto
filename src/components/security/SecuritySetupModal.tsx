@@ -73,7 +73,7 @@ export const SecuritySetupModal: React.FC<SecuritySetupModalProps> = ({
             return;
         }
 
-        // PINs match — check if biometrics available
+        // PINs match - check if biometrics available
         if (biometrics.available && biometrics.enrolled) {
             setStep('biometric');
         } else {

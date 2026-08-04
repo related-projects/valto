@@ -2,10 +2,10 @@
  * OnboardingScreen
  *
  * Multi-step first-launch onboarding:
- *   Step 0 — Welcome
- *   Step 1 — Currency Selection
- *   Step 2 — First Wallet Creation
- *   Step 3 — All Set (completion)
+ *   Step 0 - Welcome
+ *   Step 1 - Currency Selection
+ *   Step 2 - First Wallet Creation
+ *   Step 3 - All Set (completion)
  *
  * Uses useOnboarding hook for state management.
  * All text is fully localized via i18n.

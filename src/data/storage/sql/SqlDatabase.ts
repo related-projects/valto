@@ -7,7 +7,7 @@
  *  - better-sqlite3 in-memory under Jest (deterministic, no native bindings).
  *
  * The transaction boundary lives HERE: `runInTransaction` is the single
- * primitive that guarantees atomicity (BEGIN → work → COMMIT, ROLLBACK on
+ * primitive that guarantees atomicity (BEGIN -> work -> COMMIT, ROLLBACK on
  * any throw). Because the DI container injects ONE shared SqlDatabase into
  * every repository, a use case can wrap several repo calls in a single
  * `runInTransaction` and have them commit all-or-nothing.

@@ -2,7 +2,7 @@
  * WalletRepository Tests
  *
  * Tests CRUD operations and domain-specific methods using InMemoryStorage.
- * No AsyncStorage dependency — fully deterministic and offline.
+ * No AsyncStorage dependency - fully deterministic and offline.
  */
 
 // Mock AsyncStorage before any imports

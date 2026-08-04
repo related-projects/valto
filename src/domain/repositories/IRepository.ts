@@ -2,7 +2,7 @@
  * Generic Repository Interface (domain-level)
  *
  * Base contract for persisting domain entities. Declared in the domain layer so
- * use cases depend on this abstraction — never on concrete data-layer classes.
+ * use cases depend on this abstraction - never on concrete data-layer classes.
  * Concrete repositories in `src/data/` implement entity-specific interfaces that
  * extend this base (see IWalletRepository, ITransactionRepository, ...).
  *

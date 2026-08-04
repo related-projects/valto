@@ -3,7 +3,7 @@
  *
  * Exponential-backoff brute-force throttle for the unlock PIN. All functions
  * here are pure and time-injectable (`now` is always passed in) so the policy
- * is exercised deterministically under Jest — no real timers, no sleeps.
+ * is exercised deterministically under Jest - no real timers, no sleeps.
  *
  * The orchestration that loads/persists state and compares the PIN hash lives
  * in the data layer (securityService); this module only owns the math.
@@ -65,7 +65,7 @@ export function lockoutRemainingMs(state: LockoutState, now: number): number {
 
 /**
  * Pure state transition for one attempt whose hash comparison already ran.
- * MUST NOT be called while locked — the caller short-circuits that case
+ * MUST NOT be called while locked - the caller short-circuits that case
  * without ever comparing the hash (that short-circuit is the throttle).
  */
 export function applyAttempt(

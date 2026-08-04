@@ -1,5 +1,5 @@
 /**
- * Financial Insights — barrel export
+ * Financial Insights - barrel export
  *
  * All insight functions are pure, stateless, and framework-agnostic.
  * They belong to the domain layer and must not import from hooks or UI.

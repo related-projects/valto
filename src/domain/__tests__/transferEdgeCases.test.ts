@@ -12,7 +12,7 @@ import { InsufficientFundsError } from '../useCases/errors';
 import { transferFunds } from '../useCases/transferFunds';
 
 describe('transferFunds edge cases', () => {
-    // Concrete repositories built by the test-utils helper — no data-layer import.
+    // Concrete repositories built by the test-utils helper - no data-layer import.
     let repos: MockRepositoryBundle;
     let walletRepo: MockRepositoryBundle['walletRepo'];
     let transactionRepo: MockRepositoryBundle['transactionRepo'];
@@ -121,7 +121,7 @@ describe('transferFunds edge cases', () => {
         expect(error).toBeInstanceOf(InsufficientFundsError);
         expect(error.code).toBe('INSUFFICIENT_FUNDS');
 
-        // No partial writes — the whole transfer rolled back.
+        // No partial writes - the whole transfer rolled back.
         expect(await transactionRepo.getAll()).toHaveLength(0);
         expect((await walletRepo.getById(source.id))!.balance).toBe(5000);
     });
