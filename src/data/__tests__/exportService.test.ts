@@ -124,7 +124,7 @@ describe('generateCSV — currency-aware machine-readable amounts', () => {
     const amountField = (csv: string) => csv.split('\n')[1].split(',')[2];
     const currencyField = (csv: string) => csv.split('\n')[1].split(',')[3];
 
-    // DoD-1: XOF has 0 decimals — an amount with no subunit must NOT gain ".00".
+    // DoD-1: XOF has 0 decimals - an amount with no subunit must NOT gain ".00".
     // Against the old hardcoded `toFixed(2)` this produced "1000.00" (a failing assert).
     it('XOF (0 decimals): 1000 minor exports as "1000" with no decimal point', () => {
         const csv = generateCSV([makeTx({ amount: 1000 })], wallets, categories, xof);
@@ -153,11 +153,11 @@ describe('generateCSV — currency-aware machine-readable amounts', () => {
     it('uses a dot decimal separator even when the user prefers comma (PDF flips, CSV does not)', () => {
         const tx = makeTx({ amount: 200050, type: TransactionType.INCOME }); // 2000.50
 
-        // Human-facing PDF honours the comma preference…
+        // Human-facing PDF honours the comma preference...
         const html = generateReportHTML(2026, 2, [tx], wallets, categories, usd, 'comma');
         expect(html).toContain('2.000,50');
 
-        // …but the machine-readable CSV stays dot-separated and import-safe.
+        // ...but the machine-readable CSV stays dot-separated and import-safe.
         const csv = generateCSV([tx], wallets, categories, usd);
         const line = csv.split('\n')[1];
         expect(amountField(csv)).toBe('2000.50');
@@ -206,7 +206,7 @@ describe('generateReportHTML — currency-aware amounts', () => {
             ],
             wallets, categories, usd, 'dot',
         );
-        // Income total 1250 → 12.50, Expense total 500 → 5.00, Net 750 → 7.50 — all 2-decimal.
+        // Income total 1250 -> 12.50, Expense total 500 -> 5.00, Net 750 -> 7.50 - all 2-decimal.
         expect(html).toContain(`+${usd.symbol}12.50`);
         expect(html).toContain(`-${usd.symbol}5.00`);
         expect(html).toContain(`+${usd.symbol}7.50`);

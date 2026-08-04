@@ -13,7 +13,7 @@ import { TransactionRepository } from '../../data/repositories/TransactionReposi
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { WalletType } from '../../domain/entities';
 
-// Shared state for mocks — must use `mock` prefix for jest.mock() hoisting
+// Shared state for mocks - must use `mock` prefix for jest.mock() hoisting
 let mockDb: SqlDatabase;
 let mockWalletRepo: WalletRepository;
 let mockTransactionRepo: TransactionRepository;

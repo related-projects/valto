@@ -2,13 +2,13 @@
  * Transaction Filtering
  *
  * Pure, deterministic filtering function for transactions.
- * Contains no side effects — suitable for use in hooks, tests, and services.
+ * Contains no side effects - suitable for use in hooks, tests, and services.
  *
  * Design decisions:
  * - Arrays for types/categoryIds/walletIds enable multi-select (OR within group, AND across groups)
  * - Date comparisons are inclusive on both boundaries (normalised to day granularity)
  * - Amount bounds are integer minor units (cents), matching Transaction.amount, and
- *   match on magnitude — the field names carry the unit so it cannot drift silently
+ *   match on magnitude - the field names carry the unit so it cannot drift silently
  * - Invalid amount ranges (min > max) are auto-normalised by swapping
  * - Empty/undefined filter fields are treated as "no constraint"
  */
@@ -34,7 +34,7 @@ export interface TransactionFilters {
     endDate?: Date;
 
     /**
-     * Inclusive lower bound for transaction amount, in integer minor units (cents) —
+     * Inclusive lower bound for transaction amount, in integer minor units (cents) -
      * the same unit Transaction.amount is stored in. Callers converting user input
      * must go through parseAmountToCents; passing major units silently under-filters
      * by 100x. Compared against the stored magnitude, so it is sign-agnostic:
@@ -96,7 +96,7 @@ export function filterTransactions(
     transactions: Transaction[],
     filters: TransactionFilters
 ): Transaction[] {
-    // Short-circuit: no filters or empty filter object → return all
+    // Short-circuit: no filters or empty filter object -> return all
     if (!filters || Object.keys(filters).length === 0) {
         return transactions;
     }
@@ -140,7 +140,7 @@ export function filterTransactions(
 
         // Amount range filter (inclusive, cents vs cents).
         // tx.amount is always positive (type carries the sign), so this compares
-        // magnitudes — an expense and an income of equal size match identically.
+        // magnitudes - an expense and an income of equal size match identically.
         if (normMin !== undefined && tx.amount < normMin) {
             return false;
         }

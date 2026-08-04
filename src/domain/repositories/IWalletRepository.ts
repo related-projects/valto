@@ -13,7 +13,7 @@ export interface BalanceAudit {
     walletId: string;
     stored: number;
     computed: number;
-    /** stored − computed; 0 means the stored balance is verified. */
+    /** stored - computed; 0 means the stored balance is verified. */
     drift: number;
 }
 
@@ -35,7 +35,7 @@ export interface IWalletRepository extends IRepository<Wallet> {
      *
      * Audit-only: this detects drift and deliberately does not correct it.
      * Atomic writes should prevent drift from ever occurring, so a non-zero
-     * drift is a bug — silently rewriting the stored balance would hide it.
+     * drift is a bug - silently rewriting the stored balance would hide it.
      */
     auditBalances(): Promise<BalanceAudit[]>;
 }

@@ -93,7 +93,7 @@ describe('useExport', () => {
             try {
                 await result.current.exportCSV();
             } catch {
-                // Expected — hook re-throws
+                // Expected - hook re-throws
             }
         });
 

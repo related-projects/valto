@@ -33,7 +33,7 @@ function localDate(y: number, m: number, d: number): Date {
  * against the real clock, so absolute fixture dates make the due count grow one per month
  * of elapsed time. With a monthly rule anchored on day 1,
  * `startDate = monthStart(k)` + `lastGeneratedDate = monthStart(k + 1)` yields exactly
- * `k + 1` due dates on any run date — the current month's occurrence is always on or before
+ * `k + 1` due dates on any run date - the current month's occurrence is always on or before
  * today, the next month's always after it.
  */
 function monthStart(monthsBack: number): Date {
@@ -261,7 +261,7 @@ describe('RecurringTransactionEngine', () => {
 
     it('generates missing transactions for a rule', async () => {
         // Rule started two months ago, watermark one month before that
-        // → three dues: two months ago, last month, this month
+        // -> three dues: two months ago, last month, this month
         await recurringRepo.save(validRule({
             startDate: monthStart(2),
             lastGeneratedDate: monthStart(3),
@@ -328,7 +328,7 @@ describe('RecurringTransactionEngine', () => {
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
-        // Watermark advanced to the last due date — this month's occurrence
+        // Watermark advanced to the last due date - this month's occurrence
         const updatedRule = await recurringRepo.getById('rule-1');
         expect(updatedRule!.lastGeneratedDate.getTime()).toBe(monthStart(0).getTime());
     });
@@ -359,7 +359,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             createdAt: new Date('2025-01-01'),
         });
 
-        // Rule: $100/month expense, two dues pending → $200 needed, only $50 available
+        // Rule: $100/month expense, two dues pending -> $200 needed, only $50 available
         await recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: 100,
@@ -372,7 +372,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
-        // Rule was evaluated and skipped — not errored
+        // Rule was evaluated and skipped - not errored
         expect(result.rulesEvaluated).toBe(1);
         expect(result.skipped).toHaveLength(1);
         expect(result.skipped[0].reason).toBe(SkipReason.INSUFFICIENT_FUNDS);
@@ -389,7 +389,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
     });
 
     it('skips rule when cumulative dues exceed balance (all-or-nothing)', async () => {
-        // Wallet with $150 — enough for 1 month but not 3
+        // Wallet with $150 - enough for 1 month but not 3
         await walletRepo.save({
             id: 'w-1',
             name: 'Cash Wallet',
@@ -398,7 +398,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             createdAt: new Date('2025-01-01'),
         });
 
-        // 3 overdue months × $100 = $300 needed
+        // 3 overdue months x $100 = $300 needed
         await recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: 100,
@@ -411,7 +411,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
-        // ALL skipped — no partial generation, even though $150 covers a single due
+        // ALL skipped - no partial generation, even though $150 covers a single due
         expect(result.skipped).toHaveLength(1);
         expect(result.skipped[0].amount).toBe(300);
         expect(result.transactionsGenerated).toBe(0);
@@ -430,7 +430,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             createdAt: new Date('2025-01-01'),
         });
 
-        // Income rule — should always succeed
+        // Income rule - should always succeed
         await recurringRepo.save(validRule({
             type: TransactionType.INCOME,
             amount: 500,
@@ -448,7 +448,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
     });
 
     it('never skips expense rules on bank wallets (overdraft allowed)', async () => {
-        // Bank wallet with $0 balance — overdraft is allowed
+        // Bank wallet with $0 balance - overdraft is allowed
         await walletRepo.save({
             id: 'w-1',
             name: 'Bank Account',
@@ -516,7 +516,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         const RULE_AMOUNT = 100;
         const DUE_COUNT = 2; // monthStart(1) and monthStart(0)
         const EXPECTED_COST = RULE_AMOUNT * DUE_COUNT;
-        const INITIAL_BALANCE = 10; // below EXPECTED_COST → the first run must skip
+        const INITIAL_BALANCE = 10; // below EXPECTED_COST -> the first run must skip
 
         // Start with low balance
         await walletRepo.save({
@@ -535,7 +535,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
             lastGeneratedDate: monthStart(2),
         }));
 
-        // First run — should be skipped
+        // First run - should be skipped
         const firstResult = await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });

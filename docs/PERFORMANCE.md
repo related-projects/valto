@@ -1,4 +1,4 @@
-# Performance Profiling Guide — Valto
+# Performance Profiling Guide: Valto
 
 ## Overview
 
@@ -46,7 +46,7 @@ npx expo start
 ### Reports Screen (`useReports`)
 - **Monthly aggregation** iterates all transactions on every render cycle
 - **Category breakdown** computes percentages for donut chart
-- **Mitigation**: Already uses `useMemo` — verify memo dependencies are stable
+- **Mitigation**: Already uses `useMemo` - verify memo dependencies are stable
 
 ### Transaction List (`TransactionList`)
 - Uses FlatList with pagination
@@ -137,4 +137,4 @@ npx expo-doctor
 | Hook memoization | ✅ Good | All expensive computations use `useMemo` |
 | Event bus reactivity | ✅ Good | Targeted channel subscriptions, not global |
 | FlatList usage | ✅ Good | Pagination implemented for transactions |
-| Re-render hygiene | ⚠️ Review | Dashboard composes many hooks — monitor re-render cascades |
+| Re-render hygiene | ⚠️ Review | Dashboard composes many hooks - monitor re-render cascades |

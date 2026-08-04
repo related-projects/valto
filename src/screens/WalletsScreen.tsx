@@ -185,7 +185,7 @@ export const WalletsScreen = () => {
                 }}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Header — keeps horizontal padding */}
+                {/* Header - keeps horizontal padding */}
                 <View style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
@@ -226,7 +226,7 @@ export const WalletsScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Wallet Cards — Horizontal FlatList (full-bleed, no horizontal padding on parent) */}
+                {/* Wallet Cards - Horizontal FlatList (full-bleed, no horizontal padding on parent) */}
                 {wallets.length === 0 ? (
                     <View style={{ paddingHorizontal: spacing.lg }}>
                         {renderEmptyState()}

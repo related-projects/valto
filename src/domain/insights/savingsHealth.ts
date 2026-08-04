@@ -8,7 +8,7 @@
 export type SavingsLevel = 'deficit' | 'weak' | 'acceptable' | 'strong';
 
 export interface SavingsHealthResult {
-    /** Fraction of income saved (0–1 scale, can be negative for deficit) */
+    /** Fraction of income saved (0-1 scale, can be negative for deficit) */
     savingsRate: number;
     /** Qualitative level */
     level: SavingsLevel;

@@ -1,7 +1,7 @@
 /**
- * Overdraw DOMAIN RULE — locked asymmetry
+ * Overdraw DOMAIN RULE - locked asymmetry
  *
- * One deliberate product rule, two opposite sides — kept in one file so the
+ * One deliberate product rule, two opposite sides - kept in one file so the
  * asymmetry reads at a glance:
  *
  *   (a) An EXPENSE may overdraw a wallet into a NEGATIVE balance. It records a
@@ -14,7 +14,7 @@
  *       and rolls back with zero partial writes.
  *
  * Expense = real outflow (unbounded); transfer = tracked-funds movement
- * (bounded). These tests verify behavior — they must NOT change it. The rule is
+ * (bounded). These tests verify behavior - they must NOT change it. The rule is
  * also documented next to createTransaction() and transferFunds().
  */
 
@@ -36,11 +36,11 @@ describe('overdraw DOMAIN RULE', () => {
 
     const deps = () => ({ transactionRepo, walletRepo, eventBus, runInTransaction: repos.runInTransaction });
 
-    // (a) EXPENSE — overdraw allowed, ledger integrity preserved even negative.
+    // (a) EXPENSE - overdraw allowed, ledger integrity preserved even negative.
     it('allows an expense to overdraw a wallet into a negative balance (by design)', async () => {
         const wallet = await walletRepo.create({ name: 'Cash', balance: 5000, type: WalletType.CASH });
 
-        // Spend more than the wallet holds — this is a real outflow and must succeed.
+        // Spend more than the wallet holds - this is a real outflow and must succeed.
         await expect(
             createTransaction(deps(), {
                 type: TransactionType.EXPENSE,
@@ -51,7 +51,7 @@ describe('overdraw DOMAIN RULE', () => {
             })
         ).resolves.toBeDefined();
 
-        // Stored balance went negative — the overdraw was recorded, not blocked.
+        // Stored balance went negative - the overdraw was recorded, not blocked.
         const updated = await walletRepo.getById(wallet.id);
         expect(updated!.balance).toBe(-5000);
 
@@ -59,7 +59,7 @@ describe('overdraw DOMAIN RULE', () => {
         expect(await walletRepo.recomputeBalanceFromLedger(wallet.id)).toBe(-5000);
     });
 
-    // (b) TRANSFER — the mirror: bounded by source balance, no partial writes.
+    // (b) TRANSFER - the mirror: bounded by source balance, no partial writes.
     it('rejects a transfer that exceeds the source balance (the asymmetry)', async () => {
         const source = await walletRepo.create({ name: 'Cash', balance: 5000, type: WalletType.CASH });
         const dest = await walletRepo.create({ name: 'Bank', balance: 0, type: WalletType.BANK });

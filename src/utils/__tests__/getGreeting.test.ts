@@ -2,7 +2,7 @@
  * getGreeting Unit Tests
  *
  * Covers all four time-of-day ranges and every boundary transition.
- * All tests use fixed Date inputs — no reliance on real time.
+ * All tests use fixed Date inputs - no reliance on real time.
  */
 
 import { getGreeting } from '../getGreeting';
@@ -12,7 +12,7 @@ const at = (hour: number, minute = 0): Date =>
     new Date(2026, 0, 15, hour, minute, 0, 0); // 2026-01-15
 
 describe('getGreeting', () => {
-    // ─── Morning (05:00 – 11:59) ──────────────────────────────────────
+    // ─── Morning (05:00 - 11:59) ──────────────────────────────────────
 
     it('returns morning at exactly 05:00', () => {
         expect(getGreeting(at(5, 0))).toBe('dashboard.greetings.morning');
@@ -26,7 +26,7 @@ describe('getGreeting', () => {
         expect(getGreeting(at(11, 59))).toBe('dashboard.greetings.morning');
     });
 
-    // ─── Afternoon (12:00 – 16:59) ────────────────────────────────────
+    // ─── Afternoon (12:00 - 16:59) ────────────────────────────────────
 
     it('returns afternoon at exactly 12:00', () => {
         expect(getGreeting(at(12, 0))).toBe('dashboard.greetings.afternoon');
@@ -40,7 +40,7 @@ describe('getGreeting', () => {
         expect(getGreeting(at(16, 59))).toBe('dashboard.greetings.afternoon');
     });
 
-    // ─── Evening (17:00 – 21:59) ──────────────────────────────────────
+    // ─── Evening (17:00 - 21:59) ──────────────────────────────────────
 
     it('returns evening at exactly 17:00', () => {
         expect(getGreeting(at(17, 0))).toBe('dashboard.greetings.evening');
@@ -54,7 +54,7 @@ describe('getGreeting', () => {
         expect(getGreeting(at(21, 59))).toBe('dashboard.greetings.evening');
     });
 
-    // ─── Night (22:00 – 04:59) ────────────────────────────────────────
+    // ─── Night (22:00 - 04:59) ────────────────────────────────────────
 
     it('returns night at exactly 22:00', () => {
         expect(getGreeting(at(22, 0))).toBe('dashboard.greetings.night');

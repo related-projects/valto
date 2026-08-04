@@ -64,7 +64,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     const [destWalletId, setDestWalletId] = useState<string>('');
     const [saving, setSaving] = useState(false);
 
-    // One coherent on-open initialization (runs only on the closed→open edge):
+    // One coherent on-open initialization (runs only on the closed->open edge):
     //   (A) set the type from the quick-action intent, and
     //   (B) clear any fields entered during a previous open.
     // Cleared category/wallet ids let the auto-select effects below repopulate
@@ -173,7 +173,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     };
 
     const handleSave = async () => {
-        // Single input→storage conversion point (major units → integer minor units).
+        // Single input->storage conversion point (major units -> integer minor units).
         const amountNum = parseAmountToCents(amount);
 
         if (amountNum === null) {
@@ -315,7 +315,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 </View>
                             </View>
 
-                            {/* Category — only for expense/income */}
+                            {/* Category - only for expense/income */}
                             {transactionType !== 'transfer' && (
                                 <DropdownPicker
                                     label={t('modals.addTransaction.category')}

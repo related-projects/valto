@@ -44,7 +44,7 @@ export async function setNotificationsEnabled(
 ): Promise<{ enabled: boolean; permissionDenied: boolean }> {
     const current = await loadSettings();
 
-    // Idempotent — skip write if value unchanged
+    // Idempotent - skip write if value unchanged
     if (current.notificationsEnabled === enabled) {
         return { enabled, permissionDenied: false };
     }

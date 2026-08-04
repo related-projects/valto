@@ -1,7 +1,7 @@
 /**
  * PIN Lock-out Policy Tests (pure domain)
  *
- * Deterministic — a fixed `now` is injected everywhere, no real timers.
+ * Deterministic - a fixed `now` is injected everywhere, no real timers.
  */
 
 import {

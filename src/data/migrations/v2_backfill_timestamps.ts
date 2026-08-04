@@ -1,5 +1,5 @@
 /**
- * v2 — Backfill Missing Timestamps
+ * v2 - Backfill Missing Timestamps
  *
  * Ensures all wallets and transactions have a valid `createdAt` field.
  * Older records may lack this field if they were created before

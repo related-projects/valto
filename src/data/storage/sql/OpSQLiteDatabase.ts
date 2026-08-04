@@ -3,7 +3,7 @@
  *
  * SqlDatabase adapter backed by op-sqlite with SQLCipher encryption at rest.
  * op-sqlite is a native JSI module: it is `require`d lazily (inside create())
- * so merely importing this file never touches native code — keeping the module
+ * so merely importing this file never touches native code - keeping the module
  * loadable in the Jest/Node environment where it would otherwise crash.
  *
  * Requires an Expo development build (not Expo Go). See DEV_BUILD.md.
@@ -26,11 +26,11 @@ export class OpSQLiteDatabase implements SqlDatabase {
 
     /** Open the encrypted database, resolving the key from the secure keystore. */
     static async create(): Promise<OpSQLiteDatabase> {
-        // Lazy native require — never evaluated under Jest.
+        // Lazy native require - never evaluated under Jest.
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { open } = require('@op-engineering/op-sqlite');
         const encryptionKey = await getOrCreateEncryptionKey();
-        // The keystore key is passed to open() here — this is what actually
+        // The keystore key is passed to open() here - this is what actually
         // encrypts the file. The `sqlcipher: true` flag in package.json only
         // builds the SQLCipher-enabled binary; without this key the DB is plain.
         const db = open({ name: DB_NAME, encryptionKey });
@@ -43,7 +43,7 @@ export class OpSQLiteDatabase implements SqlDatabase {
      * Fail-fast boot guard: prove SQLCipher is actually active on this handle.
      * In a SQLCipher build `PRAGMA cipher_version` returns the cipher version;
      * on a plain SQLite binary it returns NOTHING. An empty result therefore
-     * means the file is being written UNENCRYPTED — we refuse to continue
+     * means the file is being written UNENCRYPTED - we refuse to continue
      * rather than silently persist financial data in clear text.
      */
     private async assertEncrypted(): Promise<void> {
@@ -60,7 +60,7 @@ export class OpSQLiteDatabase implements SqlDatabase {
     execute = async (sql: string, params: unknown[] = []): Promise<SqlQueryResult> => {
         const res = await this.db.execute(sql, params);
         // op-sqlite has returned rows as either `rows._array` or `rows` across
-        // versions — normalise both shapes.
+        // versions - normalise both shapes.
         const rows = (res?.rows?._array ?? res?.rows ?? []) as Record<string, unknown>[];
         return { rows, rowsAffected: res?.rowsAffected ?? 0 };
     };

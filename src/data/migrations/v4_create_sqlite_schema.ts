@@ -1,8 +1,8 @@
 /**
- * v4 — Create SQLite Schema
+ * v4 - Create SQLite Schema
  *
  * Creates the relational financial schema (wallets, transactions, categories,
- * budgets, recurring_rules) in the encrypted SqlDatabase. Idempotent — every
+ * budgets, recurring_rules) in the encrypted SqlDatabase. Idempotent - every
  * statement uses `IF NOT EXISTS`.
  */
 

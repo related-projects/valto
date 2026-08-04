@@ -2,7 +2,7 @@
  * Settings Service
  *
  * Pure persistence layer for app-level settings.
- * Uses the existing storage abstraction — no direct AsyncStorage access.
+ * Uses the existing storage abstraction - no direct AsyncStorage access.
  */
 
 import { DEFAULT_CURRENCY_CODE } from '../../domain/constants/currencies';
@@ -61,7 +61,7 @@ export async function loadSettings(): Promise<AppSettings> {
         const defaults = getDefaultSettings();
         const merged = { ...defaults, ...stored };
 
-        // Validate language — fall back if corrupted
+        // Validate language - fall back if corrupted
         if (typeof merged.language !== 'string' || !isSupportedLanguage(merged.language)) {
             merged.language = DEFAULT_LANGUAGE_CODE;
         }

@@ -1,5 +1,5 @@
 /**
- * Domain Repository Interfaces — Barrel Export
+ * Domain Repository Interfaces - Barrel Export
  *
  * Abstractions the domain layer depends on. Concrete implementations live in
  * src/data/repositories and must never be imported from the domain.

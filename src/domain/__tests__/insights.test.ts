@@ -22,7 +22,7 @@ describe('evaluateSavingsHealth', () => {
     });
 
     it('returns weak when savings rate is below 10%', () => {
-        // saving 5% → weak
+        // saving 5% -> weak
         const result = evaluateSavingsHealth(100_000, 95_000);
         expect(result.level).toBe('weak');
         expect(result.savingsRate).toBeCloseTo(0.05);
@@ -195,14 +195,14 @@ describe('evaluateCategoryRisk', () => {
 
 describe('evaluateBudgetPace', () => {
     it('detects on-track spending', () => {
-        // 15 of 30 days, spent 50% of budget → on track
+        // 15 of 30 days, spent 50% of budget -> on track
         const result = evaluateBudgetPace(50_000, 100_000, 15, 30);
         expect(result.overBudgetPace).toBe(false);
         expect(result.expectedSpentByNow).toBe(50_000);
     });
 
     it('detects over-pace spending', () => {
-        // 10 of 30 days, already spent 60% → over pace
+        // 10 of 30 days, already spent 60% -> over pace
         const result = evaluateBudgetPace(60_000, 100_000, 10, 30);
         expect(result.overBudgetPace).toBe(true);
         expect(result.expectedSpentByNow).toBeCloseTo(33_333.33, 0);

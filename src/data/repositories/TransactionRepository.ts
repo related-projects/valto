@@ -171,8 +171,8 @@ export class TransactionRepository implements ITransactionRepository {
 
         // Ledger integrity guard: a transaction's amount, wallet, type and
         // category determine its signed effect on a wallet balance
-        // (see ledgerEffect). Editing any of them here — a plain row UPDATE with
-        // no compensating balance adjustment — would silently desync the stored
+        // (see ledgerEffect). Editing any of them here - a plain row UPDATE with
+        // no compensating balance adjustment - would silently desync the stored
         // wallet balance from the recomputed ledger. The app exposes no such
         // edit path; reject it so a future caller can't corrupt a balance.
         // Delete + recreate is the supported way to change those fields.

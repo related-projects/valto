@@ -61,7 +61,7 @@ describe('createTransaction', () => {
     });
 
     it('does not re-normalize an already-converted amount (no double ×100)', async () => {
-        // UI converts input → cents once via normalizeAmount; the domain stores
+        // UI converts input -> cents once via normalizeAmount; the domain stores
         // those cents verbatim. Passing 1575 (== $15.75 normalized) must stay
         // 1575, never become 157500.
         const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });

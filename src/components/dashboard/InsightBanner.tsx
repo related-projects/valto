@@ -2,7 +2,7 @@
  * InsightBanner
  *
  * A small, themed text block that displays a single financial insight.
- * Designed to blend subtly with existing dashboard cards — no layout break.
+ * Designed to blend subtly with existing dashboard cards - no layout break.
  */
 
 import { Ionicons } from '@expo/vector-icons';

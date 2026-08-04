@@ -318,27 +318,27 @@
       {
         "id": "backup-data",
         "question": "Comment sauvegarder mes données ?",
-        "answer": "Allez dans Paramètres → Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
+        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
       },
       {
         "id": "restore-data",
         "question": "Comment restaurer depuis une sauvegarde ?",
-        "answer": "Allez dans Paramètres → Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Cette action est irréversible, pensez à sauvegarder d'abord."
+        "answer": "Allez dans Paramètres > Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Cette action est irréversible, pensez à sauvegarder d'abord."
       },
       {
         "id": "change-currency",
         "question": "Comment changer la devise ?",
-        "answer": "Allez dans Paramètres → Devise. Sélectionnez parmi les devises disponibles. Le symbole de la devise sera mis à jour dans toute l'application."
+        "answer": "Allez dans Paramètres > Devise. Sélectionnez parmi les devises disponibles. Le symbole de la devise sera mis à jour dans toute l'application."
       },
       {
         "id": "dark-mode",
         "question": "L'application supporte-t-elle le mode sombre ?",
-        "answer": "Oui. Allez dans Paramètres → Thème et choisissez Clair, Sombre ou Système (suit les paramètres de votre appareil)."
+        "answer": "Oui. Allez dans Paramètres > Thème et choisissez Clair, Sombre ou Système (suit les paramètres de votre appareil)."
       },
       {
         "id": "security",
         "question": "Comment protéger mes données avec un PIN ?",
-        "answer": "Allez dans Paramètres → Sécurité et appuyez pour configurer un PIN. Vous pouvez également activer l'authentification biométrique (empreinte ou visage) pour un accès rapide. L'application se verrouille automatiquement lorsqu'elle passe en arrière-plan."
+        "answer": "Allez dans Paramètres > Sécurité et appuyez pour configurer un PIN. Vous pouvez également activer l'authentification biométrique (empreinte ou visage) pour un accès rapide. L'application se verrouille automatiquement lorsqu'elle passe en arrière-plan."
       },
       {
         "id": "offline",
@@ -348,18 +348,18 @@
       {
         "id": "reset-data",
         "question": "Comment réinitialiser toutes les données ?",
-        "answer": "Allez dans Paramètres → Réinitialiser toutes les données. Cela supprime définitivement tous vos portefeuilles, transactions, catégories, budgets et paramètres. L'application reviendra à son état initial avec les données par défaut. Cette action est irréversible."
+        "answer": "Allez dans Paramètres > Réinitialiser toutes les données. Cela supprime définitivement tous vos portefeuilles, transactions, catégories, budgets et paramètres. L'application reviendra à son état initial avec les données par défaut. Cette action est irréversible."
       },
       {
         "id": "categories",
         "question": "Puis-je personnaliser les catégories ?",
-        "answer": "Allez dans Paramètres → Catégories. Vous pouvez consulter toutes les catégories de dépenses et de revenus. La gestion personnalisée des catégories sera disponible dans une future mise à jour."
+        "answer": "Allez dans Paramètres > Catégories. Vous pouvez consulter toutes les catégories de dépenses et de revenus. La gestion personnalisée des catégories sera disponible dans une future mise à jour."
       }
     ]
   },
   "settings": {
     "title": "Paramètres",
-    "processing": "Traitement…",
+    "processing": "Traitement...",
     "userName": "Utilisateur Valto",
     "premiumAccount": "Compte Premium",
     "sections": {
@@ -431,8 +431,8 @@
     "errorCurrency": "Impossible de mettre à jour la devise. Veuillez réessayer.",
     "errorLanguage": "Impossible de mettre à jour la langue. Veuillez réessayer.",
     "resetCurrency": "Réinitialiser la devise",
-    "resetCurrencyMessage": "Changer votre devise de base efface définitivement TOUTES les données financières — portefeuilles, transactions, catégories et budgets. Les montants ne peuvent pas être convertis (aucune sauvegarde ni synchronisation). Continuer ?",
-    "resetCurrencyIrreversibleMessage": "Toutes les données financières seront définitivement effacées et {{code}} deviendra votre devise de base. Il n'existe aucune sauvegarde ni synchronisation — cette action est irréversible.",
+    "resetCurrencyMessage": "Changer votre devise de base efface définitivement TOUTES les données financières : portefeuilles, transactions, catégories et budgets. Les montants ne peuvent pas être convertis (aucune sauvegarde ni synchronisation). Continuer ?",
+    "resetCurrencyIrreversibleMessage": "Toutes les données financières seront définitivement effacées et {{code}} deviendra votre devise de base. Il n'existe aucune sauvegarde ni synchronisation : cette action est irréversible.",
     "resetCurrencySuccess": "Devise mise à jour",
     "resetCurrencySuccessMessage": "Votre devise de base a été changée en {{code}}.",
     "resetCurrencyFailed": "Échec de la réinitialisation de la devise. Veuillez réessayer.",
@@ -634,11 +634,11 @@
   },
   "storeRecovery": {
     "title": "Impossible d'ouvrir vos données",
-    "body": "Vos données enregistrées n'ont pas pu être chargées — la base de données locale est peut-être corrompue ou illisible. Réessayez, ou réinitialisez pour repartir de zéro.",
+    "body": "Vos données enregistrées n'ont pas pu être chargées. La base de données locale est peut-être corrompue ou illisible. Réessayez, ou réinitialisez pour repartir de zéro.",
     "tryAgain": "Réessayer",
     "reset": "Réinitialiser les données",
     "confirmTitle": "Effacer les données locales ?",
-    "confirmBody": "Cette action supprime définitivement toutes les données de cet appareil — portefeuilles, transactions, catégories et budgets. Il n'existe aucune sauvegarde ni copie serveur : cette action est irréversible.",
+    "confirmBody": "Cette action supprime définitivement toutes les données de cet appareil : portefeuilles, transactions, catégories et budgets. Il n'existe aucune sauvegarde ni copie serveur, cette action est donc irréversible.",
     "confirmCta": "Tout effacer",
     "cancel": "Annuler",
     "resetFailedTitle": "Échec de la réinitialisation",

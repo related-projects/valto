@@ -24,7 +24,7 @@ import { type AppSettings, unlockAndResetCurrency } from './settingsService';
  * Shared by resetAppData (full reset) and resetFinancialDataForCurrencyReset.
  */
 async function wipeFinancialData(): Promise<void> {
-    // Financial data lives in SQLite — clear every table atomically.
+    // Financial data lives in SQLite - clear every table atomically.
     const db = getDb();
     await db.runInTransaction(async () => {
         for (const table of FINANCIAL_TABLES) {
@@ -55,7 +55,7 @@ async function wipeFinancialData(): Promise<void> {
  * Callers MUST require double confirmation before invoking this function.
  */
 export async function resetAppData(): Promise<void> {
-    // Settings are wiped only by the FULL reset — remove before the shared wipe.
+    // Settings are wiped only by the FULL reset - remove before the shared wipe.
     await asyncStorageAdapter.remove(StorageKeys.SETTINGS);
     await wipeFinancialData();
 
@@ -75,7 +75,7 @@ export async function resetAppData(): Promise<void> {
  * the currency is written LAST. Settings live in KV and the ledger in SQLite, so
  * no cross-store transaction is possible; sequencing this way guarantees the only
  * observable failure states are "old currency + old data" (SQLite rollback) or
- * "old currency + freshly-seeded 0-balance data" — never "new currency + old
+ * "old currency + freshly-seeded 0-balance data" - never "new currency + old
  * amounts".
  *
  * Callers MUST require explicit destructive confirmation before invoking this.

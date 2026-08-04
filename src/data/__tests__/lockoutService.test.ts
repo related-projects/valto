@@ -2,7 +2,7 @@
  * PIN Lock-out Service Tests
  *
  * Exercises the durable, secure-store-backed throttle with an injected clock
- * and a stateful in-memory secure-store mock. Deterministic — no real timers.
+ * and a stateful in-memory secure-store mock. Deterministic - no real timers.
  */
 
 // Stateful expo-secure-store mock (overrides the static global one for this

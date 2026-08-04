@@ -1,5 +1,5 @@
 /**
- * v5 — One-Time Import: AsyncStorage → SQLite
+ * v5 - One-Time Import: AsyncStorage -> SQLite
  *
  * Moves existing financial data out of the legacy key-value store into the
  * relational SQLite tables, so upgrading users keep their data. Idempotent:
@@ -8,7 +8,7 @@
  *
  * Opening-balance anchor: an imported wallet's stored balance already reflects
  * all its historical transactions, so we derive
- *     opening_balance = balance − Σ ledgerEffect(imported txns of the wallet)
+ *     opening_balance = balance - Σ ledgerEffect(imported txns of the wallet)
  * which makes recomputeBalanceFromLedger concord with the stored balance
  * immediately after import.
  *
@@ -108,7 +108,7 @@ export const v5_import_from_asyncstorage: Migration = {
         const drifted = (await walletRepo.auditBalances()).filter((a) => a.drift !== 0);
         if (drifted.length > 0) {
             console.warn(
-                `[import] Balance drift after v5 import — opening_balance derivation is suspect: ` +
+                `[import] Balance drift after v5 import - opening_balance derivation is suspect: ` +
                     drifted
                         .map((a) => `${a.walletId} (stored ${a.stored}, ledger ${a.computed}, drift ${a.drift})`)
                         .join(', '),

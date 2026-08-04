@@ -3,7 +3,7 @@
  *
  * Displays a donut chart with category legend showing spending distribution.
  * Replaces the previous progress-bar style with a visual donut chart.
- * All data is received as props — no business logic here.
+ * All data is received as props - no business logic here.
  */
 
 import React from 'react';

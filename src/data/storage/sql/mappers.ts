@@ -1,8 +1,8 @@
 /**
- * Row ↔ Entity Mappers + Generic SQL CRUD
+ * Row <-> Entity Mappers + Generic SQL CRUD
  *
  * Each mapper is the single definition of how a domain entity maps to its
- * table row (column names, date↔ISO, boolean↔0/1, undefined↔NULL). The
+ * table row (column names, date<->ISO, boolean<->0/1, undefined<->NULL). The
  * generic helpers below build INSERT/UPDATE/SELECT/DELETE from a mapper so
  * every repository shares identical, consistent persistence logic.
  */
@@ -40,7 +40,7 @@ export const walletMapper: EntityMapper<Wallet> = {
     table: 'wallets',
     toRow(w) {
         // Note: `opening_balance` (ledger anchor) is intentionally NOT mapped
-        // here — it is a persistence-only column set once on INSERT and never
+        // here - it is a persistence-only column set once on INSERT and never
         // overwritten by an UPDATE. WalletRepository manages it explicitly.
         return {
             id: w.id,
@@ -177,13 +177,13 @@ export const recurringMapper: EntityMapper<RecurringTransaction> = {
 
 // ─── Generic CRUD over a mapper ─────────────────────────────────────────
 
-/** SELECT * FROM table → entities. */
+/** SELECT * FROM table -> entities. */
 export async function sqlGetAll<T>(db: SqlDatabase, m: EntityMapper<T>): Promise<T[]> {
     const { rows } = await db.execute(`SELECT * FROM ${m.table}`);
     return rows.map(m.fromRow);
 }
 
-/** SELECT one row by id → entity or null. */
+/** SELECT one row by id -> entity or null. */
 export async function sqlGetById<T>(
     db: SqlDatabase,
     m: EntityMapper<T>,
