@@ -41,6 +41,7 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets }) => {
                         {t('components.walletList.noWallets')}
                     </Text>
                     <TouchableOpacity
+                        testID="wallet_list_create_first"
                         style={{
                             marginTop: spacing.md,
                             paddingHorizontal: spacing.lg,
@@ -48,7 +49,7 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets }) => {
                             backgroundColor: colors.accent,
                             borderRadius: radius.md,
                         }}
-                        onPress={() => { /* Navigation to be implemented */ }}
+                        onPress={() => router.push('/(tabs)/wallets')}
                     >
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
                             {t('components.walletList.createFirst')}
