@@ -9,17 +9,16 @@
  * It NEVER overwrites existing user data, making it safe to call on every app launch.
  */
 
-import { getCategoryRepository, getWalletRepository } from '../../core/di';
+import { getCategoryRepository } from '../../core/di';
 import { asyncStorageAdapter } from '../storage';
 import { StorageKeys } from '../storage/StorageKeys';
-import { defaultCategories, defaultWallets } from './seedData';
+import { defaultCategories } from './seedData';
 
 /**
  * Result of seed initialization
  */
 export interface SeedResult {
     success: boolean;
-    walletsCreated: number;
     categoriesCreated: number;
     error?: string;
 }
@@ -49,9 +48,11 @@ async function markSeedInitialized(): Promise<void> {
  * 
  * This function:
  * 1. Checks if seed data has already been initialized
- * 2. If not, creates default wallets and categories
+ * 2. If not, creates the default categories
  * 3. Marks the seed as initialized to prevent future runs
- * 
+ *
+ * No wallets are seeded - onboarding creates the first wallet (see seedData.ts).
+ *
  * @returns Promise resolving to seed result
  */
 export async function initializeSeedData(): Promise<SeedResult> {
@@ -60,24 +61,11 @@ export async function initializeSeedData(): Promise<SeedResult> {
         if (await isSeedInitialized()) {
             return {
                 success: true,
-                walletsCreated: 0,
                 categoriesCreated: 0,
             };
         }
 
-        const walletRepo = getWalletRepository();
         const categoryRepo = getCategoryRepository();
-
-        // Create default wallets
-        let walletsCreated = 0;
-        for (const walletDTO of defaultWallets) {
-            try {
-                await walletRepo.create(walletDTO);
-                walletsCreated++;
-            } catch (error) {
-                console.error('Failed to create default wallet:', walletDTO.name, error);
-            }
-        }
 
         // Create default categories
         let categoriesCreated = 0;
@@ -95,7 +83,6 @@ export async function initializeSeedData(): Promise<SeedResult> {
 
         return {
             success: true,
-            walletsCreated,
             categoriesCreated,
         };
     } catch (error) {
@@ -103,7 +90,6 @@ export async function initializeSeedData(): Promise<SeedResult> {
 
         return {
             success: false,
-            walletsCreated: 0,
             categoriesCreated: 0,
             error: error instanceof Error ? error.message : 'Unknown error',
         };
