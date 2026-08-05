@@ -9,6 +9,7 @@ import { useFormatting } from '../../hooks/useFormatting';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
+import { resolveCategoryVisual } from '../../utils/categoryVisuals';
 
 export function TransactionDetailsModal() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -60,23 +61,12 @@ export function TransactionDetailsModal() {
     } else {
         const cat = categories.find((c) => c.id === transaction.categoryId);
         if (cat) {
+            // Stored icon/colour first, so a category renamed into any language keeps
+            // its appearance. See utils/categoryVisuals.
             categoryName = cat.name;
-            const lowerName = categoryName.toLowerCase();
-            if (lowerName.includes('shopping')) colorHex = '#8B5CF6';
-            else if (lowerName.includes('food') || lowerName.includes('dining')) colorHex = '#F59E0B';
-            else if (lowerName.includes('transport')) colorHex = '#3B82F6';
-            else if (lowerName.includes('entertainment')) colorHex = '#EC4899';
-            else if (lowerName.includes('utilities')) colorHex = '#10B981';
-            else if (lowerName.includes('salary') || lowerName.includes('income')) colorHex = '#4ade80';
-            else if (lowerName.includes('health')) colorHex = '#14B8A6';
-            
-            if (lowerName.includes('food') || lowerName.includes('dining')) iconName = 'restaurant-outline';
-            else if (lowerName.includes('shopping')) iconName = 'cart-outline';
-            else if (lowerName.includes('transport')) iconName = 'car-outline';
-            else if (lowerName.includes('entertainment')) iconName = 'film-outline';
-            else if (lowerName.includes('utilities')) iconName = 'flash-outline';
-            else if (lowerName.includes('salary') || lowerName.includes('income')) iconName = 'cash-outline';
-            else if (lowerName.includes('health')) iconName = 'medical-outline';
+            const visual = resolveCategoryVisual(cat, colors.accent);
+            iconName = visual.icon;
+            colorHex = visual.color;
         }
     }
 

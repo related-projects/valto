@@ -9,6 +9,7 @@
  */
 
 import { createTestDb } from '../../../tests/helpers/createTestDb';
+import { CategoryType } from '../../domain/entities/Category';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
 
@@ -60,6 +61,50 @@ describe('Seed Service', () => {
         const categoryRepo = new CategoryRepository((global as any).__testSeedDb);
         const categories = await categoryRepo.getAll();
         expect(categories.length).toBe(result.categoriesCreated);
+    });
+
+    // Category and wallet labels are user data written once at install time in French,
+    // never routed through i18n and never re-translated (see seedData.ts). These
+    // assertions pin the exact set a fresh install gets.
+    it('seeds exactly the three French categories with their icons and colors', async () => {
+        await initializeSeedData();
+
+        const categories = await new CategoryRepository((global as any).__testSeedDb).getAll();
+        expect(categories).toHaveLength(3);
+
+        const byName = (name: string) => categories.find(c => c.name === name);
+
+        expect(byName('Nourriture')).toMatchObject({
+            name: 'Nourriture',
+            type: CategoryType.EXPENSE,
+            icon: 'restaurant',
+            color: '#FFB74D',
+        });
+        expect(byName('Transport')).toMatchObject({
+            name: 'Transport',
+            type: CategoryType.EXPENSE,
+            icon: 'car',
+            color: '#64B5F6',
+        });
+        expect(byName('Salaire')).toMatchObject({
+            name: 'Salaire',
+            type: CategoryType.INCOME,
+            icon: 'cash',
+            color: '#66BB6A',
+        });
+
+        expect(categories.filter(c => c.type === CategoryType.EXPENSE).map(c => c.name).sort())
+            .toEqual(['Nourriture', 'Transport']);
+        expect(categories.filter(c => c.type === CategoryType.INCOME).map(c => c.name))
+            .toEqual(['Salaire']);
+    });
+
+    it('seeds the default wallets with French labels', async () => {
+        await initializeSeedData();
+
+        const wallets = await new WalletRepository((global as any).__testSeedDb).getAll();
+        expect(wallets).toHaveLength(3);
+        expect(wallets.map(w => w.name).sort()).toEqual(['Compte bancaire', 'Espèces', 'Épargne']);
     });
 
     it('second run is a no-op (seed initialized flag prevents re-seeding)', async () => {

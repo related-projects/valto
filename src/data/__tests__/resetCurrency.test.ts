@@ -43,7 +43,7 @@ import { loadSettings, selectAndLockCurrency, updateSetting } from '../services/
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
 const DEFAULT_WALLET_COUNT = 3;
-const DEFAULT_CATEGORY_COUNT = 16;
+const DEFAULT_CATEGORY_COUNT = 3;
 
 async function countRows(db: SqlDatabase, table: string): Promise<number> {
     const res = await db.execute(`SELECT COUNT(*) AS c FROM ${table}`);
