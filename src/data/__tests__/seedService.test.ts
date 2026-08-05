@@ -47,24 +47,23 @@ describe('Seed Service', () => {
         await (global as any).__testSeedStorage.clear();
     });
 
-    it('first run creates default wallets and categories', async () => {
+    it('first run creates the default categories and no wallets', async () => {
         const result = await initializeSeedData();
 
         expect(result.success).toBe(true);
-        expect(result.walletsCreated).toBeGreaterThan(0);
         expect(result.categoriesCreated).toBeGreaterThan(0);
 
         const walletRepo = new WalletRepository((global as any).__testSeedDb);
         const wallets = await walletRepo.getAll();
-        expect(wallets.length).toBe(result.walletsCreated);
+        expect(wallets).toHaveLength(0);
 
         const categoryRepo = new CategoryRepository((global as any).__testSeedDb);
         const categories = await categoryRepo.getAll();
         expect(categories.length).toBe(result.categoriesCreated);
     });
 
-    // Category and wallet labels are user data written once at install time in French,
-    // never routed through i18n and never re-translated (see seedData.ts). These
+    // Category labels are user data written once at install time in French, never
+    // routed through i18n and never re-translated (see seedData.ts). These
     // assertions pin the exact set a fresh install gets.
     it('seeds exactly the three French categories with their icons and colors', async () => {
         await initializeSeedData();
@@ -99,12 +98,14 @@ describe('Seed Service', () => {
             .toEqual(['Salaire']);
     });
 
-    it('seeds the default wallets with French labels', async () => {
+    // Onboarding is the single source of the first wallet: it cannot be skipped and the
+    // user names, types and funds that wallet. Seeding wallets on top of it left a fresh
+    // user with four wallets, three of which they never asked for.
+    it('seeds no wallets - onboarding creates the first one', async () => {
         await initializeSeedData();
 
         const wallets = await new WalletRepository((global as any).__testSeedDb).getAll();
-        expect(wallets).toHaveLength(3);
-        expect(wallets.map(w => w.name).sort()).toEqual(['Compte bancaire', 'Espèces', 'Épargne']);
+        expect(wallets).toHaveLength(0);
     });
 
     it('second run is a no-op (seed initialized flag prevents re-seeding)', async () => {
@@ -113,20 +114,24 @@ describe('Seed Service', () => {
 
         const secondResult = await initializeSeedData();
         expect(secondResult.success).toBe(true);
-        expect(secondResult.walletsCreated).toBe(0);
         expect(secondResult.categoriesCreated).toBe(0);
+
+        const categories = await new CategoryRepository((global as any).__testSeedDb).getAll();
+        expect(categories).toHaveLength(3);
+
+        const wallets = await new WalletRepository((global as any).__testSeedDb).getAll();
+        expect(wallets).toHaveLength(0);
     });
 
     it('resetSeedFlag allows re-initialization', async () => {
         const firstResult = await initializeSeedData();
-        expect(firstResult.walletsCreated).toBeGreaterThan(0);
+        expect(firstResult.categoriesCreated).toBeGreaterThan(0);
 
         await resetSeedFlag();
         await (global as any).__testSeedStorage.clear();
 
         const secondResult = await initializeSeedData();
         expect(secondResult.success).toBe(true);
-        expect(secondResult.walletsCreated).toBeGreaterThan(0);
         expect(secondResult.categoriesCreated).toBeGreaterThan(0);
     });
 });
