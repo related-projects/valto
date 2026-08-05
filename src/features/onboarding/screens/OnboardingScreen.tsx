@@ -12,7 +12,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Dimensions,
@@ -62,6 +62,16 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
     // Currency search
     const [currencySearch, setCurrencySearch] = useState('');
+
+    // Step views are conditional renders inside this component, so their state
+    // outlives them. Clear the query whenever the currency step is (re-)entered,
+    // otherwise a stale filter hides the currency the user came back to pick.
+    useEffect(() => {
+        if (step === 1) {
+            setCurrencySearch('');
+        }
+    }, [step]);
+
     const filteredCurrencies = useMemo(() => {
         const q = currencySearch.toLowerCase();
         if (!q) return SUPPORTED_CURRENCIES;
@@ -87,9 +97,29 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     };
 
     const handleComplete = async () => {
-        await complete();
-        onComplete();
+        // Only dismiss onboarding once the flag actually reached storage.
+        if (await complete()) {
+            onComplete();
+        }
     };
+
+    // Every step that can fail renders this: an error must always be visible to
+    // the user, never left sitting in state that nothing shows.
+    const renderError = (testID: string) => (
+        error ? (
+            <Text
+                testID={testID}
+                style={{
+                    color: colors.destructive ?? '#ef4444',
+                    fontSize: typography.sizes.sm,
+                    marginBottom: spacing.md,
+                    textAlign: 'center',
+                }}
+            >
+                {error}
+            </Text>
+        ) : null
+    );
 
     // ─── Step Renderers ───────────────────────────────────────────────
 
@@ -125,6 +155,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 <TouchableOpacity
                     onPress={back}
                     style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}
+                    testID="onboarding_back_button"
                     {...getButtonA11y(t('common.back'))}
                 >
                     <Ionicons name="arrow-back" size={22} color={colors.primary} />
@@ -166,6 +197,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     onChangeText={setCurrencySearch}
                     testID="currency_search_input"
                 />
+            </View>
+
+            {/* Error */}
+            <View style={{ paddingHorizontal: spacing.lg }}>
+                {renderError('onboarding_currency_error')}
             </View>
 
             {/* Currency List */}
@@ -213,6 +249,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             <TouchableOpacity
                 onPress={back}
                 style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}
+                testID="onboarding_back_button"
                 {...getButtonA11y(t('common.back'))}
             >
                 <Ionicons name="arrow-back" size={22} color={colors.primary} />
@@ -307,11 +344,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             />
 
             {/* Error */}
-            {error && (
-                <Text style={{ color: colors.destructive ?? '#ef4444', fontSize: typography.sizes.sm, marginBottom: spacing.md, textAlign: 'center' }}>
-                    {error}
-                </Text>
-            )}
+            {renderError('onboarding_wallet_error')}
 
             {/* Create Button */}
             <TouchableOpacity
@@ -344,6 +377,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             <Text style={[styles.description, { color: colors.mutedForeground, fontSize: typography.sizes.md }]}>
                 {t('onboarding.allSetDescription')}
             </Text>
+            {renderError('onboarding_complete_error')}
             <TouchableOpacity
                 style={[styles.primaryButton, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
                 onPress={handleComplete}
