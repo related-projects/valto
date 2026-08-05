@@ -16,6 +16,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
+import { CategoryVisual, DEFAULT_CATEGORY_ICON, resolveCategoryVisual } from '../../utils/categoryVisuals';
 
 interface TransactionListProps {
     transactions: Transaction[];
@@ -119,31 +120,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         return wallet?.name || t('components.transactionList.unknown');
     }, [wallets, t]);
 
-    const getIconName = (categoryName: string): keyof typeof Ionicons.glyphMap => {
-        const lowerName = categoryName.toLowerCase();
-        if (lowerName.includes('food') || lowerName.includes('dining')) return 'restaurant-outline';
-        if (lowerName.includes('shopping')) return 'cart-outline';
-        if (lowerName.includes('transport')) return 'car-outline';
-        if (lowerName.includes('entertainment')) return 'film-outline';
-        if (lowerName.includes('utilities')) return 'flash-outline';
-        if (lowerName.includes('salary') || lowerName.includes('income')) return 'cash-outline';
-        if (lowerName.includes('health')) return 'medical-outline';
-        if (lowerName.includes('education')) return 'school-outline';
-        return 'card-outline';
-    };
-
-    const getCategoryColor = (categoryName: string) => {
-        const lowerName = categoryName.toLowerCase();
-        if (lowerName.includes('shopping')) return '#8B5CF6';
-        if (lowerName.includes('food') || lowerName.includes('dining')) return '#F59E0B';
-        if (lowerName.includes('transport')) return '#3B82F6';
-        if (lowerName.includes('entertainment')) return '#EC4899';
-        if (lowerName.includes('utilities')) return '#10B981';
-        if (lowerName.includes('salary') || lowerName.includes('income')) return '#4ade80';
-        if (lowerName.includes('health')) return '#14B8A6';
-        if (lowerName.includes('education')) return '#8B5CF6';
-        return colors.accent;
-    };
+    // Icon + colour come from the stored category, so a renamed category keeps its
+    // appearance whatever language the user names it in. See utils/categoryVisuals.
+    const getCategoryVisual = useCallback((categoryId: string): CategoryVisual => {
+        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') {
+            return { icon: DEFAULT_CATEGORY_ICON, color: colors.accent };
+        }
+        return resolveCategoryVisual(categories.find(c => c.id === categoryId), colors.accent);
+    }, [categories, colors.accent]);
 
     // Format display amount
     const displayTransactionAmount = (amount: number, type: string, categoryId: string) => {
@@ -176,7 +160,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     if (!showDateHeaders) {
         const renderFlatItem = ({ item }: ListRenderItemInfo<Transaction>) => {
             const categoryName = getCategoryName(item.categoryId);
-            const categoryColor = getCategoryColor(categoryName);
+            const { icon: categoryIcon, color: categoryColor } = getCategoryVisual(item.categoryId);
             return (
                 <TouchableOpacity
                     onPress={() => router.push(`/transaction/${item.id}`)}
@@ -198,7 +182,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         ]}
                     >
                         <Ionicons
-                            name={getIconName(categoryName)}
+                            name={categoryIcon}
                             size={20}
                             color={categoryColor}
                         />
@@ -276,7 +260,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
         const transaction = item.transaction;
         const categoryName = getCategoryName(transaction.categoryId);
-        const categoryColor = getCategoryColor(categoryName);
+        const { icon: categoryIcon, color: categoryColor } = getCategoryVisual(transaction.categoryId);
 
         return (
             <TouchableOpacity
@@ -302,7 +286,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     ]}
                 >
                     <Ionicons
-                        name={getIconName(categoryName)}
+                        name={categoryIcon}
                         size={22}
                         color={categoryColor}
                     />
