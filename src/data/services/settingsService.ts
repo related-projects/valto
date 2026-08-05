@@ -153,6 +153,53 @@ export async function selectAndLockCurrency(code: string): Promise<AppSettings> 
 }
 
 /**
+ * Set the base currency during onboarding.
+ *
+ * The lock is deliberately NOT applied here. It exists to stop the base currency
+ * changing once financial data is denominated in it, and until onboarding
+ * completes no wallet and no transaction exist - so the user is free to step
+ * back and choose again. `lockCurrency` applies the lock at the end of the flow.
+ *
+ * Writing `currencyLocked: false` also self-heals installs that an earlier build
+ * left locked mid-flow: those had no usable path forward at all.
+ */
+export async function setOnboardingCurrency(code: string): Promise<AppSettings> {
+    const current = await loadSettings();
+
+    if (current.onboardingCompleted) {
+        throw new Error('Currency cannot be changed once selected.');
+    }
+
+    const updated: AppSettings = {
+        ...current,
+        currency: code,
+        currencyLocked: false,
+    };
+    await saveSettings(updated);
+    return updated;
+}
+
+/**
+ * Lock the base currency. Called once onboarding completes, which is the point
+ * at which the first wallet exists and the currency becomes load-bearing.
+ * Idempotent.
+ */
+export async function lockCurrency(): Promise<AppSettings> {
+    const current = await loadSettings();
+
+    if (current.currencyLocked) {
+        return current;
+    }
+
+    const updated: AppSettings = {
+        ...current,
+        currencyLocked: true,
+    };
+    await saveSettings(updated);
+    return updated;
+}
+
+/**
  * Unlock the currency and set a new one, then re-lock.
  * Used for the "Reset Base Currency" dangerous operation.
  */
