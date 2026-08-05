@@ -42,7 +42,8 @@ import { resetFinancialDataForCurrencyReset } from '../services/resetService';
 import { loadSettings, selectAndLockCurrency, updateSetting } from '../services/settingsService';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
-const DEFAULT_WALLET_COUNT = 3;
+// The seed creates no wallets - onboarding is the single source of the first wallet.
+const DEFAULT_WALLET_COUNT = 0;
 const DEFAULT_CATEGORY_COUNT = 3;
 
 async function countRows(db: SqlDatabase, table: string): Promise<number> {
