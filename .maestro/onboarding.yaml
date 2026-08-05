@@ -21,14 +21,38 @@ appId: com.valto.app
     id: "onboarding_get_started"
 
 # ── Currency Selection ──────────────────────────────────────────
+# The list is long; filter to the target instead of scrolling to it.
+# Selecting a currency auto-advances - there is no separate "next" tap here.
 - assertVisible:
     id: "currency_search_input"
 
 - tapOn:
-    id: "currency_item_USD"
+    id: "currency_search_input"
+
+- inputText: "USD"
 
 - tapOn:
-    id: "onboarding_next_button"
+    id: "currency_item_USD"
+
+- assertVisible:
+    id: "onboarding_wallet_name"
+
+# ── Back Navigation (regression: the currency step used to dead-end) ─────
+# Going back must leave a usable path forward: a different currency has to
+# take effect and advance again, with no stale search query in the way.
+- tapOn:
+    id: "onboarding_back_button"
+
+- assertVisible:
+    id: "currency_search_input"
+
+- tapOn:
+    id: "currency_search_input"
+
+- inputText: "EUR"
+
+- tapOn:
+    id: "currency_item_EUR"
 
 # ── Wallet Setup ────────────────────────────────────────────────
 - assertVisible:

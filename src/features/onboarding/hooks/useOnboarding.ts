@@ -15,7 +15,7 @@
 import { useCallback, useState } from 'react';
 import { container } from '../../../core/di/container';
 import { dataEvents } from '../../../core/events/dataEvents';
-import { selectAndLockCurrency, updateSetting } from '../../../data/services/settingsService';
+import { lockCurrency, setOnboardingCurrency, updateSetting } from '../../../data/services/settingsService';
 import type { CurrencyDefinition } from '../../../domain/constants/currencies';
 
 export type OnboardingStep = 0 | 1 | 2 | 3;
@@ -26,12 +26,12 @@ export interface UseOnboardingResult {
     next: () => void;
     /** Move to the previous step */
     back: () => void;
-    /** Select a currency and lock it */
+    /** Select a currency. Re-selectable until the flow completes. */
     selectCurrency: (currency: CurrencyDefinition) => Promise<void>;
     /** Create a wallet and advance to completion */
     createWallet: (name: string, type: string, balanceCents: number) => Promise<void>;
-    /** Mark onboarding complete */
-    complete: () => Promise<void>;
+    /** Lock the currency and mark onboarding complete. Resolves false on failure. */
+    complete: () => Promise<boolean>;
     /** Loading state */
     loading: boolean;
     /** Error message */
@@ -60,7 +60,7 @@ export function useOnboarding(): UseOnboardingResult {
         setLoading(true);
         setError(null);
         try {
-            await selectAndLockCurrency(currency.code);
+            await setOnboardingCurrency(currency.code);
             setSelectedCurrency(currency.code);
             dataEvents.emit('settings');
             next();
@@ -89,13 +89,21 @@ export function useOnboarding(): UseOnboardingResult {
         }
     }, [next]);
 
-    const complete = useCallback(async () => {
+    const complete = useCallback(async (): Promise<boolean> => {
         setLoading(true);
+        setError(null);
         try {
+            // The currency locks here, not on selection: this is the point at
+            // which the first wallet exists and the choice becomes binding.
+            await lockCurrency();
             await updateSetting('onboardingCompleted', true);
             dataEvents.emit('settings');
+            return true;
         } catch (err) {
-            console.error('Failed to mark onboarding complete:', err);
+            // Never report a failed write as a finished onboarding - the gate
+            // would close while `onboardingCompleted` is still false on disk.
+            setError(err instanceof Error ? err.message : 'Failed to complete onboarding');
+            return false;
         } finally {
             setLoading(false);
         }
