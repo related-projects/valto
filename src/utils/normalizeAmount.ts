@@ -50,13 +50,18 @@ const SEPARATORS: Record<
  *
  * A thousands separator is only read as grouping where it forms a valid 3-digit group;
  * otherwise it is taken as the decimal point, so a comma-locale user typing "12,50"
- * under the default dot preference gets 12.5 rather than 12. This grouping rule is
- * exponent-blind by design: "1.500" means 1500 units in every currency (the decimal
- * separator, which formatAmount emits, always routes to the decimal branch).
+ * under the default dot preference gets 12.5 rather than 12. The grouping rule is
+ * exponent-AWARE for the one shape where the two readings collide: a lone group whose
+ * digits would exactly fill the currency's fraction reads as the fraction, so at 3
+ * decimals "1,234" is 1.234 and not 1234. See the tie-break comment at the branches.
+ * Grouping still wins wherever the string is unambiguous - two separators, or several
+ * groups - so parse(format(x)) === x holds at every exponent.
  *
  * @example parseAmountInput('12,50', 'dot')      -> 12.5
  * @example parseAmountInput('2.000,50', 'comma') -> 2000.5
  * @example parseAmountInput('1,000', 'dot')      -> 1000
+ * @example parseAmountInput('1,234', 'dot', 3)   -> 1.234 (lone group fills the fraction)
+ * @example parseAmountInput('1,234.567', 'dot', 3) -> 1234.567 (two separators: grouping)
  * @example parseAmountInput('1,2,3', 'dot')      -> null
  * @example parseAmountInput('12.5', 'dot', 0)    -> null  (more fraction digits than allowed)
  * @example parseAmountInput('12.555', 'dot', 2)  -> null
@@ -73,8 +78,20 @@ export function parseAmountInput(
     const body = sign ? trimmed.slice(1) : trimmed;
     const { decimal, thousands, decimalRe, thousandsRe } = SEPARATORS[separator];
 
+    // Tie-break: a body with a LONE grouping separator, no decimal separator, and exactly
+    // `decimals` digits after it reads as a DECIMAL, not as grouping. This is a deliberate
+    // decision, not an accident. Grouping is a writing convenience; the decimal separator
+    // carries value. A user who means one thousand two hundred thirty-four can always type
+    // "1234", whereas at 3 decimals a user who means 1.234 has no other way to express it
+    // with their keyboard's separator. Grouping stays authoritative wherever the string is
+    // unambiguous: two separators ("1,234.567") and several groups ("1,234,567") both still
+    // take the grouping branch below. The grouping branch only ever claims a trailing run of
+    // exactly 3 digits, so this can only divert input at decimals === 3 - it is a no-op for
+    // 0- and 2-decimal currencies.
+    const loneGroupIsFraction = new RegExp(`^\\d{1,3}${thousandsRe}\\d{${decimals}}$`).test(body);
+
     let cleaned: string | null = null;
-    if (new RegExp(`^\\d{1,3}(?:${thousandsRe}\\d{3})+(?:${decimalRe}\\d*)?$`).test(body)) {
+    if (!loneGroupIsFraction && new RegExp(`^\\d{1,3}(?:${thousandsRe}\\d{3})+(?:${decimalRe}\\d*)?$`).test(body)) {
         cleaned = body.split(thousands).join('').split(decimal).join('.');
     } else if (new RegExp(`^(?:\\d+(?:${decimalRe}\\d*)?|${decimalRe}\\d+)$`).test(body)) {
         cleaned = body.split(decimal).join('.');
