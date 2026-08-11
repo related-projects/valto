@@ -15,6 +15,7 @@ import {
     UpdateRecurringTransactionDTO,
 } from '../../domain/entities/RecurringTransaction';
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
+import { addMonthsClamped } from '../../domain/calculations/recurrenceDates';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import {
     recurringMapper,
@@ -184,7 +185,17 @@ export class RecurringTransactionRepository implements IRepository<RecurringTran
 
     // ─── Helpers ────────────────────────────────────────────────────────
 
+    /**
+     * Step one interval backwards from `date` to place the initial watermark.
+     *
+     * `date` is always the rule's startDate, so its day of the month IS the anchor day.
+     * Monthly and yearly steps go through addMonthsClamped: stepping back a month from
+     * 31 March lands on the last day of February, not on 3 March, which is where
+     * setMonth's silent overflow used to put it. Same clamping rule as the forward
+     * direction in the engine - see addMonthsClamped.
+     */
     private computeDateBefore(date: Date, frequency: string, interval: number): Date {
+        const anchorDay = date.getDate();
         const d = new Date(date);
         switch (frequency) {
             case 'daily':
@@ -194,11 +205,9 @@ export class RecurringTransactionRepository implements IRepository<RecurringTran
                 d.setDate(d.getDate() - 7 * interval);
                 break;
             case 'monthly':
-                d.setMonth(d.getMonth() - interval);
-                break;
+                return addMonthsClamped(date, -interval, anchorDay);
             case 'yearly':
-                d.setFullYear(d.getFullYear() - interval);
-                break;
+                return addMonthsClamped(date, -12 * interval, anchorDay);
         }
         return d;
     }
