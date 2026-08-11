@@ -25,6 +25,7 @@ import type { TransactionRepository } from '../repositories/TransactionRepositor
 import type { WalletRepository } from '../repositories/WalletRepository';
 import type { EventBus, RunInTransaction } from '../../domain/useCases/types';
 import { createTransaction } from '../../domain/useCases/createTransaction';
+import { addMonthsClamped } from '../../domain/calculations/recurrenceDates';
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -230,7 +231,13 @@ export function computeDueDates(
     const end = rule.endDate ? startOfDay(rule.endDate) : null;
 
     // Start from the rule's startDate and step forward
-    let cursor = startOfDay(rule.startDate);
+    const start = startOfDay(rule.startDate);
+    let cursor = start;
+
+    // Day of the month the rule is anchored on. Monthly and yearly steps re-derive the day
+    // from this instead of from the cursor, so a month too short to hold it (February for a
+    // day-31 rule) is clamped for that month only and the series returns to the anchor day.
+    const anchorDay = start.getDate();
 
     // Safety limit to prevent infinite loops
     const MAX_ITERATIONS = 3650; // ~10 years of daily
@@ -248,7 +255,7 @@ export function computeDueDates(
             dates.push(new Date(cursor));
         }
 
-        cursor = advanceDate(cursor, rule.frequency, rule.interval);
+        cursor = startOfDay(advanceDate(cursor, rule.frequency, rule.interval, anchorDay));
     }
 
     return dates;
@@ -256,11 +263,19 @@ export function computeDueDates(
 
 /**
  * Advance a date by the given frequency and interval.
+ *
+ * `anchorDay` is the day of the month the rule is anchored on, taken from its startDate.
+ * It has to be passed in: `date` is the previous occurrence, which may itself have been
+ * clamped into a short month, so the original anchor day cannot be recovered from it.
+ * Stepping from the clamped value would pin the whole series to 28 - the same drift bug in
+ * a quieter form. Only the monthly and yearly branches need it; day and week steps cannot
+ * overflow a month boundary.
  */
 function advanceDate(
     date: Date,
     frequency: RecurrenceFrequency,
     interval: number,
+    anchorDay: number,
 ): Date {
     const next = new Date(date);
     switch (frequency) {
@@ -271,11 +286,12 @@ function advanceDate(
             next.setDate(next.getDate() + 7 * interval);
             break;
         case RecurrenceFrequency.MONTHLY:
-            next.setMonth(next.getMonth() + interval);
-            break;
+            return addMonthsClamped(date, interval, anchorDay);
         case RecurrenceFrequency.YEARLY:
-            next.setFullYear(next.getFullYear() + interval);
-            break;
+            // A year is 12 months, so the yearly step gets the same clamping for free:
+            // a 29 February anchor falls on 28 February in non-leap years and returns to
+            // the 29th at the next leap year.
+            return addMonthsClamped(date, 12 * interval, anchorDay);
     }
     return next;
 }

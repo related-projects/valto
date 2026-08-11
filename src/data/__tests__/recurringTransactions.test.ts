@@ -27,6 +27,23 @@ function localDate(y: number, m: number, d: number): Date {
 }
 
 /**
+ * Build a local date and throw if that day does not exist in the given month.
+ *
+ * `new Date(y, m - 1, 31)` silently rolls into the next month - that is the exact overflow
+ * these anchor tests exist to catch, so a fixture built that way would reproduce the bug it
+ * is meant to detect. Day 1 can never overflow, so the day is applied with `setDate` and the
+ * result is verified before it is handed back.
+ */
+function anchorDate(y: number, m: number, d: number): Date {
+    const date = new Date(y, m - 1, 1);
+    date.setDate(d);
+    if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+        throw new Error(`anchorDate: ${y}-${m}-${d} is not a real calendar date`);
+    }
+    return date;
+}
+
+/**
  * First day of the month `monthsBack` months before the current month (local timezone).
  *
  * Engine tests must anchor rule fixtures to the run date: the engine computes due dates
@@ -157,6 +174,37 @@ describe('RecurringTransactionRepository', () => {
         expect(r1!.amount).toBe(999);
         expect(r2!.amount).toBe(200);
     });
+
+    // The initial watermark is computed one interval BEFORE startDate, so it steps months in
+    // the opposite direction and clamps the same way: one month before the 31st of March is
+    // the last day of February, not the 3rd of March.
+    it('clamps the initial watermark of a monthly day-31 rule to the end of the short month', async () => {
+        const rule = await repo.create({
+            type: TransactionType.EXPENSE,
+            amount: 100,
+            walletId: 'w-1',
+            categoryId: 'cat-1',
+            startDate: anchorDate(2025, 3, 31),
+            frequency: RecurrenceFrequency.MONTHLY,
+            interval: 1,
+        });
+
+        expect(toLocalDateString(rule.lastGeneratedDate)).toBe('2025-02-28');
+    });
+
+    it('clamps the initial watermark of a yearly February 29 rule to February 28', async () => {
+        const rule = await repo.create({
+            type: TransactionType.EXPENSE,
+            amount: 100,
+            walletId: 'w-1',
+            categoryId: 'cat-1',
+            startDate: anchorDate(2024, 2, 29),
+            frequency: RecurrenceFrequency.YEARLY,
+            interval: 1,
+        });
+
+        expect(toLocalDateString(rule.lastGeneratedDate)).toBe('2023-02-28');
+    });
 });
 
 // ─── computeDueDates Tests ────────────────────────────────────────────
@@ -232,6 +280,120 @@ describe('computeDueDates', () => {
         const today = localDate(2026, 1, 5);
         const dates = computeDueDates(rule, today);
         expect(dates).toHaveLength(5); // Jan 1-5
+    });
+});
+
+// --- computeDueDates: day-of-month anchors ---------------------------
+//
+// These cases pass an explicit `today`, so absolute dates are safe here (unlike the engine
+// integration tests below, which read the real clock and must stay relative to it).
+//
+// Contract under test: an anchor day that does not exist in the target month is clamped to
+// the last day of that month, and the series returns to the anchor day the next month that
+// is long enough. The clamp must never propagate.
+
+describe('computeDueDates - day-of-month anchors', () => {
+    /** Map due dates to 'YYYY-MM-DD' strings for readable assertions */
+    function asStrings(dates: Date[]): string[] {
+        return dates.map(toLocalDateString);
+    }
+
+    it('clamps a day-31 anchor to February and returns to 31 in March (non-leap year)', () => {
+        const rule = validRule({
+            startDate: anchorDate(2025, 1, 31),
+            lastGeneratedDate: anchorDate(2024, 12, 31),
+        });
+        const dates = computeDueDates(rule, anchorDate(2025, 5, 31));
+
+        expect(asStrings(dates)).toEqual([
+            '2025-01-31',
+            '2025-02-28',
+            '2025-03-31',
+            '2025-04-30',
+            '2025-05-31',
+        ]);
+    });
+
+    it('clamps a day-31 anchor to February 29 in a leap year and returns to 31 in March', () => {
+        const rule = validRule({
+            startDate: anchorDate(2024, 1, 31),
+            lastGeneratedDate: anchorDate(2023, 12, 31),
+        });
+        const dates = computeDueDates(rule, anchorDate(2024, 3, 31));
+
+        expect(asStrings(dates)).toEqual(['2024-01-31', '2024-02-29', '2024-03-31']);
+    });
+
+    it('clamps a day-30 anchor to February and returns to 30 in March', () => {
+        const rule = validRule({
+            startDate: anchorDate(2025, 1, 30),
+            lastGeneratedDate: anchorDate(2024, 12, 30),
+        });
+        const dates = computeDueDates(rule, anchorDate(2025, 3, 31));
+
+        expect(asStrings(dates)).toEqual(['2025-01-30', '2025-02-28', '2025-03-30']);
+    });
+
+    it('clamps a day-29 anchor to February in a non-leap year and returns to 29 in March', () => {
+        const rule = validRule({
+            startDate: anchorDate(2025, 1, 29),
+            lastGeneratedDate: anchorDate(2024, 12, 29),
+        });
+        const dates = computeDueDates(rule, anchorDate(2025, 3, 31));
+
+        expect(asStrings(dates)).toEqual(['2025-01-29', '2025-02-28', '2025-03-29']);
+    });
+
+    it('clamps a day-31 anchor in a 30-day month with no February involved', () => {
+        const rule = validRule({
+            startDate: anchorDate(2025, 3, 31),
+            lastGeneratedDate: anchorDate(2025, 2, 28),
+        });
+        const dates = computeDueDates(rule, anchorDate(2025, 5, 31));
+
+        expect(asStrings(dates)).toEqual(['2025-03-31', '2025-04-30', '2025-05-31']);
+    });
+
+    it('clamps a February 29 yearly anchor to February 28 in non-leap years, restoring it in the next leap year', () => {
+        const rule = validRule({
+            startDate: anchorDate(2024, 2, 29),
+            lastGeneratedDate: anchorDate(2023, 2, 28),
+            frequency: RecurrenceFrequency.YEARLY,
+            interval: 1,
+        });
+        const dates = computeDueDates(rule, anchorDate(2028, 3, 1));
+
+        expect(asStrings(dates)).toEqual([
+            '2024-02-29',
+            '2025-02-28',
+            '2026-02-28',
+            '2027-02-28',
+            '2028-02-29',
+        ]);
+    });
+
+    it('yields 12 occurrences for a day-31 monthly anchor over a full year', () => {
+        const rule = validRule({
+            startDate: anchorDate(2025, 1, 31),
+            lastGeneratedDate: anchorDate(2024, 12, 31),
+        });
+        const dates = computeDueDates(rule, anchorDate(2025, 12, 31));
+
+        expect(dates).toHaveLength(12);
+        expect(asStrings(dates)).toEqual([
+            '2025-01-31',
+            '2025-02-28',
+            '2025-03-31',
+            '2025-04-30',
+            '2025-05-31',
+            '2025-06-30',
+            '2025-07-31',
+            '2025-08-31',
+            '2025-09-30',
+            '2025-10-31',
+            '2025-11-30',
+            '2025-12-31',
+        ]);
     });
 });
 
