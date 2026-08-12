@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,13 +13,14 @@ import { useFormatting } from '../../hooks/useFormatting';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
+import { getButtonA11y } from '../../utils/accessibility';
 import { isTransferCategoryId } from '../../utils/categoryVisuals';
 
 export function TransactionDetailsModal() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { t } = useTranslation();
-    const { colors, spacing, radius } = useTheme();
+    const { colors, spacing, radius, typography } = useTheme();
 
     const { transactions, loading, deleteTransaction } = useTransactions();
     const { categories } = useCategories();
@@ -101,10 +101,18 @@ export function TransactionDetailsModal() {
                             <TouchableOpacity
                                 onPress={handleDelete}
                                 testID="transaction_delete_button"
-                                accessibilityLabel={t('a11y.deleteTransaction')}
                                 style={styles.headerButton}
+                                {...getButtonA11y(t('a11y.deleteTransaction'))}
                             >
-                                <Ionicons name="trash-outline" size={22} color={colors.destructive} />
+                                {/* Text, not a glyph: every other sheet spells an
+                                    irreversible action out at header right. */}
+                                <Text style={{
+                                    color: colors.destructive,
+                                    fontSize: typography.sizes.md,
+                                    fontWeight: typography.weights.semibold,
+                                }}>
+                                    {t('common.delete')}
+                                </Text>
                             </TouchableOpacity>
                         ),
                 }}
@@ -181,6 +189,9 @@ const styles = StyleSheet.create({
     headerButton: {
         padding: 8,
         marginEnd: -8,
+        // Same 8px hit padding as the close control opposite, and centred so the
+        // text sits on the axis that control's 24px glyph sits on.
+        justifyContent: 'center',
     },
     card: {
         padding: 20,

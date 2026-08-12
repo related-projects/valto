@@ -273,6 +273,7 @@
       "error": "Error"
     },
     "transactionDetails": {
+      "title": "Detalles de la transacción",
       "deleteTitle": "Eliminar transacción",
       "deleteMessage": "¿Seguro que quieres eliminar esta transacción? El saldo de la cartera se ajustará.",
       "deleteFailed": "No se pudo eliminar la transacción"

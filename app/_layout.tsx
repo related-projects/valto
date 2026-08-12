@@ -14,6 +14,7 @@ import { OnboardingScreen } from "@/src/features/onboarding/screens/OnboardingSc
 import { StoreRecoveryScreen } from "@/src/screens/StoreRecoveryScreen";
 import { ThemeProvider, useThemeContext } from "@/src/theme/ThemeContext";
 import { useTheme } from "@/src/theme/theme";
+import { getButtonA11y } from "@/src/utils/accessibility";
 import { Ionicons } from "@expo/vector-icons";
 import {
   DarkTheme,
@@ -23,6 +24,7 @@ import {
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { TouchableOpacity } from "react-native";
 import "react-native-get-random-values";
 import "react-native-reanimated";
@@ -44,6 +46,7 @@ export const unstable_settings = {
 function RootNavigator() {
   const { isDark } = useThemeContext();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   // True gate: while locked, SecurityGate renders the lock screen INSTEAD of the
   // navigator, so the authenticated screens never mount and their data hooks
@@ -57,13 +60,14 @@ function RootNavigator() {
           <Stack.Screen
             name="transaction/[id]"
             options={{
-              title: "Transaction Details",
+              title: t("modals.transactionDetails.title"),
               presentation: "modal",
               headerBackTitle: "",
               headerLeft: () => (
                 <TouchableOpacity
                   onPress={() => router.back()}
                   style={{ padding: 8, marginLeft: -8 }}
+                  {...getButtonA11y(t("a11y.closeButton"))}
                 >
                   <Ionicons name="close" size={24} color={colors.foreground} />
                 </TouchableOpacity>
