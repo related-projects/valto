@@ -1,5 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
@@ -16,7 +15,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
-import { CategoryVisual, DEFAULT_CATEGORY_ICON, resolveCategoryVisual } from '../../utils/categoryVisuals';
+import { TransactionPresenter } from './TransactionPresenter';
 
 interface TransactionListProps {
     transactions: Transaction[];
@@ -101,41 +100,16 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     loadingMore = false,
 }) => {
     const { t, i18n } = useTranslation();
-    const { colors, typography, spacing, radius } = useTheme();
+    const { colors, typography, spacing } = useTheme();
     const { categories } = useCategories();
     const { wallets } = useWallets();
     const { formatAmount } = useFormatting();
     const router = useRouter();
 
-    // Helper to get category name from ID
-    const getCategoryName = useCallback((categoryId: string): string => {
-        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') return t('components.transactionList.transfer');
-        const category = categories.find(c => c.id === categoryId);
-        return category?.name || t('components.transactionList.unknown');
-    }, [categories, t]);
-
-    // Helper to get wallet name from ID
-    const getWalletName = useCallback((walletId: string): string => {
-        const wallet = wallets.find(w => w.id === walletId);
-        return wallet?.name || t('components.transactionList.unknown');
-    }, [wallets, t]);
-
-    // Icon + colour come from the stored category, so a renamed category keeps its
-    // appearance whatever language the user names it in. See utils/categoryVisuals.
-    const getCategoryVisual = useCallback((categoryId: string): CategoryVisual => {
-        if (categoryId === 'transfer-in' || categoryId === 'transfer-out') {
-            return { icon: DEFAULT_CATEGORY_ICON, color: colors.accent };
-        }
-        return resolveCategoryVisual(categories.find(c => c.id === categoryId), colors.accent);
-    }, [categories, colors.accent]);
-
-    // Format display amount
-    const displayTransactionAmount = (amount: number, type: string, categoryId: string) => {
-        const formatted = formatAmount(amount);
-        const isIncome = type === 'income' || categoryId === 'transfer-in';
-        const sign = isIncome ? '+' : '-';
-        return `${sign}${formatted}`;
-    };
+    // Row CONTENT - title, subtitle, note indicator, amount - belongs to
+    // TransactionPresenter, so both renderers below (and the detail screen)
+    // cannot describe the same transaction differently. This component owns
+    // only the containers: padding, background and the press target.
 
     // ─── Empty state ──────────────────────────────────────────────────
 
@@ -158,55 +132,26 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     // ─── Flat (no headers) ────────────────────────────────────────────
 
     if (!showDateHeaders) {
-        const renderFlatItem = ({ item }: ListRenderItemInfo<Transaction>) => {
-            const categoryName = getCategoryName(item.categoryId);
-            const { icon: categoryIcon, color: categoryColor } = getCategoryVisual(item.categoryId);
-            return (
-                <TouchableOpacity
-                    onPress={() => router.push(`/transaction/${item.id}`)}
-                    style={[
-                        styles.transactionItem,
-                        {
-                            paddingVertical: spacing.sm,
-                            paddingHorizontal: 0,
-                        },
-                    ]}
-                >
-                    <View
-                        style={[
-                            styles.iconContainer,
-                            {
-                                backgroundColor: `${categoryColor}20`,
-                                borderRadius: radius.md,
-                            },
-                        ]}
-                    >
-                        <Ionicons
-                            name={categoryIcon}
-                            size={20}
-                            color={categoryColor}
-                        />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
-                            {item.note || getWalletName(item.walletId)}
-                        </Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, textTransform: 'capitalize' }}>
-                            {categoryName}
-                        </Text>
-                    </View>
-                    <Text
-                        style={{
-                            color: item.type === 'income' || item.categoryId === 'transfer-in' ? colors.success : colors.foreground,
-                            fontWeight: '600',
-                            fontSize: typography.sizes.sm,
-                        }}
-                    >
-                        {displayTransactionAmount(item.amount, item.type, item.categoryId)}
-                    </Text>
-                </TouchableOpacity>
-            );
-        };
+        const renderFlatItem = ({ item }: ListRenderItemInfo<Transaction>) => (
+            <TouchableOpacity
+                onPress={() => router.push(`/transaction/${item.id}`)}
+                style={[
+                    styles.transactionItem,
+                    {
+                        paddingVertical: spacing.sm,
+                        paddingHorizontal: 0,
+                    },
+                ]}
+            >
+                <TransactionPresenter
+                    transaction={item}
+                    categories={categories}
+                    wallets={wallets}
+                    formatAmount={formatAmount}
+                    variant="compact"
+                />
+            </TouchableOpacity>
+        );
 
         return (
             <FlatList
@@ -259,8 +204,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         }
 
         const transaction = item.transaction;
-        const categoryName = getCategoryName(transaction.categoryId);
-        const { icon: categoryIcon, color: categoryColor } = getCategoryVisual(transaction.categoryId);
 
         return (
             <TouchableOpacity
@@ -274,40 +217,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     },
                 ]}
             >
-                <View
-                    style={[
-                        styles.iconContainer,
-                        {
-                            backgroundColor: `${categoryColor}15`,
-                            borderRadius: 12,
-                            width: 44,
-                            height: 44,
-                        },
-                    ]}
-                >
-                    <Ionicons
-                        name={categoryIcon}
-                        size={22}
-                        color={categoryColor}
-                    />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: '600', marginBottom: 2 }}>
-                        {transaction.note || getWalletName(transaction.walletId)}
-                    </Text>
-                    <Text style={{ color: colors.mutedForeground, fontSize: 13, textTransform: 'capitalize' }}>
-                        {categoryName}
-                    </Text>
-                </View>
-                <Text
-                    style={{
-                        color: transaction.type === 'income' || transaction.categoryId === 'transfer-in' ? colors.success : colors.foreground,
-                        fontWeight: '600',
-                        fontSize: 16,
-                    }}
-                >
-                    {displayTransactionAmount(transaction.amount, transaction.type, transaction.categoryId)}
-                </Text>
+                <TransactionPresenter
+                    transaction={transaction}
+                    categories={categories}
+                    wallets={wallets}
+                    formatAmount={formatAmount}
+                    variant="comfortable"
+                />
             </TouchableOpacity>
         );
     };
@@ -356,10 +272,5 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-    },
-    iconContainer: {
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 });

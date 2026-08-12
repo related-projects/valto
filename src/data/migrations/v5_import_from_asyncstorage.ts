@@ -28,7 +28,7 @@ import {
     SerializableTransaction,
 } from '../../domain/entities/Transaction';
 import { deserializeWallet, SerializableWallet } from '../../domain/entities/Wallet';
-import { ledgerEffect } from '../repositories/ledger';
+import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
 import { WalletRepository } from '../repositories/WalletRepository';
 import {
     budgetMapper,

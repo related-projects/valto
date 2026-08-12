@@ -230,3 +230,134 @@ describe('currency exponent', () => {
         }
     });
 });
+
+// ─── Separator tie-break, pinned BY DECIMALS CLASS ─────────────────────
+//
+// Organised by exponent class rather than by currency on purpose. The rule that
+// decides between "grouping" and "decimal" is a function of `decimals` alone, so a
+// future trade-off has to break a named class here rather than slip past a stray
+// per-currency case.
+//
+// Policy under test: a lone grouping separator with exactly `decimals` digits after it
+// and no decimal separator reads as a DECIMAL. Grouping stays authoritative wherever
+// the string is unambiguous - two separators, or several groups.
+describe('separator tie-break by decimals class', () => {
+    describe('decimals = 0 (unchanged)', () => {
+        it('reads a lone group as grouping under the dot preference', () => {
+            expect(parseAmountInput('1,234', 'dot', 0)).toBe(1234);
+            expect(parseAmountInput('0,500', 'dot', 0)).toBe(500);
+            expect(parseAmountInput('123,456', 'dot', 0)).toBe(123456);
+            expect(parseAmountInput('1,000', 'dot', 0)).toBe(1000);
+        });
+
+        it('reads a lone group as grouping under the comma preference', () => {
+            expect(parseAmountInput('1.234', 'comma', 0)).toBe(1234);
+            expect(parseAmountInput('0.500', 'comma', 0)).toBe(500);
+            expect(parseAmountInput('123.456', 'comma', 0)).toBe(123456);
+            expect(parseAmountInput('1.000', 'comma', 0)).toBe(1000);
+        });
+
+        it('keeps multi-group and plain readings', () => {
+            expect(parseAmountInput('1,234,567', 'dot', 0)).toBe(1234567);
+            expect(parseAmountInput('1.234.567', 'comma', 0)).toBe(1234567);
+            expect(parseAmountInput('1234', 'dot', 0)).toBe(1234);
+            expect(parseAmountInput('1234', 'comma', 0)).toBe(1234);
+        });
+
+        it('still rejects any fraction at all', () => {
+            expect(parseAmountInput('12.50', 'dot', 0)).toBeNull();
+            expect(parseAmountInput('1.23', 'dot', 0)).toBeNull();
+            expect(parseAmountInput('12,50', 'comma', 0)).toBeNull();
+            expect(parseAmountInput('1,23', 'comma', 0)).toBeNull();
+        });
+    });
+
+    describe('decimals = 2 (unchanged)', () => {
+        it('reads a lone group as grouping under the dot preference', () => {
+            expect(parseAmountInput('1,234', 'dot', 2)).toBe(1234);
+            expect(parseAmountInput('0,500', 'dot', 2)).toBe(500);
+            expect(parseAmountInput('123,456', 'dot', 2)).toBe(123456);
+            expect(parseAmountInput('1,000', 'dot', 2)).toBe(1000);
+        });
+
+        it('reads a lone group as grouping under the comma preference', () => {
+            expect(parseAmountInput('1.234', 'comma', 2)).toBe(1234);
+            expect(parseAmountInput('0.500', 'comma', 2)).toBe(500);
+            expect(parseAmountInput('123.456', 'comma', 2)).toBe(123456);
+            expect(parseAmountInput('1.000', 'comma', 2)).toBe(1000);
+        });
+
+        it('keeps grouped-with-fraction, multi-group and 2-digit fraction readings', () => {
+            expect(parseAmountInput('2,000.50', 'dot', 2)).toBe(2000.5);
+            expect(parseAmountInput('2.000,50', 'comma', 2)).toBe(2000.5);
+            expect(parseAmountInput('1,234,567', 'dot', 2)).toBe(1234567);
+            expect(parseAmountInput('1.234.567', 'comma', 2)).toBe(1234567);
+            expect(parseAmountInput('12,50', 'dot', 2)).toBe(12.5);
+            expect(parseAmountInput('12.50', 'comma', 2)).toBe(12.5);
+            expect(parseAmountInput('1.23', 'dot', 2)).toBe(1.23);
+            expect(parseAmountInput('1,23', 'comma', 2)).toBe(1.23);
+        });
+
+        it('still rejects a 3-digit fraction as over-precision', () => {
+            expect(parseAmountInput('1.234', 'dot', 2)).toBeNull();
+            expect(parseAmountInput('1,234', 'comma', 2)).toBeNull();
+            expect(parseAmountInput('1234.567', 'dot', 2)).toBeNull();
+            expect(parseAmountInput('1234,567', 'comma', 2)).toBeNull();
+        });
+    });
+
+    describe('decimals = 3 (the decimal reading wins)', () => {
+        it('reads a lone group as the fraction under the dot preference', () => {
+            // Was 1234 - branch B1 claimed the body and stripped the separator.
+            expect(parseAmountInput('1,234', 'dot', 3)).toBe(1.234);
+            expect(parseAmountInput('1,000', 'dot', 3)).toBe(1);
+        });
+
+        it('reads a lone group as the fraction under the comma preference', () => {
+            expect(parseAmountInput('1.234', 'comma', 3)).toBe(1.234);
+            expect(parseAmountInput('1.000', 'comma', 3)).toBe(1);
+        });
+
+        it('reads a leading-zero body as the fraction, which grouping cannot explain', () => {
+            // Not an ambiguous tie: no grouping convention writes a leading zero group.
+            expect(parseAmountInput('0,500', 'dot', 3)).toBe(0.5);
+            expect(parseAmountInput('0.500', 'comma', 3)).toBe(0.5);
+        });
+
+        it('reads a 3-digit integer part with a lone group as the fraction', () => {
+            expect(parseAmountInput('123,456', 'dot', 3)).toBe(123.456);
+            expect(parseAmountInput('123.456', 'comma', 3)).toBe(123.456);
+        });
+
+        it('reads a 4-digit integer part as the fraction (never was a valid group)', () => {
+            expect(parseAmountInput('1234,567', 'dot', 3)).toBe(1234.567);
+            expect(parseAmountInput('1234.567', 'comma', 3)).toBe(1234.567);
+        });
+
+        it('keeps grouping when the string carries BOTH separators', () => {
+            expect(parseAmountInput('1,234.567', 'dot', 3)).toBe(1234.567);
+            expect(parseAmountInput('1.234,567', 'comma', 3)).toBe(1234.567);
+        });
+
+        it('keeps grouping when the string carries SEVERAL groups', () => {
+            expect(parseAmountInput('1,234,567', 'dot', 3)).toBe(1234567);
+            expect(parseAmountInput('1.234.567', 'comma', 3)).toBe(1234567);
+        });
+
+        it('leaves plain bodies alone', () => {
+            expect(parseAmountInput('1234', 'dot', 3)).toBe(1234);
+            expect(parseAmountInput('1234', 'comma', 3)).toBe(1234);
+            expect(parseAmountInput('1.23', 'dot', 3)).toBe(1.23);
+            expect(parseAmountInput('1,23', 'comma', 3)).toBe(1.23);
+        });
+
+        it('round-trips parse(format(x)) === x, proving B1 was not over-narrowed', () => {
+            for (const minor of [1500, 1234, 500, 1234567, 999]) {
+                for (const separator of ['dot', 'comma'] as const) {
+                    const rendered = formatAmount(minor, '', separator, 3);
+                    expect(parseAndNormalizeAmount(rendered, separator, 3)).toBe(minor);
+                }
+            }
+        });
+    });
+});

@@ -125,6 +125,29 @@ describe('useFormatting', () => {
         expect(result.current.parseAmountToCents('12,50')).toBe(1250);
     });
 
+    it('carries the exponent of a 3-decimal currency through format and parse', async () => {
+        // JOD is a 3-decimal currency. Symbol and exponent both come from the real
+        // registry - only dataEvents and settingsService are mocked in this suite.
+        mockLoadSettings.mockResolvedValue({
+            currency: 'JOD',
+            decimalSeparator: 'dot',
+            dateFormat: 'MM/DD/YYYY',
+        });
+
+        const { result } = renderHook(() => useFormatting());
+
+        await waitFor(() => {
+            expect(result.current.settings).not.toBeNull();
+        });
+
+        expect(result.current.decimals).toBe(3);
+        expect(result.current.formatAmount(1234)).toContain('JD1.234');
+        // A lone grouping separator filling the fraction reads as the fraction, so this
+        // stores 1.234 JOD and not 1234 JOD - a silent 1000x error before the tie-break.
+        expect(result.current.parseAmount('1,234')).toBe(1.234);
+        expect(result.current.parseAmountToCents('1,234')).toBe(1234);
+    });
+
     it('parses with the dot fallback before settings load', () => {
         mockLoadSettings.mockReturnValue(new Promise(() => {}));
 

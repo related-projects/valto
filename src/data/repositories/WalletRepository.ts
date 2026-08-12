@@ -25,7 +25,7 @@ import type { BalanceAudit, IWalletRepository } from '../../domain/repositories'
 import { walletMapper, sqlDelete, sqlGetAll, sqlGetById, sqlExists, sqlUpdate } from '../storage/sql/mappers';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
-import { ledgerEffect } from './ledger';
+import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
 
 // Re-exported for backward compatibility; the canonical type lives in the domain.
 export type { BalanceAudit } from '../../domain/repositories';

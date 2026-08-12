@@ -101,3 +101,51 @@ export function resolveCategoryVisual(
 
     return { icon, color };
 }
+
+// ─── Transfers ────────────────────────────────────────────────────────
+
+/**
+ * The two legs of a transfer carry pseudo category ids: no Category row exists
+ * for them, so they never resolve through the ladder above and every call site
+ * used to invent its own treatment. They are handled here instead, once.
+ */
+const TRANSFER_CATEGORY_IDS = ['transfer-in', 'transfer-out'] as const;
+
+/** The one glyph that means "transfer" anywhere in the app. */
+export const TRANSFER_ICON: IoniconName = 'swap-horizontal-outline';
+
+/** True when the category id is one of the transfer pseudo-ids. */
+export function isTransferCategoryId(categoryId: string): boolean {
+    return (TRANSFER_CATEGORY_IDS as readonly string[]).includes(categoryId);
+}
+
+/** Shape needed to look a category up by id - a subset of the Category entity. */
+export interface IdentifiedCategoryVisualSource extends CategoryVisualSource {
+    readonly id: string;
+}
+
+/**
+ * Resolve the icon + colour for a whole transaction, transfers included.
+ *
+ * Prefer this over resolveCategoryVisual at any site that renders a transaction:
+ * it is what keeps the list rows and the detail screen showing one transfer
+ * visual instead of three.
+ *
+ * @param transaction - the transaction being rendered
+ * @param categories - the loaded categories, searched by id
+ * @param accentColor - theme colour for transfers and for the fallback (colors.accent)
+ */
+export function resolveTransactionVisual(
+    transaction: { readonly type: string; readonly categoryId: string },
+    categories: readonly IdentifiedCategoryVisualSource[],
+    accentColor: string,
+): CategoryVisual {
+    if (transaction.type === 'transfer' || isTransferCategoryId(transaction.categoryId)) {
+        return { icon: TRANSFER_ICON, color: accentColor };
+    }
+
+    return resolveCategoryVisual(
+        categories.find((category) => category.id === transaction.categoryId),
+        accentColor,
+    );
+}
