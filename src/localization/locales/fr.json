@@ -271,6 +271,11 @@
       "errorEmpty": "Veuillez entrer un nom de catégorie",
       "errorSave": "Échec de l'enregistrement de la catégorie",
       "error": "Erreur"
+    },
+    "transactionDetails": {
+      "deleteTitle": "Supprimer la transaction",
+      "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette transaction ? Le solde du portefeuille sera ajusté.",
+      "deleteFailed": "Échec de la suppression de la transaction"
     }
   },
   "about": {
@@ -602,6 +607,7 @@
     "editWallet": "Modifier le portefeuille {{name}}",
     "editRule": "Modifier la règle",
     "deleteRule": "Supprimer la règle",
+    "deleteTransaction": "Supprimer la transaction",
     "pauseRule": "Mettre en pause la règle",
     "resumeRule": "Reprendre la règle",
     "searchTransactions": "Rechercher des transactions",
@@ -630,7 +636,8 @@
     "toggleEndDate": "Définir une date de fin",
     "submitForm": "Soumettre le formulaire",
     "expandFaq": "Développer la réponse",
-    "collapseFaq": "Réduire la réponse"
+    "collapseFaq": "Réduire la réponse",
+    "hasNote": "Contient une note"
   },
   "storeRecovery": {
     "title": "Impossible d'ouvrir vos données",

@@ -271,6 +271,11 @@
             "errorEmpty": "Insira um nome para a categoria",
             "errorSave": "Falha ao salvar a categoria",
             "error": "Erro"
+        },
+        "transactionDetails": {
+            "deleteTitle": "Excluir transação",
+            "deleteMessage": "Tem certeza de que deseja excluir esta transação? O saldo da carteira será ajustado.",
+            "deleteFailed": "Falha ao excluir a transação"
         }
     },
     "about": {
@@ -602,6 +607,7 @@
         "editWallet": "Editar carteira {{name}}",
         "editRule": "Editar regra",
         "deleteRule": "Excluir regra",
+        "deleteTransaction": "Excluir transação",
         "pauseRule": "Pausar regra",
         "resumeRule": "Retomar regra",
         "searchTransactions": "Buscar transações",
@@ -630,7 +636,8 @@
         "toggleEndDate": "Alternar data final",
         "submitForm": "Enviar formulário",
         "expandFaq": "Expandir resposta",
-        "collapseFaq": "Recolher resposta"
+        "collapseFaq": "Recolher resposta",
+        "hasNote": "Contém uma nota"
     },
     "storeRecovery": {
         "title": "Não foi possível abrir seus dados",
