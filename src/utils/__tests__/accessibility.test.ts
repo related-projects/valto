@@ -2,7 +2,7 @@
  * Accessibility Utility Tests
  */
 
-import { getA11y, getButtonA11y, getHeaderA11y, getImageA11y, getInputA11y, getLinkA11y } from '../../utils/accessibility';
+import { getA11y, getButtonA11y, getHeaderA11y, getImageA11y, getInputA11y, getLinkA11y, getSelectableA11y } from '../../utils/accessibility';
 
 describe('Accessibility Helpers', () => {
     describe('getButtonA11y', () => {
@@ -76,6 +76,23 @@ describe('Accessibility Helpers', () => {
         it('includes hint when provided', () => {
             const result = getLinkA11y('Privacy', 'Opens privacy policy');
             expect(result.accessibilityHint).toBe('Opens privacy policy');
+        });
+    });
+
+    describe('getSelectableA11y', () => {
+        it('reports the selected option as selected', () => {
+            const result = getSelectableA11y('Expense', true);
+            expect(result).toEqual({
+                accessible: true,
+                accessibilityRole: 'button',
+                accessibilityLabel: 'Expense',
+                accessibilityState: { selected: true },
+            });
+        });
+
+        it('reports unselected options explicitly rather than omitting the state', () => {
+            const result = getSelectableA11y('Income', false);
+            expect(result.accessibilityState).toEqual({ selected: false });
         });
     });
 

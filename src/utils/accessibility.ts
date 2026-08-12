@@ -39,6 +39,13 @@ interface LinkA11yProps {
     accessibilityHint?: string;
 }
 
+interface SelectableA11yProps {
+    accessible: true;
+    accessibilityRole: 'button';
+    accessibilityLabel: string;
+    accessibilityState: { selected: boolean };
+}
+
 interface GenericA11yProps {
     accessible: true;
     accessibilityRole?: AccessibilityRole;
@@ -57,6 +64,24 @@ export function getButtonA11y(label: string, hint?: string): ButtonA11yProps {
         accessibilityRole: 'button',
         accessibilityLabel: label,
         ...(hint ? { accessibilityHint: hint } : {}),
+    };
+}
+
+/**
+ * Returns accessibility props for one option in a set of mutually exclusive
+ * choices (segmented controls, chips, option rows).
+ *
+ * `selected` is always emitted, including when false, so assistive technology
+ * announces the unselected options as unselected rather than saying nothing.
+ * @param label - Translated label describing the option
+ * @param selected - Whether this option is the currently chosen one
+ */
+export function getSelectableA11y(label: string, selected: boolean): SelectableA11yProps {
+    return {
+        accessible: true,
+        accessibilityRole: 'button',
+        accessibilityLabel: label,
+        accessibilityState: { selected },
     };
 }
 
