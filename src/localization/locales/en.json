@@ -404,6 +404,13 @@
     "dot": "Dot (1,000.00)",
     "comma": "Comma (1.000,00)"
   },
+  "notifications": {
+    "channelName": "Daily reminder",
+    "dailyReminder": {
+      "title": "Shall we do the numbers? 👀",
+      "body": "Two minutes and today is all set"
+    }
+  },
   "alerts": {
     "backupFailed": "Backup Failed",
     "backupFailedMessage": "Could not create backup. Please try again.",

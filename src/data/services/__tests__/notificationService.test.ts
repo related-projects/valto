@@ -1,21 +1,40 @@
 /**
  * Notification Service Edge Case Tests
  *
- * Tests permission handling, idempotent toggling,
- * scheduling behavior, and cancellation.
+ * Tests permission handling, idempotent toggling, daily reminder scheduling,
+ * startup re-verification, and cancellation.
  */
 
 const mockGetPermissions = jest.fn();
 const mockRequestPermissions = jest.fn();
 const mockScheduleNotification = jest.fn();
 const mockCancelAllNotifications = jest.fn();
+const mockCancelScheduledNotification = jest.fn();
+const mockSetNotificationChannel = jest.fn();
+const mockSetNotificationHandler = jest.fn();
 
 jest.mock('expo-notifications', () => ({
     getPermissionsAsync: () => mockGetPermissions(),
     requestPermissionsAsync: () => mockRequestPermissions(),
     scheduleNotificationAsync: (...args: any[]) => mockScheduleNotification(...args),
     cancelAllScheduledNotificationsAsync: () => mockCancelAllNotifications(),
-    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval' },
+    cancelScheduledNotificationAsync: (...args: any[]) => mockCancelScheduledNotification(...args),
+    setNotificationChannelAsync: (...args: any[]) => mockSetNotificationChannel(...args),
+    setNotificationHandler: (...args: any[]) => mockSetNotificationHandler(...args),
+    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval', DAILY: 'daily' },
+    AndroidImportance: { HIGH: 6 },
+}));
+
+// Platform is the service's only react-native dependency. The mock object is a
+// stable reference, so a test can flip Platform.OS to exercise the Android branch.
+jest.mock('react-native', () => ({
+    Platform: { OS: 'ios' },
+}));
+
+// Keys, not prose - keeps the assertions independent of the locale copy.
+jest.mock('../../../localization/i18n', () => ({
+    __esModule: true,
+    default: { t: (key: string) => key },
 }));
 
 const mockLoadSettings = jest.fn();
@@ -33,18 +52,40 @@ jest.mock('../settingsService', () => ({
     updateSetting: (...args: any[]) => mockUpdateSetting(...args),
 }));
 
+import { Platform } from 'react-native';
 import {
-    setNotificationsEnabled,
+    initializeNotifications,
     requestPermissions,
-    scheduleLocalNotification,
+    scheduleDailyReminder,
+    setNotificationsEnabled,
 } from '../notificationService';
+
+const REMINDER_ID = 'valto-daily-spending-reminder';
+const CHANNEL_ID = 'daily-reminder';
+
+const EXPECTED_REQUEST = {
+    identifier: REMINDER_ID,
+    content: {
+        title: 'notifications.dailyReminder.title',
+        body: 'notifications.dailyReminder.body',
+    },
+    trigger: {
+        type: 'daily',
+        channelId: CHANNEL_ID,
+        hour: 18,
+        minute: 0,
+    },
+};
 
 describe('notificationService', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        (Platform as { OS: string }).OS = 'ios';
         mockUpdateSetting.mockResolvedValue(undefined);
         mockCancelAllNotifications.mockResolvedValue(undefined);
+        mockCancelScheduledNotification.mockResolvedValue(undefined);
         mockScheduleNotification.mockResolvedValue(undefined);
+        mockSetNotificationChannel.mockResolvedValue(undefined);
     });
 
     describe('requestPermissions', () => {
@@ -91,6 +132,7 @@ describe('notificationService', () => {
             const result = await setNotificationsEnabled(true);
             expect(result).toEqual({ enabled: false, permissionDenied: true });
             expect(mockUpdateSetting).not.toHaveBeenCalled();
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
 
         it('enables when permission granted', async () => {
@@ -103,7 +145,21 @@ describe('notificationService', () => {
             expect(mockEmit).toHaveBeenCalledWith('settings');
         });
 
-        it('cancels all notifications when disabling', async () => {
+        it('turning the switch ON schedules exactly one daily reminder at 18:00', async () => {
+            // loadSettings is read twice: once by the toggle (false, so it proceeds)
+            // and once by the scheduler after the write (true, so it schedules).
+            mockLoadSettings
+                .mockResolvedValueOnce({ notificationsEnabled: false })
+                .mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'granted' });
+
+            await setNotificationsEnabled(true);
+
+            expect(mockScheduleNotification).toHaveBeenCalledTimes(1);
+            expect(mockScheduleNotification).toHaveBeenCalledWith(EXPECTED_REQUEST);
+        });
+
+        it('cancels all notifications when disabling and schedules nothing', async () => {
             mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
 
             const result = await setNotificationsEnabled(false);
@@ -111,39 +167,121 @@ describe('notificationService', () => {
             expect(mockCancelAllNotifications).toHaveBeenCalled();
             expect(mockUpdateSetting).toHaveBeenCalledWith('notificationsEnabled', false);
             expect(mockEmit).toHaveBeenCalledWith('settings');
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
     });
 
-    describe('scheduleLocalNotification', () => {
-        it('schedules when notifications enabled', async () => {
+    describe('scheduleDailyReminder', () => {
+        it('schedules a DAILY trigger at hour 18 minute 0 when enabled', async () => {
             mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
 
-            await scheduleLocalNotification('Test', 'Body', 60000);
+            await scheduleDailyReminder();
 
-            expect(mockScheduleNotification).toHaveBeenCalledWith({
-                content: { title: 'Test', body: 'Body' },
-                trigger: { type: 'timeInterval', seconds: 60 },
-            });
+            expect(mockScheduleNotification).toHaveBeenCalledWith(EXPECTED_REQUEST);
         });
 
         it('does not schedule when notifications disabled', async () => {
             mockLoadSettings.mockResolvedValue({ notificationsEnabled: false });
 
-            await scheduleLocalNotification('Test', 'Body', 60000);
+            await scheduleDailyReminder();
 
             expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
 
-        it('enforces minimum 1 second trigger', async () => {
+        it('cancels the existing reminder by identifier before scheduling', async () => {
             mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
 
-            await scheduleLocalNotification('Test', 'Body', 100); // 100ms
+            await scheduleDailyReminder();
 
-            expect(mockScheduleNotification).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    trigger: expect.objectContaining({ seconds: 1 }),
-                })
-            );
+            expect(mockCancelScheduledNotification).toHaveBeenCalledWith(REMINDER_ID);
+            expect(mockCancelScheduledNotification.mock.invocationCallOrder[0])
+                .toBeLessThan(mockScheduleNotification.mock.invocationCallOrder[0]);
+        });
+
+        it('creates a high-importance Android channel on Android', async () => {
+            (Platform as { OS: string }).OS = 'android';
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+
+            await scheduleDailyReminder();
+
+            expect(mockSetNotificationChannel).toHaveBeenCalledWith(CHANNEL_ID, {
+                name: 'notifications.channelName',
+                importance: 6,
+            });
+        });
+
+        it('does not create a notification channel on iOS', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+
+            await scheduleDailyReminder();
+
+            expect(mockSetNotificationChannel).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('initializeNotifications', () => {
+        it('schedules the reminder when the preference is already true', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'granted' });
+
+            await initializeNotifications();
+
+            expect(mockScheduleNotification).toHaveBeenCalledTimes(1);
+            expect(mockScheduleNotification).toHaveBeenCalledWith(EXPECTED_REQUEST);
+        });
+
+        it('does not stack duplicates across repeated startups', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'granted' });
+
+            // Fake pending-request store keyed by identifier, the way both platforms
+            // key them. Asserts the real no-duplicates property rather than a proxy.
+            const pending = new Map<string, unknown>();
+            mockScheduleNotification.mockImplementation(async (request: any) => {
+                pending.set(request.identifier, request);
+                return request.identifier;
+            });
+            mockCancelScheduledNotification.mockImplementation(async (id: string) => {
+                pending.delete(id);
+            });
+
+            await initializeNotifications();
+            await initializeNotifications();
+            await initializeNotifications();
+
+            expect(mockScheduleNotification).toHaveBeenCalledTimes(3);
+            expect(pending.size).toBe(1);
+            expect(Array.from(pending.keys())).toEqual([REMINDER_ID]);
+        });
+
+        it('schedules nothing and never checks permission when the preference is false', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: false });
+
+            await initializeNotifications();
+
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+            expect(mockGetPermissions).not.toHaveBeenCalled();
+        });
+
+        it('reverts the preference when permission was revoked in OS settings', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'denied' });
+
+            await initializeNotifications();
+
+            expect(mockUpdateSetting).toHaveBeenCalledWith('notificationsEnabled', false);
+            expect(mockCancelAllNotifications).toHaveBeenCalled();
+            expect(mockEmit).toHaveBeenCalledWith('settings');
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+        });
+
+        it('never requests permission at startup', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'denied' });
+
+            await initializeNotifications();
+
+            expect(mockRequestPermissions).not.toHaveBeenCalled();
         });
     });
 });

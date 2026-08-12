@@ -27,8 +27,12 @@ jest.mock('expo-notifications', () => ({
     getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
     requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
     cancelAllScheduledNotificationsAsync: jest.fn().mockResolvedValue(undefined),
+    cancelScheduledNotificationAsync: jest.fn().mockResolvedValue(undefined),
     scheduleNotificationAsync: jest.fn().mockResolvedValue('mock-id'),
-    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval' },
+    setNotificationChannelAsync: jest.fn().mockResolvedValue(undefined),
+    setNotificationHandler: jest.fn(),
+    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval', DAILY: 'daily' },
+    AndroidImportance: { HIGH: 6 },
 }));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
