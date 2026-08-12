@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 import { dataEvents } from '../core/events/dataEvents';
 import { createAndShareBackup, pickAndRestoreBackup } from '../data/services/backupService';
-import { setNotificationsEnabled } from '../data/services/notificationService';
+import { scheduleDailyReminder, setNotificationsEnabled } from '../data/services/notificationService';
 import { resetAppData, resetFinancialDataForCurrencyReset } from '../data/services/resetService';
 import {
     type AppSettings,
@@ -305,6 +305,18 @@ export function useSettings(): UseSettingsResult {
             setSettings(updated);
             // Sync i18n immediately
             await i18n.changeLanguage(selected.code);
+
+            // Refresh the pending reminder so its copy follows the new language -
+            // a reminder written in a language the user just told us they do not
+            // read defeats its own purpose. No-op when notifications are off, and
+            // idempotent when they are on. Its own catch: a scheduling failure is
+            // not a language failure and must not claim to be one.
+            try {
+                await scheduleDailyReminder();
+            } catch (reminderError) {
+                console.warn('[notifications] Reminder reschedule after language change failed:', reminderError);
+            }
+
             dataEvents.emit('settings');
         } catch (error) {
             Alert.alert(t('alerts.error'), t('alerts.errorLanguage'));

@@ -5,6 +5,10 @@ import { dataEvents } from "@/src/core/events/dataEvents";
 import { SecurityProvider } from "@/src/core/security/SecurityContext";
 import { runMigrations } from "@/src/data/migrations";
 import { initializeSeedData } from "@/src/data/seed";
+import {
+  configureNotificationHandler,
+  initializeNotifications,
+} from "@/src/data/services/notificationService";
 import { processRecurringRules } from "@/src/data/services/RecurringTransactionEngine";
 import { loadSettings } from "@/src/data/services/settingsService";
 import { resetCorruptedStore } from "@/src/data/services/storeRecoveryService";
@@ -38,6 +42,11 @@ Sentry.init({
     "https://placeholder@sentry.io/placeholder",
   debug: false,
 });
+
+// Module scope so it runs exactly once, at import, before React mounts and before
+// any notification can fire. Without a handler, expo-notifications silently drops
+// notifications that arrive while the app is foregrounded.
+configureNotificationHandler();
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -130,6 +139,24 @@ function RootLayout() {
 
       // Check if onboarding is needed
       setNeedsOnboarding(!settings.onboardingCompleted);
+
+      // (Re)assert the daily reminder. Must run AFTER the i18n sync above so the
+      // notification copy resolves in the user's language, and inside its own
+      // try/catch: the outer catch flips the app into StoreRecoveryScreen, and a
+      // reminder that fails to schedule must never present itself as a corrupted
+      // store. Report-only, but reported - silent failure is the exact thing this
+      // reminder exists to avoid.
+      try {
+        await initializeNotifications();
+      } catch (notificationErr) {
+        console.warn(
+          "[notifications] Startup scheduling failed:",
+          notificationErr,
+        );
+        if (!__DEV__) {
+          Sentry.captureException(notificationErr);
+        }
+      }
 
       // Dev-only, non-blocking, non-fatal balance-integrity assertion.
       // Dead-stripped from release builds. Audits every wallet's stored balance

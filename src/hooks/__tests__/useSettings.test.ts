@@ -27,8 +27,12 @@ jest.mock('expo-notifications', () => ({
     getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
     requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
     cancelAllScheduledNotificationsAsync: jest.fn().mockResolvedValue(undefined),
+    cancelScheduledNotificationAsync: jest.fn().mockResolvedValue(undefined),
     scheduleNotificationAsync: jest.fn().mockResolvedValue('mock-id'),
-    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval' },
+    setNotificationChannelAsync: jest.fn().mockResolvedValue(undefined),
+    setNotificationHandler: jest.fn(),
+    SchedulableTriggerInputTypes: { TIME_INTERVAL: 'timeInterval', DAILY: 'daily' },
+    AndroidImportance: { HIGH: 6 },
 }));
 
 jest.mock('../../theme/theme', () => ({
@@ -82,7 +86,10 @@ jest.mock('expo-sharing', () => ({
 }));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
+import * as Notifications from 'expo-notifications';
+import { Alert } from 'react-native';
+import { getLanguageByCode } from '../../domain/constants/languages';
 import { useSettings } from '../useSettings';
 
 describe('useSettings', () => {
@@ -195,5 +202,64 @@ describe('useSettings', () => {
         expect(typeof result.current.changeDateFormat).toBe('function');
         expect(typeof result.current.changeFirstDayOfWeek).toBe('function');
         expect(typeof result.current.changeDecimalSeparator).toBe('function');
+    });
+
+    describe('language change and the daily reminder', () => {
+        const seedSettings = async (notificationsEnabled: boolean) => {
+            await AsyncStorage.setItem('@valto:settings', JSON.stringify({
+                theme: 'system',
+                currency: 'USD',
+                currencyLocked: false,
+                language: 'en',
+                dateFormat: 'MM/DD/YYYY',
+                firstDayOfWeek: 'monday',
+                decimalSeparator: 'dot',
+                onboardingCompleted: true,
+                notificationsEnabled,
+            }));
+        };
+
+        const selectFrench = async () => {
+            const { result } = renderHook(() => useSettings());
+            await waitFor(() => {
+                expect(result.current.loading).toBe(false);
+            });
+            await act(async () => {
+                await result.current.handleLanguageSelect(getLanguageByCode('fr'));
+            });
+        };
+
+        it('reschedules the reminder so its copy follows the new language', async () => {
+            await seedSettings(true);
+
+            await selectFrench();
+
+            expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    identifier: 'valto-daily-spending-reminder',
+                    trigger: expect.objectContaining({ type: 'daily', hour: 18, minute: 0 }),
+                })
+            );
+        });
+
+        it('schedules nothing when notifications are off', async () => {
+            await seedSettings(false);
+
+            await selectFrench();
+
+            expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+        });
+
+        it('does not surface a language error when rescheduling fails', async () => {
+            await seedSettings(true);
+            (Notifications.scheduleNotificationAsync as jest.Mock)
+                .mockRejectedValueOnce(new Error('scheduling unavailable'));
+
+            await selectFrench();
+
+            // A scheduling failure is not a language failure and must not claim to be one.
+            expect(Alert.alert).not.toHaveBeenCalled();
+            expect(await AsyncStorage.getItem('@valto:settings')).toContain('"language":"fr"');
+        });
     });
 });
