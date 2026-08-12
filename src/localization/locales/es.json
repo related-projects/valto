@@ -404,6 +404,13 @@
     "dot": "Punto (1,000.00)",
     "comma": "Coma (1.000,00)"
   },
+  "notifications": {
+    "channelName": "Recordatorio diario",
+    "dailyReminder": {
+      "title": "¿Hacemos cuentas? 👀",
+      "body": "Dos minutos y el día queda resuelto"
+    }
+  },
   "alerts": {
     "backupFailed": "Error en la copia de seguridad",
     "backupFailedMessage": "No se pudo crear la copia de seguridad. Inténtalo de nuevo.",

@@ -404,6 +404,13 @@
         "dot": "Ponto (1,000.00)",
         "comma": "Vírgula (1.000,00)"
     },
+    "notifications": {
+        "channelName": "Lembrete diário",
+        "dailyReminder": {
+            "title": "Vamos fazer as contas? 👀",
+            "body": "Dois minutos e o dia fica resolvido"
+        }
+    },
     "alerts": {
         "backupFailed": "Falha no backup",
         "backupFailedMessage": "Não foi possível criar o backup. Tente novamente.",

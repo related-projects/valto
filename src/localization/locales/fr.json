@@ -404,6 +404,13 @@
     "dot": "Point (1 000.00)",
     "comma": "Virgule (1.000,00)"
   },
+  "notifications": {
+    "channelName": "Rappel quotidien",
+    "dailyReminder": {
+      "title": "On fait les comptes ? 👀",
+      "body": "Deux minutes et c'est réglé pour aujourd'hui"
+    }
+  },
   "alerts": {
     "backupFailed": "Échec de la sauvegarde",
     "backupFailedMessage": "Impossible de créer la sauvegarde. Veuillez réessayer.",
