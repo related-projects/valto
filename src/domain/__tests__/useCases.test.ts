@@ -13,6 +13,7 @@ import {
     deleteCategory,
     deleteTransaction,
     transferFunds,
+    TransferDeletionNotSupportedError,
 } from '../useCases';
 
 // ─── Shared test infrastructure ─────────────────────────────────────
@@ -115,6 +116,10 @@ describe('deleteTransaction', () => {
 
         const updated = await walletRepo.getById(wallet.id);
         expect(updated!.balance).toBe(100000);
+        // The number alone would also pass if the row had survived the delete, so
+        // assert the audit too: the stored balance must equal what the remaining
+        // ledger recomputes to.
+        expect(await walletRepo.recomputeBalanceFromLedger(wallet.id)).toBe(updated!.balance);
         expect(eventBus.emitMultiple).toHaveBeenCalledWith(['transactions', 'wallets']);
     });
 
@@ -134,6 +139,62 @@ describe('deleteTransaction', () => {
 
         const updated = await walletRepo.getById(wallet.id);
         expect(updated!.balance).toBe(50000);
+        expect(await walletRepo.recomputeBalanceFromLedger(wallet.id)).toBe(updated!.balance);
+    });
+
+    // A transfer is two rows in two wallets with no column linking them. Deleting
+    // one leg leaves the other orphaned, and because each wallet still audits
+    // clean against its own ledger, verifyFinancialIntegrity cannot see it. The
+    // only safe answer is to refuse.
+    describe('transfer legs', () => {
+        async function makeTransfer() {
+            const source = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+            const dest = await walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+
+            await transferFunds(getDeps(), {
+                fromWalletId: source.id,
+                toWalletId: dest.id,
+                amount: 25000,
+            });
+
+            const legs = await transactionRepo.getAll();
+            // Forget the transfer's own announcement so the assertions below only
+            // see what the attempted deletion did.
+            eventBus.emitMultiple.mockClear();
+            return {
+                source,
+                dest,
+                outgoing: legs.find((tx) => tx.categoryId === 'transfer-out')!,
+                incoming: legs.find((tx) => tx.categoryId === 'transfer-in')!,
+            };
+        }
+
+        it.each([
+            ['outgoing', (t: Awaited<ReturnType<typeof makeTransfer>>) => t.outgoing],
+            ['incoming', (t: Awaited<ReturnType<typeof makeTransfer>>) => t.incoming],
+        ])('refuses to delete the %s leg and leaves both wallets untouched', async (_label, pick) => {
+            const transfer = await makeTransfer();
+
+            await expect(deleteTransaction(getDeps(), pick(transfer).id)).rejects.toBeInstanceOf(
+                TransferDeletionNotSupportedError,
+            );
+
+            // Both wallets keep the balances the transfer left them with...
+            expect((await walletRepo.getById(transfer.source.id))!.balance).toBe(75000);
+            expect((await walletRepo.getById(transfer.dest.id))!.balance).toBe(75000);
+            // ...and both legs are still on the ledger, so neither is orphaned.
+            expect(await transactionRepo.getAll()).toHaveLength(2);
+            // Nothing was written, so nothing should have been announced.
+            expect(eventBus.emitMultiple).not.toHaveBeenCalled();
+        });
+
+        it('carries a code the UI can branch on without matching message strings', async () => {
+            const transfer = await makeTransfer();
+
+            await expect(deleteTransaction(getDeps(), transfer.outgoing.id)).rejects.toMatchObject({
+                code: 'TRANSFER_DELETION_NOT_SUPPORTED',
+            });
+        });
     });
 });
 

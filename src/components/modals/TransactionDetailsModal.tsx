@@ -1,26 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import React, { useMemo } from 'react';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
+import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { EmptyState } from '../../components/EmptyState';
+import {
+    TransactionPresenter,
+    resolveTransactionCategoryLabel,
+    resolveWalletLabel,
+} from '../../components/transactions/TransactionPresenter';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
-import { resolveCategoryVisual } from '../../utils/categoryVisuals';
+import { isTransferCategoryId } from '../../utils/categoryVisuals';
 
 export function TransactionDetailsModal() {
     const { id } = useLocalSearchParams<{ id: string }>();
 
     const { t } = useTranslation();
-    const { colors, typography, spacing, radius } = useTheme();
+    const { colors, spacing, radius } = useTheme();
 
-    const { transactions, loading } = useTransactions();
+    const { transactions, loading, deleteTransaction } = useTransactions();
     const { categories } = useCategories();
     const { wallets } = useWallets();
-    const { formatAmount, formatDate } = useFormatting();
+    const { formatDate, formatAmount } = useFormatting();
+
+    // Once the delete is confirmed this screen is on its way out. The refreshed
+    // list drops the row before the dismiss finishes, so without this flag the
+    // "not found" branch below would flash an error over a successful delete.
+    const deletingRef = useRef(false);
 
     const transaction = useMemo(() => {
         return transactions.find((tx) => tx.id === id); // `useLocalSearchParams` automatically resolves `[id]`
@@ -35,6 +45,7 @@ export function TransactionDetailsModal() {
     }
 
     if (!transaction) {
+        if (deletingRef.current) return null;
         return (
             <View style={[styles.container, { backgroundColor: colors.background }]}>
                 <EmptyState
@@ -46,54 +57,73 @@ export function TransactionDetailsModal() {
         );
     }
 
-    const isTransfer = transaction.type === 'transfer' || transaction.categoryId === 'transfer-in' || transaction.categoryId === 'transfer-out';
-    const isIncome = transaction.type === 'income' || transaction.categoryId === 'transfer-in';
-    const sign = isTransfer ? '' : isIncome ? '+' : '-';
-    
-    let categoryName = t('components.transactionList.unknown');
-    let colorHex = colors.accent;
-    let iconName: keyof typeof Ionicons.glyphMap = 'card-outline';
+    const isTransfer = transaction.type === 'transfer' || isTransferCategoryId(transaction.categoryId);
+    const categoryName = resolveTransactionCategoryLabel(transaction, categories, t);
+    const walletName = resolveWalletLabel(transaction.walletId, wallets, t);
 
-    if (isTransfer) {
-        categoryName = t('components.transactionList.transfer');
-        colorHex = '#3B82F6';
-        iconName = 'swap-horizontal-outline';
-    } else {
-        const cat = categories.find((c) => c.id === transaction.categoryId);
-        if (cat) {
-            // Stored icon/colour first, so a category renamed into any language keeps
-            // its appearance. See utils/categoryVisuals.
-            categoryName = cat.name;
-            const visual = resolveCategoryVisual(cat, colors.accent);
-            iconName = visual.icon;
-            colorHex = visual.color;
-        }
-    }
-
-    const wallet = wallets.find((w) => w.id === transaction.walletId);
-    const walletName = wallet?.name || t('components.transactionList.unknown');
-
-    const valueColor = isTransfer ? colors.foreground : isIncome ? colors.success : colors.foreground;
+    const handleDelete = () => {
+        Alert.alert(
+            t('modals.transactionDetails.deleteTitle'),
+            t('modals.transactionDetails.deleteMessage'),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('common.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        // Leave first: the list refresh removes this transaction, and a
+                        // successful delete must never land the user on an error screen.
+                        deletingRef.current = true;
+                        router.back();
+                        try {
+                            await deleteTransaction(transaction.id);
+                        } catch {
+                            deletingRef.current = false;
+                            Alert.alert(t('alerts.error'), t('modals.transactionDetails.deleteFailed'));
+                        }
+                    },
+                },
+            ],
+        );
+    };
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
 
-            <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
-                <View style={[styles.iconLarge, { backgroundColor: `${colorHex}15`, borderRadius: radius.full }]}>
-                    <Ionicons name={iconName} size={42} color={colorHex} />
-                </View>
-                <Text style={[styles.amount, { color: valueColor, marginTop: spacing.md }]}>
-                    {sign}{formatAmount(transaction.amount)}
-                </Text>
-                <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.md, marginTop: spacing.xs }}>
-                    {transaction.note || categoryName}
-                </Text>
+            {/* A transfer is two rows in two wallets with nothing linking them, so
+                deleting one leg is refused outright - no affordance for it here.
+                The use case throws as well; this only spares the user a dead end. */}
+            <Stack.Screen
+                options={{
+                    headerRight: isTransfer
+                        ? undefined
+                        : () => (
+                            <TouchableOpacity
+                                onPress={handleDelete}
+                                testID="transaction_delete_button"
+                                accessibilityLabel={t('a11y.deleteTransaction')}
+                                style={styles.headerButton}
+                            >
+                                <Ionicons name="trash-outline" size={22} color={colors.destructive} />
+                            </TouchableOpacity>
+                        ),
+                }}
+            />
+
+            <View style={{ paddingVertical: spacing.xl }}>
+                <TransactionPresenter
+                    transaction={transaction}
+                    categories={categories}
+                    wallets={wallets}
+                    formatAmount={formatAmount}
+                    variant="detail"
+                />
             </View>
 
             <View style={{ paddingHorizontal: spacing.xl, paddingBottom: spacing['2xl'] }}>
-                
+
                 <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
-                    
+
                     <View style={styles.row}>
                         <Text style={[styles.label, { color: colors.mutedForeground }]}>{t('modals.addTransaction.type') || "Type"}</Text>
                         <Text style={[styles.value, { color: colors.foreground, textTransform: 'capitalize' }]}>
@@ -118,7 +148,7 @@ export function TransactionDetailsModal() {
                         <Text style={[styles.label, { color: colors.mutedForeground }]}>{t('modals.addTransaction.date')}</Text>
                         <Text style={[styles.value, { color: colors.foreground }]}>{formatDate(transaction.date)}</Text>
                     </View>
-                    
+
                 </View>
 
                 {transaction.note ? (
@@ -148,15 +178,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    iconLarge: {
-        width: 80,
-        height: 80,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    amount: {
-        fontSize: 36,
-        fontWeight: '700',
+    headerButton: {
+        padding: 8,
+        marginEnd: -8,
     },
     card: {
         padding: 20,

@@ -271,6 +271,11 @@
       "errorEmpty": "Ingresa un nombre de categoría",
       "errorSave": "No se pudo guardar la categoría",
       "error": "Error"
+    },
+    "transactionDetails": {
+      "deleteTitle": "Eliminar transacción",
+      "deleteMessage": "¿Seguro que quieres eliminar esta transacción? El saldo de la cartera se ajustará.",
+      "deleteFailed": "No se pudo eliminar la transacción"
     }
   },
   "about": {
@@ -602,6 +607,7 @@
     "editWallet": "Editar cartera {{name}}",
     "editRule": "Editar regla",
     "deleteRule": "Eliminar regla",
+    "deleteTransaction": "Eliminar transacción",
     "pauseRule": "Pausar regla",
     "resumeRule": "Reanudar regla",
     "searchTransactions": "Buscar transacciones",
@@ -630,7 +636,8 @@
     "toggleEndDate": "Activar o desactivar fecha de fin",
     "submitForm": "Enviar formulario",
     "expandFaq": "Expandir respuesta",
-    "collapseFaq": "Contraer respuesta"
+    "collapseFaq": "Contraer respuesta",
+    "hasNote": "Tiene una nota"
   },
   "storeRecovery": {
     "title": "No se pudieron abrir tus datos",
