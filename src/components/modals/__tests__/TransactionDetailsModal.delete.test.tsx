@@ -16,7 +16,7 @@
  * Only the data sources and the navigator are mocked; the presenter runs for real.
  */
 
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import React from 'react';
 import { Alert } from 'react-native';
 
@@ -104,6 +104,18 @@ function lastAlertButtons(): AlertButton[] {
 }
 
 /**
+ * The button of the given style, found BY style rather than by position.
+ *
+ * Reaching for buttons[1] would make the tests below vacuous: reorder the alert
+ * and they would tap Cancel, assert that nothing happened, and still pass. Only
+ * the "exactly one destructive step" test indexes, because pinning the order is
+ * what that test is for - and it is what makes this lookup unambiguous.
+ */
+function lastAlertButton(style: 'cancel' | 'destructive'): AlertButton | undefined {
+    return lastAlertButtons().find((button) => button.style === style);
+}
+
+/**
  * Pay the one-time cost of realising this tree ONCE, before any test runs.
  *
  * The first render in this file resolves React Native's lazily-required modules
@@ -151,6 +163,16 @@ describe('TransactionDetailsModal - one voice with the list', () => {
 });
 
 describe('TransactionDetailsModal - delete', () => {
+    it('labels the delete affordance as text, not a bare glyph', () => {
+        const { getByTestId } = render(<TransactionDetailsModal />);
+
+        // Every other sheet spells an irreversible action out at header right.
+        // A lone trash glyph names the action for nobody and reads as decoration.
+        expect(
+            within(getByTestId('transaction_delete_button')).getByText('common.delete'),
+        ).toBeTruthy();
+    });
+
     it('asks before deleting anything', () => {
         const { getByTestId } = render(<TransactionDetailsModal />);
 
@@ -179,7 +201,7 @@ describe('TransactionDetailsModal - delete', () => {
         const { getByTestId } = render(<TransactionDetailsModal />);
 
         fireEvent.press(getByTestId('transaction_delete_button'));
-        await lastAlertButtons()[0].onPress?.();
+        await lastAlertButton('cancel')?.onPress?.();
 
         expect(mockDeleteTransaction).not.toHaveBeenCalled();
         expect(mockBack).not.toHaveBeenCalled();
@@ -189,7 +211,7 @@ describe('TransactionDetailsModal - delete', () => {
         const view = render(<TransactionDetailsModal />);
 
         fireEvent.press(view.getByTestId('transaction_delete_button'));
-        await lastAlertButtons()[1].onPress?.();
+        await lastAlertButton('destructive')?.onPress?.();
 
         expect(mockDeleteTransaction).toHaveBeenCalledWith('tx-1');
         expect(mockBack).toHaveBeenCalled();
@@ -206,7 +228,7 @@ describe('TransactionDetailsModal - delete', () => {
         const { getByTestId } = render(<TransactionDetailsModal />);
 
         fireEvent.press(getByTestId('transaction_delete_button'));
-        await lastAlertButtons()[1].onPress?.();
+        await lastAlertButton('destructive')?.onPress?.();
 
         expect(Alert.alert).toHaveBeenLastCalledWith(
             'alerts.error',

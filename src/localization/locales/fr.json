@@ -273,6 +273,7 @@
       "error": "Erreur"
     },
     "transactionDetails": {
+      "title": "Détails de la transaction",
       "deleteTitle": "Supprimer la transaction",
       "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette transaction ? Le solde du portefeuille sera ajusté.",
       "deleteFailed": "Échec de la suppression de la transaction"

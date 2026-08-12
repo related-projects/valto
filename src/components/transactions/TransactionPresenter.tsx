@@ -159,7 +159,7 @@ export const TransactionPresenter: React.FC<TransactionPresenterProps> = ({
                 styles.iconTile,
                 {
                     backgroundColor: `${color}${metrics.tileAlpha}`,
-                    borderRadius: isDetail ? radius.full : radius.md,
+                    borderRadius: radius.md,
                 },
                 metrics.tileSize
                     ? { width: metrics.tileSize, height: metrics.tileSize }

@@ -273,6 +273,7 @@
             "error": "Erro"
         },
         "transactionDetails": {
+            "title": "Detalhes da transação",
             "deleteTitle": "Excluir transação",
             "deleteMessage": "Tem certeza de que deseja excluir esta transação? O saldo da carteira será ajustado.",
             "deleteFailed": "Falha ao excluir a transação"
