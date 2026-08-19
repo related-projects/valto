@@ -2,6 +2,7 @@ import { SecurityGate } from "@/src/components/security/SecurityGate";
 import { container, getUseCaseDeps } from "@/src/core/di/container";
 import { ErrorBoundary } from "@/src/core/error/ErrorBoundary";
 import { dataEvents } from "@/src/core/events/dataEvents";
+import { dropConsoleBreadcrumbs } from "@/src/core/observability/sentryBreadcrumbGuard";
 import { SecurityProvider } from "@/src/core/security/SecurityContext";
 import { runMigrations } from "@/src/data/migrations";
 import { initializeSeedData } from "@/src/data/seed";
@@ -41,6 +42,9 @@ Sentry.init({
     process.env.EXPO_PUBLIC_SENTRY_DSN ||
     "https://placeholder@sentry.io/placeholder",
   debug: false,
+  // Console output must never become a breadcrumb: this app logs wallet
+  // balances and validation messages. See the guard for the full rationale.
+  beforeBreadcrumb: dropConsoleBreadcrumbs,
 });
 
 // Module scope so it runs exactly once, at import, before React mounts and before
