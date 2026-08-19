@@ -1,16 +1,28 @@
 /**
- * Sentry Breadcrumb Guard Tests
+ * Sentry Privacy Guard Tests
  *
- * DoD:
+ * DoD - breadcrumb guard (V-34):
  *  - A breadcrumb of category 'console' is dropped (the hook returns null), for
  *    every console level, including when the payload carries financial values.
  *  - Breadcrumbs of every other category pass through by reference, unchanged.
- *  - The guard is actually INSTALLED in the app's Sentry.init - asserted on the
- *    options object handed to Sentry.init, not by calling the guard in
- *    isolation. A filter that is never installed is the same as no filter.
+ *
+ * DoD - identifier guard (V-33):
+ *  - An event carrying user, contexts.app.device_app_hash and contexts.os.rooted
+ *    comes back with all three gone.
+ *  - An event missing every one of them passes through without throwing.
+ *  - Culture context and touch breadcrumbs survive, asserted BY REFERENCE, so a
+ *    later "strip more" edit fails here instead of silently shipping.
+ *  - XHR breadcrumbs are off while the rest of the default integration set is
+ *    still there, asserted on the RESOLVED list, not on the option shape.
+ *  - Auto session tracking is explicitly false.
+ *
+ * DoD - both:
+ *  - The guards are actually INSTALLED in the app's Sentry.init - asserted on
+ *    the options object handed to Sentry.init, not by calling them in
+ *    isolation. A guard that is never installed is the same as no guard.
  */
 
-import type { Breadcrumb } from '@sentry/react-native';
+import type { Breadcrumb, Event } from '@sentry/react-native';
 
 // jest hoists jest.mock above imports; only vars prefixed `mock` may be
 // referenced inside the factories.
@@ -29,6 +41,13 @@ jest.mock('@sentry/react-native', () => ({
     wrap: (c: unknown) => c,
     captureMessage: jest.fn(),
     captureException: jest.fn(),
+    // Stand-in for the real factory. It only has to report the integration's
+    // name and echo back the options it was constructed with - that is all the
+    // resolver reads, and all the integrations test asserts on.
+    breadcrumbsIntegration: jest.fn((options?: unknown) => ({
+        name: 'Breadcrumbs',
+        options,
+    })),
 }));
 
 jest.mock('expo-router', () => {
@@ -80,9 +99,14 @@ jest.mock('@/src/core/events/dataEvents', () => ({
     dataEvents: { emit: jest.fn(), emitMultiple: jest.fn() },
 }));
 
-// NOT mocked: the guard itself. Test 3 compares the installed hook against this
-// exact reference, so it must be the real implementation.
-import { dropConsoleBreadcrumbs } from '@/src/core/observability/sentryBreadcrumbGuard';
+// NOT mocked: the guards themselves. The wiring tests compare the installed
+// hooks against these exact references, so they must be the real
+// implementations.
+import {
+    dropConsoleBreadcrumbs,
+    stripPersistentIdentifiers,
+    withoutXhrBreadcrumbs,
+} from '@/src/core/observability/sentryBreadcrumbGuard';
 import * as Sentry from '@sentry/react-native';
 
 // Importing the root layout is what runs Sentry.init, at module scope.
@@ -186,5 +210,212 @@ describe('the guard is installed in the app Sentry.init', () => {
         expect(typeof initOptions.dsn).toBe('string');
         expect(initOptions.dsn.length).toBeGreaterThan(0);
         expect(initOptions.debug).toBe(false);
+    });
+});
+
+describe('stripPersistentIdentifiers', () => {
+    /** An event shaped like one the native layers actually produce on iOS. */
+    function eventWithIdentifiers(): Event {
+        return {
+            event_id: 'abc123',
+            user: { id: '982C1F97-0000-4000-8000-000000000000' },
+            contexts: {
+                app: {
+                    app_version: '1.0.0',
+                    app_identifier: 'com.renkakpo.valto.app',
+                    device_app_hash: '5f2b0c1d9e8a7c6b5a4938271605f4e3d2c1b0a9',
+                },
+                os: { name: 'iOS', version: '18.2', rooted: false },
+                device: { model: 'iPhone15,2', memory_size: 6000000000 },
+                culture: { locale: 'fr-FR', timezone: 'Africa/Lome' },
+            },
+        };
+    }
+
+    it('removes the user, device_app_hash and rooted in one pass', () => {
+        const stripped = stripPersistentIdentifiers(eventWithIdentifiers());
+
+        expect(stripped.user).toBeUndefined();
+        expect('user' in stripped).toBe(false);
+        expect(stripped.contexts?.app).not.toHaveProperty('device_app_hash');
+        expect(stripped.contexts?.os).not.toHaveProperty('rooted');
+    });
+
+    it('returns the same event object - it never drops the report', () => {
+        // beforeSend returning null would discard the crash entirely. Stripping
+        // identifiers must never cost us the report they were attached to.
+        const event = eventWithIdentifiers();
+        expect(stripPersistentIdentifiers(event)).toBe(event);
+    });
+
+    it('keeps the diagnostic remainder of the contexts it edits', () => {
+        // Proves the strip is surgical: it removes two named fields, not the
+        // app and os contexts that carry them.
+        const stripped = stripPersistentIdentifiers(eventWithIdentifiers());
+
+        expect(stripped.contexts?.app?.app_version).toBe('1.0.0');
+        expect(stripped.contexts?.app?.app_identifier).toBe('com.renkakpo.valto.app');
+        expect(stripped.contexts?.os?.name).toBe('iOS');
+        expect(stripped.contexts?.os?.version).toBe('18.2');
+        expect(stripped.contexts?.device?.model).toBe('iPhone15,2');
+    });
+
+    it('KEEPS the culture context, asserted by reference', () => {
+        // Deliberate: five locales, plus currency- and recurring-date defects
+        // where the reporter's timezone was the deciding fact. If somebody
+        // "finishes the job" by stripping culture too, this fails.
+        const culture = { locale: 'fr-FR', timezone: 'Africa/Lome' };
+        const event: Event = { contexts: { culture } };
+
+        expect(stripPersistentIdentifiers(event).contexts?.culture).toBe(culture);
+    });
+
+    it('KEEPS touch breadcrumbs, asserted by reference', () => {
+        // Touch breadcrumbs carry React component display names only - no
+        // sentry-label prop and no component-annotate babel plugin in this repo.
+        // They ride along with a crash and are diagnostic context, not analytics.
+        const breadcrumbs: Breadcrumb[] = [
+            { category: 'touch', type: 'user', message: 'Touch event within element: AddButton' },
+        ];
+        const event: Event = { breadcrumbs };
+
+        const stripped = stripPersistentIdentifiers(event);
+        expect(stripped.breadcrumbs).toBe(breadcrumbs);
+        expect(stripped.breadcrumbs?.[0]).toBe(breadcrumbs[0]);
+
+        // And the breadcrumb hook lets them through in the first place.
+        expect(dropConsoleBreadcrumbs(breadcrumbs[0])).toBe(breadcrumbs[0]);
+    });
+
+    it('is a no-op on an event with no contexts at all', () => {
+        // The defensive path. device_app_hash is iOS only, and a JS event
+        // captured before the native scope is read has no app context. A throw
+        // here happens inside Sentry's pipeline, which swallows it and sends
+        // the event UNSTRIPPED - the exact failure this guard exists to avoid.
+        const event: Event = { event_id: 'no-contexts' };
+
+        expect(() => stripPersistentIdentifiers(event)).not.toThrow();
+        expect(stripPersistentIdentifiers(event)).toBe(event);
+    });
+
+    it('is a no-op on an Android-shaped event with contexts but no app or os', () => {
+        const event: Event = { contexts: { device: { model: 'Pixel 7' } } };
+
+        expect(() => stripPersistentIdentifiers(event)).not.toThrow();
+        expect(stripPersistentIdentifiers(event).contexts?.device?.model).toBe('Pixel 7');
+    });
+
+    it('is a no-op when app and os exist but carry none of the stripped fields', () => {
+        const event: Event = {
+            contexts: { app: { app_version: '1.0.0' }, os: { name: 'Android' } },
+        };
+
+        expect(() => stripPersistentIdentifiers(event)).not.toThrow();
+        expect(stripPersistentIdentifiers(event).contexts?.app?.app_version).toBe('1.0.0');
+        expect(stripPersistentIdentifiers(event).contexts?.os?.name).toBe('Android');
+    });
+});
+
+describe('withoutXhrBreadcrumbs', () => {
+    // A stand-in for the SDK default list. Only the names matter: the resolver
+    // matches on name and passes everything else through untouched.
+    function defaultIntegrations() {
+        return [
+            { name: 'ReactNativeErrorHandlers' },
+            { name: 'InboundFilters' },
+            { name: 'Breadcrumbs' },
+            { name: 'Dedupe' },
+            { name: 'DeviceContext' },
+            { name: 'ExpoContext' },
+        ] as unknown as Parameters<typeof withoutXhrBreadcrumbs>[0];
+    }
+
+    it('replaces the breadcrumbs integration with one that has xhr off', () => {
+        const defaults = defaultIntegrations();
+        const resolved = withoutXhrBreadcrumbs(defaults);
+
+        const breadcrumbs = resolved.filter((i) => i.name === 'Breadcrumbs');
+        expect(breadcrumbs).toHaveLength(1);
+        // The original default instance is gone, not merely shadowed.
+        expect(resolved).not.toContain(defaults[2]);
+        expect((breadcrumbs[0] as unknown as { options: unknown }).options).toEqual({ xhr: false });
+    });
+
+    it('keeps every other default integration, by reference', () => {
+        // The point of deriving from the defaults instead of hand-writing the
+        // list: nothing can be lost here without this failing.
+        const defaults = defaultIntegrations();
+        const resolved = withoutXhrBreadcrumbs(defaults);
+
+        for (const integration of defaults) {
+            if (integration.name === 'Breadcrumbs') {
+                continue;
+            }
+            expect(resolved).toContain(integration);
+        }
+
+        expect(resolved).toHaveLength(defaults.length);
+        expect(resolved.map((i) => i.name).sort()).toEqual(defaults.map((i) => i.name).sort());
+    });
+
+    it('still swaps when the list has no breadcrumbs integration to replace', () => {
+        const resolved = withoutXhrBreadcrumbs([
+            { name: 'Dedupe' },
+        ] as unknown as Parameters<typeof withoutXhrBreadcrumbs>[0]);
+
+        expect(resolved.map((i) => i.name)).toEqual(['Dedupe', 'Breadcrumbs']);
+    });
+});
+
+describe('the identifier guards are installed in the app Sentry.init', () => {
+    it('passes stripPersistentIdentifiers as beforeSend', () => {
+        // Identity, not shape. This is the assertion that matters: a guard
+        // that is defined but never installed is the same as no guard.
+        expect(initOptions.beforeSend).toBe(stripPersistentIdentifiers);
+    });
+
+    it('passes withoutXhrBreadcrumbs as the integrations resolver', () => {
+        expect(initOptions.integrations).toBe(withoutXhrBreadcrumbs);
+    });
+
+    it('the installed integrations resolver disables xhr and keeps the rest', () => {
+        // Asserted on the RESOLVED list produced by the wired resolver, not on
+        // the option shape, so a resolver that is wired but inert still fails.
+        const defaults = [
+            { name: 'ReactNativeErrorHandlers' },
+            { name: 'Breadcrumbs' },
+            { name: 'DeviceContext' },
+        ];
+        const resolved = initOptions.integrations(defaults);
+
+        expect(resolved).toContain(defaults[0]);
+        expect(resolved).toContain(defaults[2]);
+        expect(resolved).not.toContain(defaults[1]);
+
+        const breadcrumbs = resolved.filter((i: { name: string }) => i.name === 'Breadcrumbs');
+        expect(breadcrumbs).toHaveLength(1);
+        expect(breadcrumbs[0].options).toEqual({ xhr: false });
+    });
+
+    it('the installed beforeSend strips all three fields', () => {
+        const stripped = initOptions.beforeSend({
+            user: { id: 'installation-uuid' },
+            contexts: {
+                app: { app_version: '1.0.0', device_app_hash: 'deadbeef' },
+                os: { name: 'iOS', rooted: false },
+            },
+        });
+
+        expect(stripped.user).toBeUndefined();
+        expect(stripped.contexts.app).not.toHaveProperty('device_app_hash');
+        expect(stripped.contexts.os).not.toHaveProperty('rooted');
+        expect(stripped.contexts.app.app_version).toBe('1.0.0');
+    });
+
+    it('turns auto session tracking off explicitly', () => {
+        // Explicit false, not absent: both native layers default this to ON, so
+        // an unset option silently re-enables sessions keyed on the identifier
+        // beforeSend now strips.
+        expect(initOptions.enableAutoSessionTracking).toBe(false);
     });
 });

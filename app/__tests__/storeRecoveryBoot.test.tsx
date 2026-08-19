@@ -29,6 +29,9 @@ jest.mock('@sentry/react-native', () => ({
     wrap: (c: unknown) => c,
     captureMessage: jest.fn(),
     captureException: jest.fn(),
+    // Imported by the privacy guards module; never called here because init is
+    // a mock and only the real init resolves the integrations list.
+    breadcrumbsIntegration: jest.fn(() => ({ name: 'Breadcrumbs' })),
 }));
 
 jest.mock('expo-router', () => {
