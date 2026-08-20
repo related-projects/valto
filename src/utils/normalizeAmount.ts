@@ -11,13 +11,20 @@
  *  - This module is the ONLY place where input->storage conversion should happen
  *
  * Parsing is the inverse of formatAmount and must accept exactly what it emits:
- * dot preference renders "2,000.50", comma preference renders "2.000,50". Callers
- * pass the active separator preference AND the currency's `decimals` exponent in;
- * this module never reads settings itself. `decimals` defaults to 2 for ergonomics;
- * production paths flow through useFormatting, which always supplies the exponent.
+ * the dot profile renders "2,000.50", comma renders "2.000,50", space renders
+ * "2<U+00A0>000,50". The separator characters are read from NUMBER_FORMATS rather
+ * than restated here, so the two sides cannot drift apart. Callers pass the active
+ * profile AND the currency's `decimals` exponent in; this module never reads
+ * settings itself. `decimals` defaults to 2 for ergonomics; production paths flow
+ * through useFormatting, which always supplies the exponent.
  */
 
-import type { DecimalSeparator } from '../domain/entities/Settings';
+import {
+    GROUPING_SPACE_CLASS,
+    GROUPING_SPACES_GLOBAL,
+    NUMBER_FORMATS,
+} from '../domain/constants/numberFormats';
+import type { NumberFormatProfile } from '../domain/entities/Settings';
 
 /**
  * Convert a major-unit amount to integer minor units.
@@ -32,13 +39,53 @@ export function normalizeAmount(majorUnits: number, decimals = 2): number {
     return Math.round(majorUnits * 10 ** decimals);
 }
 
-const SEPARATORS: Record<
-    DecimalSeparator,
-    { decimal: string; thousands: string; decimalRe: string; thousandsRe: string }
-> = {
-    dot: { decimal: '.', thousands: ',', decimalRe: '\\.', thousandsRe: ',' },
-    comma: { decimal: ',', thousands: '.', decimalRe: ',', thousandsRe: '\\.' },
+/** Escape a single separator character for use inside a RegExp source string. */
+function escapeForRegExp(char: string): string {
+    return char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+interface ProfileSeparators {
+    decimal: string;
+    thousands: string;
+    decimalRe: string;
+    thousandsRe: string;
+}
+
+/**
+ * Derived from NUMBER_FORMATS rather than restated, so the parser can never drift
+ * from the characters the formatters emit.
+ */
+function separatorsFor(profile: NumberFormatProfile): ProfileSeparators {
+    const { group, decimal } = NUMBER_FORMATS[profile];
+    return {
+        decimal,
+        thousands: group,
+        decimalRe: escapeForRegExp(decimal),
+        thousandsRe: escapeForRegExp(group),
+    };
+}
+
+const SEPARATORS: Record<NumberFormatProfile, ProfileSeparators> = {
+    dot: separatorsFor('dot'),
+    comma: separatorsFor('comma'),
+    space: separatorsFor('space'),
 };
+
+/** True if the body carries any character that can only have meant grouping. */
+const CONTAINS_GROUPING_SPACE = new RegExp(GROUPING_SPACE_CLASS);
+
+/**
+ * Shared tail of every parse branch: enforce the currency's fraction width, then
+ * convert. `normalized` must already use '.' as its decimal point and carry no
+ * grouping.
+ */
+function finishParse(sign: string, normalized: string, decimals: number): number | null {
+    const dotIndex = normalized.indexOf('.');
+    if (dotIndex !== -1 && normalized.length - dotIndex - 1 > decimals) return null;
+
+    const parsed = Number(`${sign}${normalized}`);
+    return Number.isFinite(parsed) ? parsed : null;
+}
 
 /**
  * Parse a user-typed amount string into major units, honouring the active decimal
@@ -65,10 +112,11 @@ const SEPARATORS: Record<
  * @example parseAmountInput('1,2,3', 'dot')      -> null
  * @example parseAmountInput('12.5', 'dot', 0)    -> null  (more fraction digits than allowed)
  * @example parseAmountInput('12.555', 'dot', 2)  -> null
+ * @example parseAmountInput('2 000,50', 'space') -> 2000.5 (any space is grouping)
  */
 export function parseAmountInput(
     input: string,
-    separator: DecimalSeparator = 'dot',
+    profile: NumberFormatProfile = 'dot',
     decimals = 2,
 ): number | null {
     const trimmed = input.trim();
@@ -76,7 +124,24 @@ export function parseAmountInput(
 
     const sign = /^[+-]/.test(trimmed) ? trimmed[0] : '';
     const body = sign ? trimmed.slice(1) : trimmed;
-    const { decimal, thousands, decimalRe, thousandsRe } = SEPARATORS[separator];
+    const { decimal, thousands, decimalRe, thousandsRe } = SEPARATORS[profile];
+
+    // A space is ALWAYS grouping. No writing convention puts a fraction after a
+    // space, so U+0020, U+00A0 (what the space profile emits) and U+202F (what
+    // French CLDR emits, so pasted text carries it) are accepted as grouping in
+    // EVERY profile, and resolved here - before the tie-break below can run.
+    // Routing spaces through this branch is what keeps the tie-break untouched:
+    // a space can never reach it, so it can never be read as a decimal point.
+    // A space that does not form valid groups is not a number at all, so this
+    // branch rejects rather than falling through to the character-based rules.
+    if (CONTAINS_GROUPING_SPACE.test(body)) {
+        const spaceGrouped = new RegExp(
+            `^\\d{1,3}(?:${GROUPING_SPACE_CLASS}\\d{3})+(?:${decimalRe}\\d*)?$`,
+        );
+        if (!spaceGrouped.test(body)) return null;
+        const withoutGrouping = body.replace(GROUPING_SPACES_GLOBAL, '').split(decimal).join('.');
+        return finishParse(sign, withoutGrouping, decimals);
+    }
 
     // Tie-break: a body with a LONE grouping separator, no decimal separator, and exactly
     // `decimals` digits after it reads as a DECIMAL, not as grouping. This is a deliberate
@@ -101,12 +166,7 @@ export function parseAmountInput(
     }
     if (cleaned === null) return null;
 
-    // Reject more fraction digits than the currency's minor unit allows.
-    const dotIndex = cleaned.indexOf('.');
-    if (dotIndex !== -1 && cleaned.length - dotIndex - 1 > decimals) return null;
-
-    const parsed = Number(`${sign}${cleaned}`);
-    return Number.isFinite(parsed) ? parsed : null;
+    return finishParse(sign, cleaned, decimals);
 }
 
 /**
@@ -123,10 +183,10 @@ export function parseAmountInput(
  */
 export function parseAndNormalizeAmount(
     input: string,
-    separator: DecimalSeparator = 'dot',
+    profile: NumberFormatProfile = 'dot',
     decimals = 2,
 ): number | null {
-    const parsed = parseAmountInput(input, separator, decimals);
+    const parsed = parseAmountInput(input, profile, decimals);
     if (parsed === null || parsed <= 0) return null;
     return normalizeAmount(parsed, decimals);
 }

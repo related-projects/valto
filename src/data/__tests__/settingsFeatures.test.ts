@@ -366,7 +366,12 @@ describe('Formatting Utilities', () => {
     });
 
     it('formatAmount with comma separator', () => {
-        expect(formatAmount(200050, '$', 'comma')).toBe('$2.000,50');
+        // The comma profile suffixes the symbol behind a U+00A0 gap.
+        expect(formatAmount(200050, '$', 'comma')).toBe('2.000,50\u00A0$');
+    });
+
+    it('formatAmount with space separator', () => {
+        expect(formatAmount(200050, '$', 'space')).toBe('2\u00A0000,50\u00A0$');
     });
 
     it('formatDate DD/MM/YYYY', () => {

@@ -187,13 +187,23 @@ describe('generateReportHTML — currency-aware amounts', () => {
         expect(html).toContain(`${kwd.symbol}1.500`);
     });
 
-    it('applies the user decimal separator (comma)', () => {
+    it('applies the user number-format profile (comma: dot groups, symbol suffixed)', () => {
         const html = generateReportHTML(
             2026, 2,
             [makeTx({ amount: 200050, type: TransactionType.INCOME })],
             wallets, categories, usd, 'comma',
         );
-        expect(html).toContain(`${usd.symbol}2.000,50`);
+        // The comma profile suffixes the symbol behind a U+00A0 gap.
+        expect(html).toContain(`2.000,50\u00A0${usd.symbol}`);
+    });
+
+    it('applies the user number-format profile (space: U+00A0 groups, symbol suffixed)', () => {
+        const html = generateReportHTML(
+            2026, 2,
+            [makeTx({ amount: 200050, type: TransactionType.INCOME })],
+            wallets, categories, usd, 'space',
+        );
+        expect(html).toContain(`2\u00A0000,50\u00A0${usd.symbol}`);
     });
 
     // DoD-5: totals use the same exponent as the line items (no mixed scaling).

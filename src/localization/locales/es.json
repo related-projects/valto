@@ -402,7 +402,8 @@
     "monday": "Lunes",
     "sunday": "Domingo",
     "dot": "Punto (1,000.00)",
-    "comma": "Coma (1.000,00)"
+    "comma": "Coma (1.000,00)",
+    "space": "Espacio (1\u00a0000,00)"
   },
   "notifications": {
     "channelName": "Recordatorio diario",
