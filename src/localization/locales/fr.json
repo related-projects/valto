@@ -401,8 +401,9 @@
     "decimalSeparator": "Séparateur décimal",
     "monday": "Lundi",
     "sunday": "Dimanche",
-    "dot": "Point (1 000.00)",
-    "comma": "Virgule (1.000,00)"
+    "dot": "Point (1,000.00)",
+    "comma": "Virgule (1.000,00)",
+    "space": "Espace (1\u00a0000,00)"
   },
   "notifications": {
     "channelName": "Rappel quotidien",

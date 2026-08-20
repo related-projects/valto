@@ -34,28 +34,38 @@ export const DEFAULT_LANGUAGE_CODE = 'en';
 const SUPPORTED_CODES = new Set(SUPPORTED_LANGUAGES.map(l => l.code));
 
 /**
+ * Get the device's full locale tag ("en_US", "fr-CI", "zh-Hans_CN"), or null if
+ * the platform will not give one up.
+ *
+ * The region subtag is preserved here deliberately. getDeviceLanguage below drops
+ * it because it only wants an ISO 639-1 code, but the number-format profile is
+ * region-sensitive, so it needs the whole tag.
+ */
+export function getDeviceLocale(): string | null {
+    try {
+        if (Platform.OS === 'ios') {
+            return NativeModules.SettingsManager?.settings?.AppleLocale
+                ?? NativeModules.SettingsManager?.settings?.AppleLanguages?.[0]
+                ?? null;
+        }
+        return NativeModules.I18nManager?.localeIdentifier ?? null;
+    } catch {
+        // Silently fall back
+        return null;
+    }
+}
+
+/**
  * Get the device's language, falling back to English if unsupported.
  */
 export function getDeviceLanguage(): string {
-    try {
-        let locale: string | undefined;
-
-        if (Platform.OS === 'ios') {
-            locale = NativeModules.SettingsManager?.settings?.AppleLocale
-                ?? NativeModules.SettingsManager?.settings?.AppleLanguages?.[0];
-        } else {
-            locale = NativeModules.I18nManager?.localeIdentifier;
+    const locale = getDeviceLocale();
+    if (locale) {
+        // Extract language code from "en_US", "zh-Hans_CN", etc.
+        const code = locale.split(/[_-]/)[0].toLowerCase();
+        if (SUPPORTED_CODES.has(code)) {
+            return code;
         }
-
-        if (locale) {
-            // Extract language code from "en_US", "zh-Hans_CN", etc.
-            const code = locale.split(/[_-]/)[0].toLowerCase();
-            if (SUPPORTED_CODES.has(code)) {
-                return code;
-            }
-        }
-    } catch {
-        // Silently fall back
     }
     return DEFAULT_LANGUAGE_CODE;
 }

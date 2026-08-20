@@ -402,7 +402,8 @@
     "monday": "Monday",
     "sunday": "Sunday",
     "dot": "Dot (1,000.00)",
-    "comma": "Comma (1.000,00)"
+    "comma": "Comma (1.000,00)",
+    "space": "Space (1\u00a0000,00)"
   },
   "notifications": {
     "channelName": "Daily reminder",

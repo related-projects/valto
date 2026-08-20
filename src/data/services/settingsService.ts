@@ -6,7 +6,8 @@
  */
 
 import { DEFAULT_CURRENCY_CODE } from '../../domain/constants/currencies';
-import { DEFAULT_LANGUAGE_CODE, getDeviceLanguage, isSupportedLanguage } from '../../domain/constants/languages';
+import { DEFAULT_LANGUAGE_CODE, getDeviceLanguage, getDeviceLocale, isSupportedLanguage } from '../../domain/constants/languages';
+import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES, numberFormatForLocale } from '../../domain/constants/numberFormats';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -34,8 +35,29 @@ export function getDefaultSettings(): AppSettings {
         language: getDeviceLanguage(),
         dateFormat: 'MM/DD/YYYY',
         firstDayOfWeek: 'monday',
-        decimalSeparator: 'dot',
+        decimalSeparator: DEFAULT_NUMBER_FORMAT,
         onboardingCompleted: false,
+    };
+}
+
+/**
+ * Settings for an install that has never stored any.
+ *
+ * This is the ONLY place the device locale reaches the number-format profile, and
+ * it runs on exactly one condition: the settings storage key is absent, which by
+ * definition is first launch. Every later load takes the merge path in
+ * loadSettings, where a stored `decimalSeparator` overrides the default, so a
+ * user's explicit choice can never be overwritten by their device locale - not on
+ * a language change, not on a device migration, not on an app update.
+ *
+ * Deliberately NOT used by the catch path in loadSettings: a transient storage
+ * read failure is not a first launch, and re-deriving there could flip a chosen
+ * format on a bad read.
+ */
+export function getInitialSettings(): AppSettings {
+    return {
+        ...getDefaultSettings(),
+        decimalSeparator: numberFormatForLocale(getDeviceLocale()),
     };
 }
 
@@ -43,7 +65,7 @@ export function getDefaultSettings(): AppSettings {
 
 const VALID_DATE_FORMATS: DateFormatPreference[] = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 const VALID_FIRST_DAYS: FirstDayOfWeek[] = ['monday', 'sunday'];
-const VALID_DECIMAL_SEPS: DecimalSeparator[] = ['dot', 'comma'];
+const VALID_DECIMAL_SEPS: DecimalSeparator[] = NUMBER_FORMAT_PROFILES;
 
 // ─── Load ─────────────────────────────────────────────────────────────
 
@@ -56,7 +78,9 @@ export async function loadSettings(): Promise<AppSettings> {
     try {
         const stored = await asyncStorageAdapter.get<Partial<AppSettings>>(StorageKeys.SETTINGS);
         if (!stored) {
-            return getDefaultSettings();
+            // Nothing has ever been persisted: first launch, and the only moment
+            // the device locale is allowed to choose the number-format profile.
+            return getInitialSettings();
         }
         const defaults = getDefaultSettings();
         const merged = { ...defaults, ...stored };
@@ -87,7 +111,7 @@ export async function loadSettings(): Promise<AppSettings> {
             merged.firstDayOfWeek = 'monday';
         }
         if (!VALID_DECIMAL_SEPS.includes(merged.decimalSeparator)) {
-            merged.decimalSeparator = 'dot';
+            merged.decimalSeparator = DEFAULT_NUMBER_FORMAT;
         }
 
         // Validate onboardingCompleted
