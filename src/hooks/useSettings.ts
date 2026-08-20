@@ -27,6 +27,7 @@ import {
 } from '../data/services/settingsService';
 import { type CurrencyDefinition, getCurrencyByCode } from '../domain/constants/currencies';
 import { getLanguageByCode, type LanguageDefinition } from '../domain/constants/languages';
+import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES } from '../domain/constants/numberFormats';
 import { useTheme } from '../theme/theme';
 
 // ─── Interface ────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ export function useSettings(): UseSettingsResult {
         language: 'en',
         dateFormat: 'MM/DD/YYYY',
         firstDayOfWeek: 'monday',
-        decimalSeparator: 'dot',
+        decimalSeparator: DEFAULT_NUMBER_FORMAT,
         onboardingCompleted: false,
     });
     const { setThemePreference } = useTheme();
@@ -380,7 +381,7 @@ export function useSettings(): UseSettingsResult {
 
     // ── Decimal Separator ─────────────────────────────────────────────
     const changeDecimalSeparator = useCallback(() => {
-        const options: DecimalSeparator[] = ['dot', 'comma'];
+        const options: DecimalSeparator[] = NUMBER_FORMAT_PROFILES;
 
         Alert.alert(
             t('settings.decimalSeparator'),

@@ -5,13 +5,14 @@
  * All checks are pure and side-effect-free.
  */
 
+import { NUMBER_FORMAT_PROFILES } from '../constants/numberFormats';
 import type { AppSettings } from '../entities/Settings';
 import { ValidationError } from './ValidationError';
 
 const VALID_THEMES = ['light', 'dark', 'system'] as const;
 const VALID_DATE_FORMATS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'] as const;
 const VALID_FIRST_DAYS = ['monday', 'sunday'] as const;
-const VALID_DECIMAL_SEPS = ['dot', 'comma'] as const;
+const VALID_DECIMAL_SEPS = NUMBER_FORMAT_PROFILES;
 
 /**
  * Validate an AppSettings object before persistence.

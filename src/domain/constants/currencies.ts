@@ -166,7 +166,7 @@ export const SUPPORTED_CURRENCIES: CurrencyDefinition[] = [
     { code: 'WST', symbol: 'WS$', name: 'Samoan Tala', decimals: 2 },
     { code: 'XAF', symbol: 'FCFA', name: 'Central African CFA Franc', decimals: 0 },
     { code: 'XCD', symbol: 'EC$', name: 'East Caribbean Dollar', decimals: 2 },
-    { code: 'XOF', symbol: 'CFA', name: 'West African CFA Franc', decimals: 0 },
+    { code: 'XOF', symbol: 'FCFA', name: 'West African CFA Franc', decimals: 0 },
     { code: 'XPF', symbol: '₣', name: 'CFP Franc', decimals: 0 },
     { code: 'YER', symbol: '﷼', name: 'Yemeni Rial', decimals: 2 },
     { code: 'ZAR', symbol: 'R', name: 'South African Rand', decimals: 2 },

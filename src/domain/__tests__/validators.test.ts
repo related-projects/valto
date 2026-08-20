@@ -209,7 +209,16 @@ describe('validateSettings', () => {
     });
 
     it('throws for invalid decimalSeparator', () => {
-        expect(() => validateSettings({ ...validSettings, decimalSeparator: 'space' as any }))
+        expect(() => validateSettings({ ...validSettings, decimalSeparator: 'semicolon' as any }))
             .toThrow(ValidationError);
+    });
+
+    it('accepts every number-format profile', () => {
+        // 'space' became a real profile (grouping U+00A0, comma decimal, suffixed
+        // symbol), so it must validate rather than throw.
+        for (const profile of ['dot', 'comma', 'space'] as const) {
+            expect(() => validateSettings({ ...validSettings, decimalSeparator: profile }))
+                .not.toThrow();
+        }
     });
 });

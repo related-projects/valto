@@ -2,8 +2,16 @@
  * normalizeAmount Utility Tests
  */
 
+import type { NumberFormatProfile } from '../../domain/entities/Settings';
 import { formatAmount } from '../formatAmount';
 import { centsToMajor, normalizeAmount, parseAmountInput, parseAndNormalizeAmount } from '../normalizeAmount';
+
+/** Separator characters named by code point, so no assertion below can be
+ *  satisfied by the wrong kind of space. */
+const NBSP = '\u00A0';
+const NARROW_NBSP = '\u202F';
+
+const PROFILES: NumberFormatProfile[] = ['dot', 'comma', 'space'];
 
 describe('normalizeAmount', () => {
     it('converts whole dollar amount to cents', () => {
@@ -154,7 +162,7 @@ describe('parseAmountInput', () => {
 });
 
 describe('parse/format round-trip', () => {
-    // formatAmount prefixes a currency symbol, but the parser's contract is the
+    // formatAmount attaches a currency symbol, but the parser's contract is the
     // TextInput value, which never contains one - so format with an empty currency.
     const CENTS = [1250, 200050, 50, 99, 100000, 1234567];
 
@@ -168,6 +176,105 @@ describe('parse/format round-trip', () => {
         for (const cents of CENTS) {
             expect(parseAndNormalizeAmount(formatAmount(cents, '', 'comma'), 'comma')).toBe(cents);
         }
+    });
+
+    it('parses back what formatAmount produces under the space preference', () => {
+        for (const cents of CENTS) {
+            expect(parseAndNormalizeAmount(formatAmount(cents, '', 'space'), 'space')).toBe(cents);
+        }
+    });
+
+    // The full matrix: every profile against a 0-decimal currency (XOF), a
+    // 2-decimal one (USD/EUR) and a 3-decimal one (KWD). The magnitudes are chosen
+    // so that each exponent gets both grouped and ungrouped renderings, which is
+    // where a grouping-character change does its damage.
+    it('round-trips every profile at every exponent, grouped and ungrouped', () => {
+        const BY_EXPONENT: { decimals: number; minor: number[] }[] = [
+            // XOF: 2000 -> "2 000", 999 -> ungrouped, 1234567 -> two groups.
+            { decimals: 0, minor: [2000, 60000, 999, 100000, 1234567] },
+            // USD/EUR: 200050 -> grouped with a fraction, 99 -> fraction only.
+            { decimals: 2, minor: [200050, 1234567, 99, 1250, 100000] },
+            // KWD: 1234567 -> grouped with a 3-digit fraction, 1500 -> ungrouped.
+            { decimals: 3, minor: [1234567, 1500, 999, 200050, 100000] },
+        ];
+
+        for (const { decimals, minor } of BY_EXPONENT) {
+            for (const profile of PROFILES) {
+                for (const value of minor) {
+                    const rendered = formatAmount(value, '', profile, decimals);
+                    expect(parseAndNormalizeAmount(rendered, profile, decimals)).toBe(value);
+                }
+            }
+        }
+    });
+
+    it('round-trips a rendering that still carries its currency symbol gap', () => {
+        // Not the TextInput contract, but the symbol gap is U+00A0 and trim() is
+        // the only whitespace handling the parser has - so prove the digits still
+        // come back once the symbol is stripped.
+        const rendered = formatAmount(2000, 'FCFA', 'space', 0);
+        expect(rendered).toBe(`2${NBSP}000${NBSP}FCFA`);
+        expect(parseAndNormalizeAmount(rendered.replace('FCFA', ''), 'space', 0)).toBe(2000);
+    });
+});
+
+// ─── Space as a grouping character (D4) ───────────────────────────────
+describe('parseAmountInput - space grouping', () => {
+    // U+0020 plain, U+00A0 no-break (what the space profile emits), U+202F narrow
+    // no-break (what French CLDR emits, so pasted text carries it).
+    const SPACES: [string, string][] = [
+        ['U+0020', ' '],
+        ['U+00A0', NBSP],
+        ['U+202F', NARROW_NBSP],
+    ];
+
+    for (const [name, space] of SPACES) {
+        it(`accepts ${name} as grouping in every profile`, () => {
+            for (const profile of PROFILES) {
+                expect(parseAmountInput(`2${space}000`, profile, 0)).toBe(2000);
+                expect(parseAmountInput(`1${space}234${space}567`, profile, 0)).toBe(1234567);
+            }
+        });
+
+        it(`accepts ${name} grouping alongside the profile's own decimal character`, () => {
+            expect(parseAmountInput(`2${space}000.50`, 'dot', 2)).toBe(2000.5);
+            expect(parseAmountInput(`2${space}000,50`, 'comma', 2)).toBe(2000.5);
+            expect(parseAmountInput(`2${space}000,50`, 'space', 2)).toBe(2000.5);
+        });
+    }
+
+    it('accepts mixed space kinds in one body', () => {
+        // A pasted French string next to a typed space is still one number.
+        expect(parseAmountInput(`1${NARROW_NBSP}234${NBSP}567`, 'space', 0)).toBe(1234567);
+    });
+
+    it('rejects a space that does not form valid groups', () => {
+        for (const profile of PROFILES) {
+            expect(parseAmountInput('12 34', profile, 2)).toBeNull();
+            expect(parseAmountInput('1 23 456', profile, 2)).toBeNull();
+            expect(parseAmountInput('1234 5', profile, 2)).toBeNull();
+        }
+    });
+
+    it('never reads a space as a decimal separator, at any exponent', () => {
+        // The point of routing spaces through their own branch: at 3 decimals the
+        // tie-break turns a lone "1,234" into 1.234, but "1 234" must stay 1234.
+        for (const [, space] of SPACES) {
+            for (const profile of PROFILES) {
+                expect(parseAmountInput(`1${space}234`, profile, 3)).toBe(1234);
+                expect(parseAmountInput(`1${space}500`, profile, 3)).toBe(1500);
+            }
+        }
+    });
+
+    it('still enforces the currency fraction width on space-grouped input', () => {
+        expect(parseAmountInput(`2${NBSP}000.50`, 'dot', 0)).toBeNull();
+        expect(parseAmountInput(`2${NBSP}000,505`, 'comma', 2)).toBeNull();
+    });
+
+    it('accepts a sign in front of space-grouped input', () => {
+        expect(parseAmountInput(`-2${NBSP}000`, 'space', 0)).toBe(-2000);
+        expect(parseAmountInput(`+2${NBSP}000`, 'space', 0)).toBe(2000);
     });
 });
 
@@ -353,11 +460,22 @@ describe('separator tie-break by decimals class', () => {
 
         it('round-trips parse(format(x)) === x, proving B1 was not over-narrowed', () => {
             for (const minor of [1500, 1234, 500, 1234567, 999]) {
-                for (const separator of ['dot', 'comma'] as const) {
-                    const rendered = formatAmount(minor, '', separator, 3);
-                    expect(parseAndNormalizeAmount(rendered, separator, 3)).toBe(minor);
+                for (const profile of PROFILES) {
+                    const rendered = formatAmount(minor, '', profile, 3);
+                    expect(parseAndNormalizeAmount(rendered, profile, 3)).toBe(minor);
                 }
             }
+        });
+
+        it('is untouched by the space profile: its own lone separator still reads as the fraction', () => {
+            // The space profile's decimal character is a comma, so the tie-break
+            // applies to it exactly as it does to the comma profile. Adding spaces
+            // to the parser must not have widened or narrowed this.
+            expect(parseAmountInput('1,234', 'space', 3)).toBe(1.234);
+            expect(parseAmountInput('1,000', 'space', 3)).toBe(1);
+            expect(parseAmountInput('0,500', 'space', 3)).toBe(0.5);
+            expect(parseAmountInput('123,456', 'space', 3)).toBe(123.456);
+            expect(parseAmountInput('1234,567', 'space', 3)).toBe(1234.567);
         });
     });
 });

@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { dataEvents } from '../core/events/dataEvents';
 import { type AppSettings, loadSettings } from '../data/services/settingsService';
 import { getCurrencyByCode } from '../domain/constants/currencies';
+import { DEFAULT_NUMBER_FORMAT } from '../domain/constants/numberFormats';
 import { formatAmountCompact as formatAmountCompactUtil, formatAmount as formatAmountUtil, formatAmountWhole as formatAmountWholeUtil } from '../utils/formatAmount';
 import { formatDate as formatDateUtil } from '../utils/formatDate';
 import { centsToMajor as centsToMajorUtil, normalizeAmount as normalizeAmountUtil, parseAmountInput as parseAmountInputUtil, parseAndNormalizeAmount as parseAndNormalizeAmountUtil } from '../utils/normalizeAmount';
@@ -29,22 +30,24 @@ export function useFormatting() {
     const currencySymbol = currency?.symbol ?? '$';
     const decimals = currency?.decimals ?? 2;
 
-    const separator = settings?.decimalSeparator ?? 'dot';
+    // The persisted key is still `decimalSeparator`, but its value now selects a
+    // whole number-format profile: grouping, decimal, symbol side and symbol gap.
+    const numberFormat = settings?.decimalSeparator ?? DEFAULT_NUMBER_FORMAT;
     const dateFormat = settings?.dateFormat ?? 'MM/DD/YYYY';
 
     const formatAmount = useCallback(
-        (amountMinor: number) => formatAmountUtil(amountMinor, currencySymbol, separator, decimals),
-        [currencySymbol, separator, decimals],
+        (amountMinor: number) => formatAmountUtil(amountMinor, currencySymbol, numberFormat, decimals),
+        [currencySymbol, numberFormat, decimals],
     );
 
     const formatAmountCompact = useCallback(
-        (amountMinor: number) => formatAmountCompactUtil(amountMinor, currencySymbol, separator, decimals),
-        [currencySymbol, separator, decimals],
+        (amountMinor: number) => formatAmountCompactUtil(amountMinor, currencySymbol, numberFormat, decimals),
+        [currencySymbol, numberFormat, decimals],
     );
 
     const formatAmountWhole = useCallback(
-        (amountMinor: number) => formatAmountWholeUtil(amountMinor, currencySymbol, separator, decimals),
-        [currencySymbol, separator, decimals],
+        (amountMinor: number) => formatAmountWholeUtil(amountMinor, currencySymbol, numberFormat, decimals),
+        [currencySymbol, numberFormat, decimals],
     );
 
     const formatDate = useCallback(
@@ -54,14 +57,14 @@ export function useFormatting() {
 
     /** Parse a typed amount to major units, or null if invalid. Caller applies its own zero/sign policy. */
     const parseAmount = useCallback(
-        (input: string) => parseAmountInputUtil(input, separator, decimals),
-        [separator, decimals],
+        (input: string) => parseAmountInputUtil(input, numberFormat, decimals),
+        [numberFormat, decimals],
     );
 
     /** Parse a typed amount straight to integer minor units, or null if invalid or not positive. */
     const parseAmountToCents = useCallback(
-        (input: string) => parseAndNormalizeAmountUtil(input, separator, decimals),
-        [separator, decimals],
+        (input: string) => parseAndNormalizeAmountUtil(input, numberFormat, decimals),
+        [numberFormat, decimals],
     );
 
     /** Convert a major-unit amount to integer minor units for the active currency. */
