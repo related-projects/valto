@@ -24,6 +24,14 @@ interface TransactionListProps {
     onEndReached?: () => void;
     /** Whether more data is currently being loaded */
     loadingMore?: boolean;
+    /**
+     * Opens the add-transaction flow from the empty state.
+     *
+     * Optional on purpose: several hosts render this list without owning an
+     * add-transaction modal. When it is absent the empty state falls back to the
+     * text-only rendering rather than showing a button that does nothing.
+     */
+    onAddTransaction?: () => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -98,9 +106,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     showDateHeaders = true,
     onEndReached,
     loadingMore = false,
+    onAddTransaction,
 }) => {
     const { t, i18n } = useTranslation();
-    const { colors, typography, spacing } = useTheme();
+    const { colors, typography, spacing, radius } = useTheme();
     const { categories } = useCategories();
     const { wallets } = useWallets();
     const { formatAmount } = useFormatting();
@@ -125,6 +134,25 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
                     {t('components.transactionList.emptyHint')}
                 </Text>
+                {onAddTransaction && (
+                    <TouchableOpacity
+                        testID="transaction_list_add_first"
+                        accessibilityRole="button"
+                        accessibilityLabel={t('components.transactionList.emptyAction')}
+                        style={{
+                            marginTop: spacing.md,
+                            paddingHorizontal: spacing.lg,
+                            paddingVertical: spacing.sm,
+                            backgroundColor: colors.accent,
+                            borderRadius: radius.md,
+                        }}
+                        onPress={onAddTransaction}
+                    >
+                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
+                            {t('components.transactionList.emptyAction')}
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </View>
         );
     }

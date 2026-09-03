@@ -44,7 +44,8 @@
     },
     "transactionList": {
       "empty": "Aucune transaction",
-      "emptyHint": "Appuyez sur + pour ajouter votre première transaction",
+      "emptyHint": "Les dépenses et revenus enregistrés apparaîtront ici",
+      "emptyAction": "Ajouter une dépense",
       "today": "Aujourd'hui",
       "yesterday": "Hier",
       "transfer": "Transfert",
@@ -105,6 +106,7 @@
   },
   "transactions": {
     "title": "Transactions",
+    "add": "Ajouter",
     "searchPlaceholder": "Rechercher des transactions...",
     "filterAll": "Tout",
     "filterIncome": "Revenus",
@@ -238,6 +240,7 @@
       "save": "Enregistrer",
       "walletName": "Nom du portefeuille *",
       "walletNamePlaceholder": "ex. Compte principal",
+      "walletNameHelp": "Un portefeuille est l'endroit où vous gardez votre argent (espèces, compte bancaire, mobile money) ; une ligne de dépense est une catégorie, pas un portefeuille.",
       "initialBalance": "Solde initial",
       "walletType": "Type de portefeuille",
       "walletColor": "Couleur du portefeuille",

@@ -65,11 +65,16 @@ describe('Seed Service', () => {
     // Category labels are user data written once at install time in French, never
     // routed through i18n and never re-translated (see seedData.ts). These
     // assertions pin the exact set a fresh install gets.
-    it('seeds exactly the three French categories with their icons and colors', async () => {
+    //
+    // The set covers the recurring household commitments an envelope budget is
+    // split into. A user who found no line for "Electricite" reached for the only
+    // object that accepted an amount - a wallet - and ended up with a balance
+    // sheet instead of a spending list.
+    it('seeds the full French expense set with its icons and colors', async () => {
         await initializeSeedData();
 
         const categories = await new CategoryRepository((global as any).__testSeedDb).getAll();
-        expect(categories).toHaveLength(3);
+        expect(categories).toHaveLength(12);
 
         const byName = (name: string) => categories.find(c => c.name === name);
 
@@ -85,6 +90,12 @@ describe('Seed Service', () => {
             icon: 'car',
             color: '#64B5F6',
         });
+        expect(byName('Eau et électricité')).toMatchObject({
+            name: 'Eau et électricité',
+            type: CategoryType.EXPENSE,
+            icon: 'flash',
+            color: '#4DD0E1',
+        });
         expect(byName('Salaire')).toMatchObject({
             name: 'Salaire',
             type: CategoryType.INCOME,
@@ -92,10 +103,32 @@ describe('Seed Service', () => {
             color: '#66BB6A',
         });
 
-        expect(categories.filter(c => c.type === CategoryType.EXPENSE).map(c => c.name).sort())
-            .toEqual(['Nourriture', 'Transport']);
+        expect(categories.filter(c => c.type === CategoryType.EXPENSE).map(c => c.name))
+            .toEqual([
+                'Nourriture',
+                'Transport',
+                'Logement',
+                'Eau et électricité',
+                'Téléphone et Internet',
+                'Santé',
+                'Aide famille',
+                'Loisirs',
+                'Imprévus',
+            ]);
         expect(categories.filter(c => c.type === CategoryType.INCOME).map(c => c.name))
-            .toEqual(['Salaire']);
+            .toEqual(['Salaire', 'Freelance', 'Autre']);
+    });
+
+    // Every default carries an explicit icon and colour, so no default ever falls
+    // through to the name-based legacy ladder in utils/categoryVisuals.
+    it('gives every seeded category an icon and a distinct colour', async () => {
+        await initializeSeedData();
+
+        const categories = await new CategoryRepository((global as any).__testSeedDb).getAll();
+
+        expect(categories.every(c => Boolean(c.icon))).toBe(true);
+        expect(categories.every(c => Boolean(c.color))).toBe(true);
+        expect(new Set(categories.map(c => c.color)).size).toBe(categories.length);
     });
 
     // Onboarding is the single source of the first wallet: it cannot be skipped and the
@@ -117,7 +150,7 @@ describe('Seed Service', () => {
         expect(secondResult.categoriesCreated).toBe(0);
 
         const categories = await new CategoryRepository((global as any).__testSeedDb).getAll();
-        expect(categories).toHaveLength(3);
+        expect(categories).toHaveLength(12);
 
         const wallets = await new WalletRepository((global as any).__testSeedDb).getAll();
         expect(wallets).toHaveLength(0);
