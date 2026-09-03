@@ -178,7 +178,28 @@ async function ensureAndroidReminderChannel(): Promise<void> {
  */
 export async function scheduleDailyReminder(): Promise<void> {
     const settings = await loadSettings();
-    if (!settings.notificationsEnabled) return;
+    if (!settings.notificationsEnabled) {
+        // The other half of the invariant: "the preference is false" has to mean
+        // "nothing is pending on the OS", not merely "nothing new was scheduled".
+        // Returning bare left the two able to disagree - anything that dropped
+        // the preference without cancelling (a data reset clearing the settings
+        // blob, a restore of a snapshot with it off) left the reminder firing
+        // under a switch that read OFF, and no later path took it down:
+        // setNotificationsEnabled(false) is short-circuited by its idempotence
+        // guard once the stored value is already false.
+        //
+        // Cancelling by the stable identifier is safe to run unconditionally -
+        // it is a no-op when nothing is registered - so every cold start now
+        // repairs an install already orphaned by the shipped build.
+        //
+        // Placed BEFORE the permission read on purpose: cancelling needs no
+        // grant, and startup must not read - let alone request - a permission it
+        // has no use for on this branch.
+        //
+        // No recursion: this branch never calls setNotificationsEnabled.
+        await Notifications.cancelScheduledNotificationAsync(DAILY_REMINDER_ID);
+        return;
+    }
 
     // READ ONLY on purpose. Scheduling runs at startup, after a language change and
     // after a restore; requesting here would raise a system dialog in all three,

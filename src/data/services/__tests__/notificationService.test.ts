@@ -191,6 +191,28 @@ describe('notificationService', () => {
             expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
 
+        it('cancels the stable identifier when the preference is false', async () => {
+            // The other half of the invariant. "Preference off" has to mean
+            // "nothing pending on the OS", not merely "nothing newly scheduled":
+            // a full data reset used to drop the preference while leaving the
+            // reminder registered, and no path afterwards took it back down.
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: false });
+
+            await scheduleDailyReminder();
+
+            expect(mockCancelScheduledNotification).toHaveBeenCalledWith(REMINDER_ID);
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+        });
+
+        it('reads the permission but never requests it when the preference is false', async () => {
+            // The cancel must not drag a permission dialog onto a cold start.
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: false });
+
+            await scheduleDailyReminder();
+
+            expect(mockRequestPermissions).not.toHaveBeenCalled();
+        });
+
         it('cancels the existing reminder by identifier before scheduling', async () => {
             mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
 
