@@ -385,6 +385,8 @@
     "themeDark": "Dark",
     "categories": "Categories",
     "notifications": "Notifications",
+    "notificationsBlockedNotice": "Notifications are blocked in your device settings, so the daily reminder cannot be delivered.",
+    "notificationsBlockedAction": "Open device settings",
     "security": "Security",
     "securityPinBiometrics": "PIN + Biometrics",
     "securityPin": "PIN enabled",
