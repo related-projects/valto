@@ -81,14 +81,16 @@
             "totalIncome": "Всего доходов",
             "totalExpense": "Всего расходов",
             "netBalance": "Чистый баланс",
-            "savingsRate": "Норма сбережений"
+            "savingsRate": "Норма сбережений",
+            "noActivity": "Нет операций в этом месяце"
         },
         "ytdSummary": {
-            "title": "С начала года ({{year}})",
+            "title": "Итого за год ({{year}})",
             "income": "Доход",
             "expenses": "Расходы",
             "net": "Итого",
-            "savingsRate": "Норма сбережений"
+            "savingsRate": "Норма сбережений",
+            "noActivity": "Нет операций за этот период"
         },
         "overBudget": "Превышен бюджет!",
         "ofBudget": "{{spent}} из {{limit}}"

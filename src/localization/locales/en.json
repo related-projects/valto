@@ -81,14 +81,16 @@
       "totalIncome": "Total Income",
       "totalExpense": "Total Expense",
       "netBalance": "Net Balance",
-      "savingsRate": "Savings Rate"
+      "savingsRate": "Savings Rate",
+      "noActivity": "No transactions this month"
     },
     "ytdSummary": {
-      "title": "Year-to-Date ({{year}})",
+      "title": "Annual Total ({{year}})",
       "income": "Income",
       "expenses": "Expenses",
       "net": "Net",
-      "savingsRate": "Savings Rate"
+      "savingsRate": "Savings Rate",
+      "noActivity": "No transactions in this period"
     },
     "overBudget": "Over budget!",
     "ofBudget": "{{spent}} of {{limit}}"

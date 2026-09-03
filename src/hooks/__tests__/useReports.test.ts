@@ -180,7 +180,95 @@ describe('useReports', () => {
         expect(result.current.ytdSummary).toBeDefined();
         expect(result.current.ytdSummary.totalIncome).toBe(0);
         expect(result.current.ytdSummary.totalExpenses).toBe(0);
-        expect(result.current.ytdYear).toBe(new Date().getUTCFullYear());
+        // The year of the selected month, which on mount is the current one. Asserting
+        // the wall clock here instead would pass even if the card ignored the filter.
+        expect(result.current.ytdYear).toBe(Number(result.current.selectedMonth.split('-')[0]));
+    });
+
+    it('ytdYear follows the selection backwards across a year boundary', async () => {
+        const { result } = renderHook(() => useReports());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        // Far enough back to land in a previous year from any starting month.
+        for (let i = 0; i < 13; i++) {
+            act(() => {
+                result.current.goToPreviousMonth();
+            });
+        }
+
+        const selectedYear = Number(result.current.selectedMonth.split('-')[0]);
+
+        expect(selectedYear).toBeLessThan(new Date().getUTCFullYear());
+        expect(result.current.ytdYear).toBe(selectedYear);
+    });
+
+    it('ytdSummary aggregates the selected year, not the current one', async () => {
+        const lastYear = new Date().getUTCFullYear() - 1;
+
+        await mockTransactionRepo.create({
+            type: TransactionType.INCOME,
+            amount: 400000,
+            categoryId: 'cat-salary',
+            walletId: 'w-1',
+            date: new Date(Date.UTC(lastYear, 5, 12)),
+        });
+
+        const { result } = renderHook(() => useReports());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        // Current year holds nothing.
+        expect(result.current.ytdSummary.totalIncome).toBe(0);
+
+        for (let i = 0; i < 13; i++) {
+            act(() => {
+                result.current.goToPreviousMonth();
+            });
+        }
+
+        await waitFor(() => {
+            expect(result.current.ytdYear).toBe(lastYear);
+        });
+
+        expect(result.current.ytdSummary.totalIncome).toBe(400000);
+        expect(result.current.ytdSummary.transactionCount).toBe(1);
+    });
+
+    it('reports month activity for a month holding only a transfer', async () => {
+        const [year, month] = currentMonth.split('-').map(Number);
+
+        await mockTransactionRepo.create({
+            type: TransactionType.TRANSFER,
+            amount: 75000,
+            categoryId: 'cat-transfer',
+            walletId: 'w-1',
+            date: new Date(Date.UTC(year, month - 1, 8)),
+        });
+
+        const { result } = renderHook(() => useReports());
+
+        await waitFor(() => {
+            expect(result.current.hasMonthActivity).toBe(true);
+        });
+
+        // Nothing the summary card measures happened, but something did happen.
+        expect(result.current.totalIncome).toBe(0);
+        expect(result.current.totalExpense).toBe(0);
+    });
+
+    it('reports no month activity for an empty month', async () => {
+        const { result } = renderHook(() => useReports());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        expect(result.current.hasMonthActivity).toBe(false);
     });
 
     it('month navigation wraps around year boundary', async () => {

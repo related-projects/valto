@@ -81,14 +81,16 @@
             "totalIncome": "Receita total",
             "totalExpense": "Despesa total",
             "netBalance": "Saldo líquido",
-            "savingsRate": "Taxa de poupança"
+            "savingsRate": "Taxa de poupança",
+            "noActivity": "Nenhuma transação neste mês"
         },
         "ytdSummary": {
             "title": "Acumulado do ano ({{year}})",
             "income": "Receita",
             "expenses": "Despesas",
             "net": "Líquido",
-            "savingsRate": "Taxa de poupança"
+            "savingsRate": "Taxa de poupança",
+            "noActivity": "Nenhuma transação neste período"
         },
         "overBudget": "Acima do orçamento!",
         "ofBudget": "{{spent}} de {{limit}}"
