@@ -385,6 +385,8 @@
     "themeDark": "Sombre",
     "categories": "Catégories",
     "notifications": "Notifications",
+    "notificationsBlockedNotice": "Les notifications sont bloquées par les paramètres de votre appareil, le rappel quotidien ne peut donc pas être envoyé.",
+    "notificationsBlockedAction": "Ouvrir les paramètres de l'appareil",
     "security": "Sécurité",
     "securityPinBiometrics": "PIN + Biométrie",
     "securityPin": "PIN activé",

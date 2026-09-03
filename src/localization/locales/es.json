@@ -385,6 +385,8 @@
     "themeDark": "Oscuro",
     "categories": "Categorías",
     "notifications": "Notificaciones",
+    "notificationsBlockedNotice": "Las notificaciones están bloqueadas en la configuración del dispositivo, así que el recordatorio diario no se puede entregar.",
+    "notificationsBlockedAction": "Abrir la configuración del dispositivo",
     "security": "Seguridad",
     "securityPinBiometrics": "PIN + Biometría",
     "securityPin": "PIN activado",

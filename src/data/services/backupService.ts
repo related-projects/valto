@@ -26,6 +26,7 @@ import {
     serializeWallet,
 } from '../../domain/entities';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
+import { scheduleDailyReminder } from './notificationService';
 import { AppSettings, loadSettings, saveSettings } from './settingsService';
 
 // ─── Snapshot Types ───────────────────────────────────────────────────
@@ -231,6 +232,23 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
             console.error('[Backup] Rollback also failed:', rollbackError);
         }
         throw new Error('Restore failed while writing data. Your previous data has been preserved.');
+    }
+
+    // Reconcile the daily reminder with the restored preference. A backup can carry
+    // notificationsEnabled: true from a device where the permission was granted;
+    // this device may not have it, and saveSettings above wrote the value verbatim
+    // without asking anyone. scheduleDailyReminder is the single choke point: it
+    // reads the permission (never requests), schedules when granted, and persists
+    // false when it is not - so a restore can never leave the user a session with
+    // the toggle reading "on" and nothing scheduled behind it.
+    //
+    // Deliberately outside the write try/catch above, with its own catch: a reminder
+    // that fails to schedule is not a restore failure and must not roll back
+    // successfully restored data.
+    try {
+        await scheduleDailyReminder();
+    } catch (reminderError) {
+        console.warn('[notifications] Reminder reconcile after restore failed:', reminderError);
     }
 
     // Trigger full reactive refresh across the app

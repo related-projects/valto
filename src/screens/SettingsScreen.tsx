@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SecuritySetupModal } from '../components/security/SecuritySetupModal';
 import { CurrencyPickerModal } from '../components/settings/CurrencyPickerModal';
@@ -15,6 +15,7 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { useSecurity } from '../core/security/SecurityContext';
 import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../theme/theme';
+import { getButtonA11y } from '../utils/accessibility';
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
@@ -37,6 +38,8 @@ export const SettingsScreen = () => {
         handleCurrencySelect,
         handleLanguageSelect,
         toggleNotifications,
+        notificationsBlockedNotice,
+        openNotificationSettings,
         resetCurrency,
         cancelCurrencyReset,
         changeDateFormat,
@@ -223,6 +226,42 @@ export const SettingsScreen = () => {
                             />
                         }
                     />
+                    {/* Shown only when the OS holds an explicit denial. Never for
+                        'undetermined' - never asked is a normal state, not a fault. */}
+                    {notificationsBlockedNotice && (
+                        <View
+                            testID="settings_notifications_blocked_notice"
+                            style={{
+                                backgroundColor: colors.warningBackground,
+                                borderRadius: radius.md,
+                                paddingHorizontal: spacing.md,
+                                paddingVertical: spacing.sm,
+                                marginBottom: spacing.sm,
+                            }}
+                        >
+                            <Text style={{
+                                color: colors.warningText,
+                                fontSize: typography.sizes.xs,
+                                lineHeight: 18,
+                            }}>
+                                {t('settings.notificationsBlockedNotice')}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={openNotificationSettings}
+                                style={{ marginTop: spacing.xs }}
+                                testID="settings_notifications_blocked_action"
+                                {...getButtonA11y(t('settings.notificationsBlockedAction'))}
+                            >
+                                <Text style={{
+                                    color: colors.warningText,
+                                    fontSize: typography.sizes.xs,
+                                    fontWeight: '600',
+                                }}>
+                                    {t('settings.notificationsBlockedAction')}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                     <ListItem
                         title={t('settings.security')}
                         subtitle={securitySubtitle}
