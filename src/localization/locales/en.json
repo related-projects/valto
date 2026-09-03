@@ -429,6 +429,7 @@
     "restoreNow": "Restore Now",
     "restoreFailed": "Restore Failed",
     "restoreFailedMessage": "Could not restore from backup. The file may be invalid.",
+    "restoreMissingCurrencyMessage": "This backup does not record which currency its amounts are in, so restoring it could misread every amount.",
     "restoreSuccess": "Success",
     "restoreSuccessMessage": "Your data has been restored successfully.",
     "resetAllData": "Delete Financial Data",

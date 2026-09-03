@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, AppState, type AppStateStatus, Linking } from 'react-native';
 import { dataEvents } from '../core/events/dataEvents';
-import { createAndShareBackup, pickAndRestoreBackup } from '../data/services/backupService';
+import { createAndShareBackup, pickAndRestoreBackup, SnapshotRejectedError } from '../data/services/backupService';
 import { getPermissionStatus, scheduleDailyReminder, setNotificationsEnabled } from '../data/services/notificationService';
 import { resetAppData, resetFinancialDataForCurrencyReset } from '../data/services/resetService';
 import {
@@ -167,11 +167,31 @@ export function useSettings(): UseSettingsResult {
                                                 const newSettings = await loadSettings();
                                                 setSettings(newSettings);
                                                 setThemePreference(newSettings.theme);
+                                                // The restored language is applied here for the same
+                                                // reason the theme is: the blob was written verbatim,
+                                                // and nothing else re-reads it until the next cold
+                                                // boot. Leaving it meant a restore that visibly
+                                                // changed the theme left the app talking in the
+                                                // previous language until the process restarted.
+                                                if (newSettings.language && newSettings.language !== i18n.language) {
+                                                    await i18n.changeLanguage(newSettings.language);
+                                                }
                                                 dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets', 'settings']);
                                                 Alert.alert(t('alerts.restoreSuccess'), t('alerts.restoreSuccessMessage'));
                                             }
                                         } catch (error) {
-                                            Alert.alert(t('alerts.restoreFailed'), t('alerts.restoreFailedMessage'));
+                                            // A refused backup gets its own copy: "the file may be
+                                            // invalid" does not tell a user whose backup predates
+                                            // the currency field what is actually wrong with it.
+                                            // Both currency reasons share this message - the reasons
+                                            // differ for diagnostics, the user's situation does not.
+                                            const currencyRefusal =
+                                                error instanceof SnapshotRejectedError &&
+                                                (error.reason === 'missingCurrency' || error.reason === 'unknownCurrency');
+                                            const message = currencyRefusal
+                                                ? t('alerts.restoreMissingCurrencyMessage')
+                                                : t('alerts.restoreFailedMessage');
+                                            Alert.alert(t('alerts.restoreFailed'), message);
                                             console.error('Restore error:', error);
                                         } finally {
                                             setLoading(false);

@@ -29,7 +29,9 @@ import {
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
+import { getCurrencyByCode } from '../../domain/constants/currencies';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
+import { ValidationError, validateTransaction, validateWallet } from '../../domain/validators';
 import { getDb } from '../storage/sql/database';
 import {
     budgetMapper,
@@ -64,10 +66,42 @@ export const CURRENT_SCHEMA_VERSION = 1;
 
 // ─── Validation ───────────────────────────────────────────────────────
 
+/**
+ * A refusal that has dedicated, user-facing copy behind it.
+ *
+ * Most validation failures are developer-facing strings joined into one error;
+ * these are the ones the UI must explain in the user's own language instead.
+ *
+ * The two currency reasons are distinct so a diagnostic can tell "no currency
+ * recorded" from "a currency this build has never heard of", but they share one
+ * message: the user's situation is identical either way - the amounts in the
+ * file have no exponent this app can trust, and the backup cannot be restored
+ * safely.
+ */
+export type SnapshotRejectionReason = 'missingCurrency' | 'unknownCurrency';
+
+/** Thrown when a snapshot is refused. `reason` selects the localized message. */
+export class SnapshotRejectedError extends Error {
+    constructor(message: string, public readonly reason?: SnapshotRejectionReason) {
+        super(message);
+        this.name = 'SnapshotRejectedError';
+    }
+}
+
 export interface ValidationResult {
     valid: boolean;
     errors: string[];
+    /** Set when the refusal has dedicated user-facing copy. */
+    reason?: SnapshotRejectionReason;
 }
+
+/** English fallback for the refusal above; the UI shows a localized version. */
+const MISSING_CURRENCY_ERROR =
+    'This backup does not record which currency its amounts are in, so restoring it could misread every amount.';
+
+/** Same for a code the currency registry does not carry. Diagnostics only. */
+const unknownCurrencyError = (code: string) =>
+    `This backup records its amounts in "${code}", which this version of the app does not know, so restoring it could misread every amount.`;
 
 /**
  * Validate a snapshot's schema and referential integrity.
@@ -112,6 +146,51 @@ export function validateSnapshot(data: unknown): ValidationResult {
 
     if (errors.length > 0) {
         return { valid: false, errors };
+    }
+
+    // The unit the amounts are denominated in.
+    //
+    // Every amount in the file is an integer in MINOR units, and how many minor
+    // units make a major one comes from the currency alone (XOF 0, most 2, KWD
+    // and BHD and TND 3). A snapshot that carries data but no settings block
+    // carries no currency, so its integers would be read under whatever currency
+    // this device happens to be set to - restoring a 2-decimal ledger onto a
+    // 0-decimal install misreads every amount by a factor of 100.
+    //
+    // Refused rather than repaired: there is nothing in the file to repair it
+    // from, and no default is safe. The base currency legitimately changes on a
+    // restore, because a restore replaces the whole ledger - what may never
+    // happen is amounts arriving without the unit they are counted in.
+    const settings = snapshotData.settings as { currency?: unknown } | undefined;
+    const carriesData = requiredArrays.some(
+        (key) => (snapshotData[key] as unknown[]).length > 0,
+    );
+
+    const settingsMissing = !settings || typeof settings !== 'object';
+    const currencyMissing =
+        !settingsMissing &&
+        (typeof settings.currency !== 'string' || settings.currency.trim() === '');
+
+    if ((carriesData && settingsMissing) || currencyMissing) {
+        return { valid: false, errors: [MISSING_CURRENCY_ERROR], reason: 'missingCurrency' };
+    }
+
+    // A currency the registry does not carry has no `decimals`, and every reader
+    // of an unknown code silently falls back: getCurrencyByCode returns the USD
+    // definition rather than nothing, so a 0-decimal ledger tagged with a code
+    // this build has never heard of would be displayed at two decimals with no
+    // error anywhere. Asking the SAME function the formatter asks - and refusing
+    // when it did not resolve the code to itself - is what keeps this check and
+    // the display in agreement; a second private list of codes would not.
+    if (!settingsMissing && typeof settings.currency === 'string') {
+        const code = settings.currency;
+        if (getCurrencyByCode(code).code !== code) {
+            return {
+                valid: false,
+                errors: [unknownCurrencyError(code)],
+                reason: 'unknownCurrency',
+            };
+        }
     }
 
     // Referential integrity checks
@@ -230,14 +309,24 @@ const SNAPSHOT_TABLES = ['transactions', 'budgets', 'wallets', 'categories'] as 
  * verifyFinancialIntegrity. WalletRepository.save would instead set
  * opening_balance = balance and double-count every restored transaction.
  *
- * @throws Error if snapshot validation fails or any write fails
+ * Bypassing the repositories also bypasses the ONLY place the entity invariants
+ * were enforced (TransactionRepository calls validateTransaction on save and
+ * update), so each entity is validated here against the same domain validator
+ * the repository uses - not a second copy of the rules. The checks run INSIDE
+ * the transaction, immediately before their insert, so a snapshot whose 900th
+ * transaction is invalid rolls the other 899 back with it. A partial restore is
+ * never a valid outcome.
+ *
+ * @throws SnapshotRejectedError if snapshot validation fails
+ * @throws Error if any entity fails its domain invariants, or any write fails
  */
 export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<void> {
     // Validate before touching any data
     const validation = validateSnapshot(snapshot);
     if (!validation.valid) {
-        throw new Error(
+        throw new SnapshotRejectedError(
             `Invalid backup snapshot:\n${validation.errors.join('\n')}`,
+            validation.reason,
         );
     }
 
@@ -260,6 +349,8 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
             }
 
             for (const w of wallets) {
+                validateWallet(w);
+
                 const ledgerSum = transactions
                     .filter((t) => t.walletId === w.id)
                     .reduce((sum, t) => sum + ledgerEffect(t), 0);
@@ -281,15 +372,37 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
                 );
             }
 
+            // validateTransaction is the same function TransactionRepository
+            // calls; it rejects an unknown type, and an amount that is not a
+            // finite, non-negative integer. Without it a negative expense enters
+            // the ledger as a credit and stays invisible to every later check,
+            // because the opening_balance derived above consumed the same bad
+            // value through the same ledgerEffect.
             for (const t of transactions) {
+                validateTransaction(t);
                 await sqlInsert(db, transactionMapper, t);
             }
+
+            // Categories and budgets have no domain validator to call. Their
+            // referential integrity is checked in validateSnapshot; their own
+            // field invariants are not enforced on this path.
             for (const b of budgets) {
                 await sqlInsert(db, budgetMapper, b);
             }
         });
     } catch (writeError) {
         console.error('[Backup] Restore failed, transaction rolled back:', writeError);
+
+        // A refused entity is not a write failure, and must not be reported as
+        // one: the rollback is identical, but the user needs to know the file is
+        // bad rather than that their disk is.
+        if (writeError instanceof ValidationError) {
+            throw new Error(
+                `Restore refused: the backup contains an invalid ${writeError.entity.toLowerCase()} ` +
+                `(${writeError.field}). Your previous data has been preserved.`,
+            );
+        }
+
         throw new Error('Restore failed while writing data. Your previous data has been preserved.');
     }
 
