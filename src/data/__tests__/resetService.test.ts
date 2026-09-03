@@ -167,11 +167,17 @@ describe('resetAppData', () => {
     it('removes the legacy recurring-rules KV copy alongside its siblings', async () => {
         await asyncStorageAdapter.set(StorageKeys.RECURRING_RULES, [{ id: 'rr-legacy' }]);
         await asyncStorageAdapter.set(StorageKeys.WALLETS, [{ id: 'w-legacy' }]);
+        await asyncStorageAdapter.set(StorageKeys.TRANSACTIONS, [{ id: 't-legacy', amount: 15000 }]);
+        await asyncStorageAdapter.set(StorageKeys.CATEGORIES, [{ id: 'c-legacy' }]);
+        await asyncStorageAdapter.set(StorageKeys.BUDGETS, [{ id: 'b-legacy', limitAmount: 50000 }]);
 
         await resetAppData();
 
         expect(await asyncStorageAdapter.get(StorageKeys.RECURRING_RULES)).toBeNull();
         expect(await asyncStorageAdapter.get(StorageKeys.WALLETS)).toBeNull();
+        expect(await asyncStorageAdapter.get(StorageKeys.TRANSACTIONS)).toBeNull();
+        expect(await asyncStorageAdapter.get(StorageKeys.CATEGORIES)).toBeNull();
+        expect(await asyncStorageAdapter.get(StorageKeys.BUDGETS)).toBeNull();
     });
 
     it('leaves exactly one wallet with a zero balance', async () => {

@@ -30,10 +30,20 @@ jest.mock('../../storage/sql/database', () => ({
     closeDatabase: () => mockCloseDatabase(),
 }));
 
-jest.mock('../../storage', () => ({
-    asyncStorageAdapter: { remove: jest.fn().mockResolvedValue(undefined) },
-    StorageKeys: jest.requireActual('../../storage/StorageKeys').StorageKeys,
-}));
+// A REAL in-memory KV store, with `remove` wrapped in a spy. The spy keeps the
+// "which pointers were cleared / kept" assertions below; the real store is what
+// lets the financial-key assertions check the resulting STATE rather than the
+// call, so a key that is never passed to `remove` cannot pass unnoticed.
+jest.mock('../../storage', () => {
+    const mem = new (require('../../../../tests/helpers/InMemoryStorage').InMemoryStorage)();
+    const realRemove = mem.remove.bind(mem);
+    mem.remove = jest.fn((key: string) => realRemove(key));
+    (global as any).__recoveryKv = mem;
+    return {
+        asyncStorageAdapter: mem,
+        StorageKeys: jest.requireActual('../../storage/StorageKeys').StorageKeys,
+    };
+});
 
 import { File } from 'expo-file-system';
 
@@ -42,13 +52,15 @@ import { asyncStorageAdapter, StorageKeys } from '../../storage';
 
 const FileMock = File as unknown as jest.Mock;
 const remove = asyncStorageAdapter.remove as jest.Mock;
+const kv = asyncStorageAdapter;
 
 const LIBRARY = '/var/mobile/Containers/Data/Application/ABC/Library';
 
-beforeEach(() => {
+beforeEach(async () => {
     jest.clearAllMocks();
     mockFileExists = true;
     mockGetDbPath.mockReturnValue(`${LIBRARY}/valto.db`);
+    await kv.clear();
 });
 
 // The `file://` URIs each `File` was constructed with, in call order.
@@ -115,6 +127,19 @@ describe('deleteDatabaseFiles — target paths', () => {
 });
 
 describe('resetCorruptedStore', () => {
+    /** Seed the full KV residue an install can be holding when the store dies. */
+    async function seedKv() {
+        await kv.set(StorageKeys.SCHEMA_VERSION, 5);
+        await kv.set(StorageKeys.SEED_INITIALIZED, true);
+        await kv.set(StorageKeys.WALLETS, [{ id: 'w-1', balance: 65000 }]);
+        await kv.set(StorageKeys.TRANSACTIONS, [{ id: 't-1', amount: 15000 }]);
+        await kv.set(StorageKeys.CATEGORIES, [{ id: 'food' }]);
+        await kv.set(StorageKeys.BUDGETS, [{ id: 'b-1', limitAmount: 50000 }]);
+        await kv.set(StorageKeys.RECURRING_RULES, [{ id: 'rr-1', amount: 30000 }]);
+        await kv.set(StorageKeys.SETTINGS, { currency: 'XOF', language: 'fr' });
+        await kv.set(StorageKeys.SECURITY_CONFIG, { pinHash: 'abc123' });
+    }
+
     it('closes the handle, deletes the files, then clears rebuild-blocking pointers', async () => {
         await resetCorruptedStore();
 
@@ -131,5 +156,28 @@ describe('resetCorruptedStore', () => {
 
         expect(remove).not.toHaveBeenCalledWith(StorageKeys.SETTINGS);
         expect(remove).not.toHaveBeenCalledWith(StorageKeys.SECURITY_CONFIG);
+    });
+
+    it('leaves no cleartext financial key behind, recurring rules included', async () => {
+        await seedKv();
+
+        await resetCorruptedStore();
+
+        expect(await kv.get(StorageKeys.WALLETS)).toBeNull();
+        expect(await kv.get(StorageKeys.TRANSACTIONS)).toBeNull();
+        expect(await kv.get(StorageKeys.CATEGORIES)).toBeNull();
+        expect(await kv.get(StorageKeys.BUDGETS)).toBeNull();
+        expect(await kv.get(StorageKeys.RECURRING_RULES)).toBeNull();
+    });
+
+    it('clears the rebuild pointers and keeps the user keys, as state', async () => {
+        await seedKv();
+
+        await resetCorruptedStore();
+
+        expect(await kv.get(StorageKeys.SCHEMA_VERSION)).toBeNull();
+        expect(await kv.get(StorageKeys.SEED_INITIALIZED)).toBeNull();
+        expect(await kv.get(StorageKeys.SETTINGS)).toEqual({ currency: 'XOF', language: 'fr' });
+        expect(await kv.get(StorageKeys.SECURITY_CONFIG)).toEqual({ pinHash: 'abc123' });
     });
 });

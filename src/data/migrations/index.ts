@@ -13,6 +13,7 @@ import { v2_backfill_timestamps } from './v2_backfill_timestamps';
 import { v3_normalize_amounts } from './v3_normalize_amounts';
 import { v4_create_sqlite_schema } from './v4_create_sqlite_schema';
 import { v5_import_from_asyncstorage } from './v5_import_from_asyncstorage';
+import { v6_purge_imported_kv } from './v6_purge_imported_kv';
 
 // ─── Migration Registry ──────────────────────────────────────────────
 // Add new migrations here, in ascending version order.
@@ -23,6 +24,7 @@ const migrations: Migration[] = [
     v3_normalize_amounts,
     v4_create_sqlite_schema,
     v5_import_from_asyncstorage,
+    v6_purge_imported_kv,
 ];
 
 // ─── Public API ──────────────────────────────────────────────────────
