@@ -198,12 +198,17 @@ export function useSettings(): UseSettingsResult {
                     style: 'destructive',
                     onPress: () => {
                         Alert.alert(
-                            t('alerts.resetIrreversible'),
+                            // Distinct keys from the currency reset below, which
+                            // still shares alerts.resetIrreversible and
+                            // alerts.deleteEverything. This dialog deletes data
+                            // and keeps the settings, so it says so; the currency
+                            // reset makes a different promise.
+                            t('alerts.deleteDataIrreversible'),
                             t('alerts.resetIrreversibleMessage'),
                             [
                                 { text: t('alerts.cancel'), style: 'cancel' },
                                 {
-                                    text: t('alerts.deleteEverything'),
+                                    text: t('alerts.deleteDataConfirm'),
                                     style: 'destructive',
                                     onPress: async () => {
                                         try {

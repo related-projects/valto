@@ -4,7 +4,7 @@
  * Central export point for seed data and initialization service.
  */
 
-export { defaultCategories } from './seedData';
+export { defaultCategories, resetDefaultWallet } from './seedData';
 export {
     initializeSeedData,
     resetSeedFlag, type SeedResult
