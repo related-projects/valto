@@ -147,5 +147,6 @@ export async function resetCorruptedStore(): Promise<void> {
         asyncStorageAdapter.remove(StorageKeys.TRANSACTIONS),
         asyncStorageAdapter.remove(StorageKeys.CATEGORIES),
         asyncStorageAdapter.remove(StorageKeys.BUDGETS),
+        asyncStorageAdapter.remove(StorageKeys.RECURRING_RULES),
     ]);
 }

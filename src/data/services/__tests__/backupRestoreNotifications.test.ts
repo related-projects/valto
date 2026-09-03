@@ -39,7 +39,9 @@ jest.mock('expo-sharing', () => ({
 }));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createTestDb } from '../../../../tests/helpers/createTestDb';
 import { CURRENT_SCHEMA_VERSION, restoreFromSnapshot, type BackupSnapshot } from '../backupService';
+import { __setDatabaseForTests } from '../../storage/sql/database';
 import { getDefaultSettings, loadSettings } from '../settingsService';
 
 const REMINDER_ID = 'valto-daily-spending-reminder';
@@ -65,6 +67,13 @@ describe('restoreFromSnapshot notification reconcile', () => {
         mockScheduleNotification.mockResolvedValue(undefined);
         mockCancelAllNotifications.mockResolvedValue(undefined);
         mockCancelScheduledNotification.mockResolvedValue(undefined);
+        // The restore writes the ledger to SQLite, so it needs a live connection
+        // even for the empty snapshots below.
+        __setDatabaseForTests(await createTestDb());
+    });
+
+    afterEach(() => {
+        __setDatabaseForTests(null);
     });
 
     it('persists false and schedules nothing when the backup asks for notifications the OS has not granted', async () => {

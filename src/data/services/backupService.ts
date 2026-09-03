@@ -20,12 +20,23 @@ import {
     SerializableCategory,
     SerializableTransaction,
     SerializableWallet,
+    deserializeBudget,
+    deserializeCategory,
+    deserializeTransaction,
+    deserializeWallet,
     serializeBudget,
     serializeCategory,
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
-import { asyncStorageAdapter, StorageKeys } from '../storage';
+import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
+import { getDb } from '../storage/sql/database';
+import {
+    budgetMapper,
+    categoryMapper,
+    sqlInsert,
+    transactionMapper,
+} from '../storage/sql/mappers';
 import { scheduleDailyReminder } from './notificationService';
 import { AppSettings, loadSettings, saveSettings } from './settingsService';
 
@@ -187,8 +198,37 @@ export async function createAndShareBackup(): Promise<void> {
 // ─── Restore ──────────────────────────────────────────────────────────
 
 /**
+ * The tables a snapshot carries, in the order the restore clears them.
+ *
+ * Deliberately NOT the full FINANCIAL_TABLES list: `recurring_rules` is not part
+ * of the backup file, so clearing it would delete data the snapshot cannot put
+ * back. A restored rule may end up referencing a wallet or category the snapshot
+ * did not contain; processRecurringRules catches that per rule and records it in
+ * `errors` rather than failing boot, so a dangling reference degrades to a
+ * logged error instead of data loss.
+ */
+const SNAPSHOT_TABLES = ['transactions', 'budgets', 'wallets', 'categories'] as const;
+
+/**
  * Restore app data from a validated snapshot.
- * Creates a safety backup before overwriting, so partial failures can be detected.
+ *
+ * Financial data is written to the encrypted SQLite store, which is the only
+ * store the repositories read. An earlier revision wrote it to the legacy
+ * AsyncStorage keys instead: nothing read those back, so the restore silently
+ * did nothing to the ledger while leaving a cleartext copy of it on disk.
+ *
+ * Atomic: the clear and every insert run inside ONE runInTransaction on the
+ * shared connection, so a failure at any point rolls the whole restore back and
+ * leaves the pre-restore ledger intact. That is also why no manual "safety
+ * backup + re-write" rollback is needed any more - SQLite provides it.
+ *
+ * Wallets are inserted directly rather than through WalletRepository.save,
+ * because the ledger anchor has to be derived rather than defaulted:
+ *     opening_balance = balance - Sum(ledgerEffect(restored txns of the wallet))
+ * This is the same derivation migration v5 uses for imported wallets, and it is
+ * what keeps a restored install from reading as drifted under
+ * verifyFinancialIntegrity. WalletRepository.save would instead set
+ * opening_balance = balance and double-count every restored transaction.
  *
  * @throws Error if snapshot validation fails or any write fails
  */
@@ -201,37 +241,63 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
         );
     }
 
-    // Safety: snapshot current data before overwriting
-    const previousData = {
-        wallets: await asyncStorageAdapter.get(StorageKeys.WALLETS),
-        transactions: await asyncStorageAdapter.get(StorageKeys.TRANSACTIONS),
-        categories: await asyncStorageAdapter.get(StorageKeys.CATEGORIES),
-        budgets: await asyncStorageAdapter.get(StorageKeys.BUDGETS),
-    };
+    const wallets = snapshot.data.wallets.map(deserializeWallet);
+    const transactions = snapshot.data.transactions.map(deserializeTransaction);
+    const categories = snapshot.data.categories.map(deserializeCategory);
+    const budgets = snapshot.data.budgets.map(deserializeBudget);
+
+    const db = getDb();
 
     try {
-        // Write all data keys
-        await asyncStorageAdapter.set(StorageKeys.WALLETS, snapshot.data.wallets);
-        await asyncStorageAdapter.set(StorageKeys.TRANSACTIONS, snapshot.data.transactions);
-        await asyncStorageAdapter.set(StorageKeys.CATEGORIES, snapshot.data.categories);
-        await asyncStorageAdapter.set(StorageKeys.BUDGETS, snapshot.data.budgets);
+        await db.runInTransaction(async () => {
+            for (const table of SNAPSHOT_TABLES) {
+                await db.execute(`DELETE FROM ${table}`);
+            }
 
-        // Restore settings if present in backup
-        if (snapshot.data.settings) {
-            await saveSettings(snapshot.data.settings);
-        }
+            // Categories first: transactions and budgets reference them.
+            for (const c of categories) {
+                await sqlInsert(db, categoryMapper, c);
+            }
+
+            for (const w of wallets) {
+                const ledgerSum = transactions
+                    .filter((t) => t.walletId === w.id)
+                    .reduce((sum, t) => sum + ledgerEffect(t), 0);
+                const openingBalance = w.balance - ledgerSum;
+
+                await db.execute(
+                    `INSERT INTO wallets
+                        (id, name, balance, opening_balance, type, color, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        w.id,
+                        w.name,
+                        w.balance,
+                        openingBalance,
+                        w.type,
+                        w.color ?? null,
+                        w.createdAt.toISOString(),
+                    ],
+                );
+            }
+
+            for (const t of transactions) {
+                await sqlInsert(db, transactionMapper, t);
+            }
+            for (const b of budgets) {
+                await sqlInsert(db, budgetMapper, b);
+            }
+        });
     } catch (writeError) {
-        // Attempt rollback on failure
-        console.error('[Backup] Restore write failed, attempting rollback:', writeError);
-        try {
-            await asyncStorageAdapter.set(StorageKeys.WALLETS, previousData.wallets);
-            await asyncStorageAdapter.set(StorageKeys.TRANSACTIONS, previousData.transactions);
-            await asyncStorageAdapter.set(StorageKeys.CATEGORIES, previousData.categories);
-            await asyncStorageAdapter.set(StorageKeys.BUDGETS, previousData.budgets);
-        } catch (rollbackError) {
-            console.error('[Backup] Rollback also failed:', rollbackError);
-        }
+        console.error('[Backup] Restore failed, transaction rolled back:', writeError);
         throw new Error('Restore failed while writing data. Your previous data has been preserved.');
+    }
+
+    // Settings live in key-value storage, outside the SQLite transaction above.
+    // Written only after the ledger has committed, so a failed restore can never
+    // leave the new snapshot's settings sitting on top of the old data.
+    if (snapshot.data.settings) {
+        await saveSettings(snapshot.data.settings);
     }
 
     // Reconcile the daily reminder with the restored preference. A backup can carry
