@@ -44,7 +44,8 @@
     },
     "transactionList": {
       "empty": "Aún no hay transacciones",
-      "emptyHint": "Toca el botón + para añadir tu primera transacción",
+      "emptyHint": "Los gastos e ingresos registrados aparecerán aquí",
+      "emptyAction": "Añadir un gasto",
       "today": "Hoy",
       "yesterday": "Ayer",
       "transfer": "Transferencia",
@@ -105,6 +106,7 @@
   },
   "transactions": {
     "title": "Transacciones",
+    "add": "Añadir",
     "searchPlaceholder": "Buscar transacciones...",
     "filterAll": "Todas",
     "filterIncome": "Ingresos",
@@ -238,6 +240,7 @@
       "save": "Guardar",
       "walletName": "Nombre de la cartera *",
       "walletNamePlaceholder": "p. ej., Cuenta principal",
+      "walletNameHelp": "Una cartera es donde guardas tu dinero (efectivo, cuenta bancaria, dinero móvil); una línea de gasto es una categoría, no una cartera.",
       "initialBalance": "Saldo inicial",
       "walletType": "Tipo de cartera",
       "walletColor": "Color de la cartera",

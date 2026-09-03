@@ -44,7 +44,8 @@
         },
         "transactionList": {
             "empty": "Nenhuma transação ainda",
-            "emptyHint": "Toque no botão + para adicionar sua primeira transação",
+            "emptyHint": "As despesas e receitas registradas aparecerão aqui",
+            "emptyAction": "Adicionar uma despesa",
             "today": "Hoje",
             "yesterday": "Ontem",
             "transfer": "Transferência",
@@ -105,6 +106,7 @@
     },
     "transactions": {
         "title": "Transações",
+        "add": "Adicionar",
         "searchPlaceholder": "Buscar transações...",
         "filterAll": "Todas",
         "filterIncome": "Receita",
@@ -238,6 +240,7 @@
             "save": "Salvar",
             "walletName": "Nome da carteira *",
             "walletNamePlaceholder": "ex.: Conta principal",
+            "walletNameHelp": "Uma carteira é onde você guarda seu dinheiro (dinheiro vivo, conta bancária, mobile money); uma linha de despesa é uma categoria, não uma carteira.",
             "initialBalance": "Saldo inicial",
             "walletType": "Tipo de carteira",
             "walletColor": "Cor da carteira",

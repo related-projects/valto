@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AddTransactionModal } from '../components/modals/AddTransactionModal';
 import { TransactionFilterModal } from '../components/modals/TransactionFilterModal';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { FilterPill } from '../components/ui/FilterPill';
@@ -22,6 +23,7 @@ export const TransactionsScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
     const [filterModalVisible, setFilterModalVisible] = useState(false);
+    const [addModalVisible, setAddModalVisible] = useState(false);
 
     // Get real transactions with pagination and filtering support
     const {
@@ -31,6 +33,7 @@ export const TransactionsScreen = () => {
         resetFilters,
         loadNextPage,
         loadingMore,
+        refreshTransactions,
     } = useTransactions();
 
     /**
@@ -119,46 +122,72 @@ export const TransactionsScreen = () => {
                     >
                         {t('transactions.title')}
                     </Text>
-                    <TouchableOpacity
-                        style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: spacing.lg,
-                            backgroundColor: activeFilterCount > 0 ? colors.accent : colors.card,
-                            borderWidth: 1,
-                            borderColor: activeFilterCount > 0 ? colors.accent : colors.border,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                        onPress={() => setFilterModalVisible(true)}
-                        testID="filter_icon_button"
-                    >
-                        <Ionicons
-                            name="options-outline"
-                            size={20}
-                            color={activeFilterCount > 0 ? colors.accentForeground : colors.foreground}
-                        />
-                        {activeFilterCount > 0 && (
-                            <View
-                                style={{
-                                    position: 'absolute',
-                                    top: -4,
-                                    right: -4,
-                                    backgroundColor: colors.destructive,
-                                    borderRadius: 10,
-                                    minWidth: 18,
-                                    height: 18,
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    paddingHorizontal: 4,
-                                }}
-                            >
-                                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
-                                    {activeFilterCount}
-                                </Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
+                    {/* Add + filter, in that order: recording a transaction is the
+                        primary job of this screen, filtering an existing list the
+                        secondary one. Same button shape and tokens as the Wallets
+                        header so the two "add" affordances read as one idiom. */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                        <TouchableOpacity
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: colors.accent,
+                                paddingHorizontal: spacing.md,
+                                paddingVertical: spacing.sm,
+                                borderRadius: radius.md,
+                                gap: spacing.xs,
+                            }}
+                            onPress={() => setAddModalVisible(true)}
+                            testID="transactions_add_button"
+                            accessibilityRole="button"
+                            accessibilityLabel={t('transactions.add')}
+                        >
+                            <Ionicons name="add" size={18} color={colors.accentForeground} />
+                            <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>
+                                {t('transactions.add')}
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: spacing.lg,
+                                backgroundColor: activeFilterCount > 0 ? colors.accent : colors.card,
+                                borderWidth: 1,
+                                borderColor: activeFilterCount > 0 ? colors.accent : colors.border,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                            onPress={() => setFilterModalVisible(true)}
+                            testID="filter_icon_button"
+                        >
+                            <Ionicons
+                                name="options-outline"
+                                size={20}
+                                color={activeFilterCount > 0 ? colors.accentForeground : colors.foreground}
+                            />
+                            {activeFilterCount > 0 && (
+                                <View
+                                    style={{
+                                        position: 'absolute',
+                                        top: -4,
+                                        right: -4,
+                                        backgroundColor: colors.destructive,
+                                        borderRadius: 10,
+                                        minWidth: 18,
+                                        height: 18,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        paddingHorizontal: 4,
+                                    }}
+                                >
+                                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                                        {activeFilterCount}
+                                    </Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 <InputField
                     placeholder={t('transactions.searchPlaceholder')}
@@ -204,9 +233,17 @@ export const TransactionsScreen = () => {
                         showDateHeaders={true}
                         onEndReached={loadNextPage}
                         loadingMore={loadingMore}
+                        onAddTransaction={() => setAddModalVisible(true)}
                     />
                 </View>
             </ScrollView>
+
+            {/* Add Transaction Modal */}
+            <AddTransactionModal
+                visible={addModalVisible}
+                onClose={() => setAddModalVisible(false)}
+                onSuccess={refreshTransactions}
+            />
 
             {/* Filter Modal */}
             <TransactionFilterModal

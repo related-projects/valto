@@ -214,6 +214,21 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
                     testID="add_wallet_name_input"
                   />
                 </View>
+                {/* The wallet/category distinction is stated only in onboarding
+                    step 2, which the user sees once. Repeat it here, where a
+                    second wallet is created and where naming a spending line as
+                    a wallet is the mistake to head off. */}
+                <Text
+                  testID="add_wallet_name_help"
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: typography.sizes.xs,
+                    marginTop: spacing.xs,
+                    lineHeight: 18,
+                  }}
+                >
+                  {t("modals.addWallet.walletNameHelp")}
+                </Text>
               </View>
 
               {/* Initial Balance */}
