@@ -40,11 +40,14 @@ jest.mock('../../core/events', () => ({
 
 import { resetFinancialDataForCurrencyReset } from '../services/resetService';
 import { loadSettings, selectAndLockCurrency, updateSetting } from '../services/settingsService';
+import { defaultCategories } from '../seed/seedData';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
 // The seed creates no wallets - onboarding is the single source of the first wallet.
 const DEFAULT_WALLET_COUNT = 0;
-const DEFAULT_CATEGORY_COUNT = 3;
+// Derived from the seed itself rather than hand-copied: the invariant under test
+// is "the reset re-seeds the whole default set", not any particular count.
+const DEFAULT_CATEGORY_COUNT = defaultCategories.length;
 
 async function countRows(db: SqlDatabase, table: string): Promise<number> {
     const res = await db.execute(`SELECT COUNT(*) AS c FROM ${table}`);

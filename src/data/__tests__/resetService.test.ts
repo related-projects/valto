@@ -62,10 +62,17 @@ jest.mock('expo-notifications', () => ({
 
 import { resetAppData } from '../services/resetService';
 import { loadSettings, selectAndLockCurrency, updateSetting } from '../services/settingsService';
+import { defaultCategories } from '../seed/seedData';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
-/** The seed creates categories only - the reset adds the single empty wallet. */
-const DEFAULT_CATEGORY_COUNT = 3;
+/**
+ * The seed creates categories only - the reset adds the single empty wallet.
+ *
+ * Derived from the seed itself rather than hand-copied: this asserts "the reset
+ * re-seeds the whole default set", which is the invariant, and stays true when
+ * the set changes.
+ */
+const DEFAULT_CATEGORY_COUNT = defaultCategories.length;
 const WALLET_COUNT_AFTER_RESET = 1;
 
 async function countRows(db: SqlDatabase, table: string): Promise<number> {

@@ -95,6 +95,12 @@ export const DashboardScreen = () => {
 
     const totalBalance = getTotalBalance();
 
+    // Funded wallets but nothing recorded yet: the user has told the app where
+    // their money is and not yet what they spend. Recording the first expense is
+    // the only step that moves them forward, so it is the one action the screen
+    // pushes; the budget CTA drops to a secondary treatment until then.
+    const isFirstExpensePending = wallets.length > 0 && transactions.length === 0;
+
     const handleAddExpense = () => {
         setModalType('expense');
         setModalVisible(true);
@@ -168,6 +174,7 @@ export const DashboardScreen = () => {
                     totalLimit={totalBudgetLimit}
                     hasBudgets={hasBudgets}
                     onCreateBudget={() => setBudgetModalVisible(true)}
+                    ctaEmphasis={isFirstExpensePending ? 'secondary' : 'primary'}
                 />
             </View>
 
@@ -210,7 +217,11 @@ export const DashboardScreen = () => {
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.lg }}>
                 <Card>
                     <SectionHeader title={t('dashboard.recentTransactions')} />
-                    <TransactionList transactions={transactions.slice(0, 5)} showDateHeaders={false} />
+                    <TransactionList
+                        transactions={transactions.slice(0, 5)}
+                        showDateHeaders={false}
+                        onAddTransaction={handleAddExpense}
+                    />
                 </Card>
             </View>
 

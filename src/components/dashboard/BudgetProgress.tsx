@@ -20,6 +20,15 @@ interface BudgetProgressProps {
     onCreateBudget?: () => void;
     /** Callback when a budget item's delete button is tapped */
     onDeleteBudget?: (budgetId: string) => void;
+    /**
+     * Visual weight of the empty-state call to action.
+     *
+     * 'secondary' is for the state where no transaction has ever been recorded:
+     * capping a spend the user has not entered yet is not the next step, so the
+     * CTA stays reachable but stops competing with the add-expense action. The
+     * card keeps its position in the dashboard either way.
+     */
+    ctaEmphasis?: 'primary' | 'secondary';
 }
 
 export const BudgetProgress: React.FC<BudgetProgressProps> = ({
@@ -29,6 +38,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
     hasBudgets = false,
     onCreateBudget,
     onDeleteBudget,
+    ctaEmphasis = 'primary',
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
@@ -36,6 +46,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 
     // Handle empty state
     if (!hasBudgets) {
+        const isSecondaryCta = ctaEmphasis === 'secondary';
         return (
             <Card>
                 <Text style={{ color: colors.foreground, fontWeight: '600', fontSize: typography.sizes.sm, marginBottom: spacing.md }}>
@@ -46,16 +57,30 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                         {t('components.budgetProgress.noBudget')}
                     </Text>
                     <TouchableOpacity
+                        testID="budget_progress_create_budget"
+                        accessibilityRole="button"
+                        accessibilityLabel={t('components.budgetProgress.createBudget')}
                         style={{
                             marginTop: spacing.md,
                             paddingHorizontal: spacing.lg,
                             paddingVertical: spacing.sm,
-                            backgroundColor: colors.accent,
+                            // Secondary: an outlined, unfilled control. Same size and
+                            // position, lower contrast, so it no longer reads as the
+                            // one thing to do on the screen.
+                            backgroundColor: isSecondaryCta ? 'transparent' : colors.accent,
+                            borderWidth: isSecondaryCta ? 1 : 0,
+                            borderColor: colors.border,
                             borderRadius: radius.md,
                         }}
                         onPress={onCreateBudget}
                     >
-                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: '500' }}>
+                        <Text
+                            style={{
+                                color: isSecondaryCta ? colors.mutedForeground : colors.accentForeground,
+                                fontSize: typography.sizes.sm,
+                                fontWeight: '500',
+                            }}
+                        >
                             {t('components.budgetProgress.createBudget')}
                         </Text>
                     </TouchableOpacity>

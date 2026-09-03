@@ -47,6 +47,14 @@ export const resetDefaultWallet: CreateWalletDTO = {
 
 /**
  * Default expense categories
+ *
+ * One line per recurring household commitment, so a user whose paper budget is
+ * an envelope split finds a ready-made line for each envelope and does not have
+ * to reach for the wallet as the only object that accepts an amount.
+ *
+ * Icons and colours are drawn from the sets the category editor already offers
+ * (ICONS / COLORS in src/components/modals/CategoryModal.tsx), so a default
+ * category is visually indistinguishable from one the user creates themselves.
  */
 export const defaultExpenseCategories: CreateCategoryDTO[] = [
     {
@@ -61,6 +69,48 @@ export const defaultExpenseCategories: CreateCategoryDTO[] = [
         icon: 'car',
         color: '#64B5F6',
     },
+    {
+        name: 'Logement',
+        type: CategoryType.EXPENSE,
+        icon: 'home',
+        color: '#A1887F',
+    },
+    {
+        name: 'Eau et électricité',
+        type: CategoryType.EXPENSE,
+        icon: 'flash',
+        color: '#4DD0E1',
+    },
+    {
+        name: 'Téléphone et Internet',
+        type: CategoryType.EXPENSE,
+        icon: 'business',
+        color: '#42A5F5',
+    },
+    {
+        name: 'Santé',
+        type: CategoryType.EXPENSE,
+        icon: 'medical',
+        color: '#26A69A',
+    },
+    {
+        name: 'Aide famille',
+        type: CategoryType.EXPENSE,
+        icon: 'person',
+        color: '#F06292',
+    },
+    {
+        name: 'Loisirs',
+        type: CategoryType.EXPENSE,
+        icon: 'film-outline',
+        color: '#BA68C8',
+    },
+    {
+        name: 'Imprévus',
+        type: CategoryType.EXPENSE,
+        icon: 'ellipsis-horizontal',
+        color: '#90A4AE',
+    },
 ];
 
 /**
@@ -72,6 +122,18 @@ export const defaultIncomeCategories: CreateCategoryDTO[] = [
         type: CategoryType.INCOME,
         icon: 'cash',
         color: '#66BB6A',
+    },
+    {
+        name: 'Freelance',
+        type: CategoryType.INCOME,
+        icon: 'briefcase',
+        color: '#81C784',
+    },
+    {
+        name: 'Autre',
+        type: CategoryType.INCOME,
+        icon: 'trending-up',
+        color: '#9575CD',
     },
 ];
 

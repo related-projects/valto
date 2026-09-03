@@ -44,7 +44,8 @@
     },
     "transactionList": {
       "empty": "No transactions yet",
-      "emptyHint": "Tap the + button to add your first transaction",
+      "emptyHint": "Recorded expenses and income will appear here",
+      "emptyAction": "Add an expense",
       "today": "Today",
       "yesterday": "Yesterday",
       "transfer": "Transfer",
@@ -105,6 +106,7 @@
   },
   "transactions": {
     "title": "Transactions",
+    "add": "Add",
     "searchPlaceholder": "Search transactions...",
     "filterAll": "All",
     "filterIncome": "Income",
@@ -238,6 +240,7 @@
       "save": "Save",
       "walletName": "Wallet Name *",
       "walletNamePlaceholder": "e.g., Main Account",
+      "walletNameHelp": "A wallet is where you keep money (cash, bank account, mobile money); a spending line is a category, not a wallet.",
       "initialBalance": "Initial Balance",
       "walletType": "Wallet Type",
       "walletColor": "Wallet Color",
