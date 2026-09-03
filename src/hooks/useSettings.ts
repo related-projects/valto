@@ -8,12 +8,12 @@
  */
 
 import i18n from 'i18next';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert } from 'react-native';
+import { Alert, AppState, type AppStateStatus, Linking } from 'react-native';
 import { dataEvents } from '../core/events/dataEvents';
 import { createAndShareBackup, pickAndRestoreBackup } from '../data/services/backupService';
-import { scheduleDailyReminder, setNotificationsEnabled } from '../data/services/notificationService';
+import { getPermissionStatus, scheduleDailyReminder, setNotificationsEnabled } from '../data/services/notificationService';
 import { resetAppData, resetFinancialDataForCurrencyReset } from '../data/services/resetService';
 import {
     type AppSettings,
@@ -29,6 +29,7 @@ import { type CurrencyDefinition, getCurrencyByCode } from '../domain/constants/
 import { getLanguageByCode, type LanguageDefinition } from '../domain/constants/languages';
 import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES } from '../domain/constants/numberFormats';
 import { useTheme } from '../theme/theme';
+import { type NotificationPermissionStatus, shouldShowBlockedNotice } from '../utils/notificationPermission';
 
 // ─── Interface ────────────────────────────────────────────────────────
 
@@ -45,6 +46,9 @@ export interface UseSettingsResult {
     handleCurrencySelect: (currency: CurrencyDefinition) => Promise<void>;
     handleLanguageSelect: (language: LanguageDefinition) => Promise<void>;
     toggleNotifications: () => void;
+    /** Derived, never persisted: show the "blocked in device settings" notice. */
+    notificationsBlockedNotice: boolean;
+    openNotificationSettings: () => void;
     resetCurrency: () => void;
     cancelCurrencyReset: () => void;
     changeDateFormat: () => void;
@@ -70,12 +74,55 @@ export function useSettings(): UseSettingsResult {
         decimalSeparator: DEFAULT_NUMBER_FORMAT,
         onboardingCompleted: false,
     });
+    // Derived state only, never persisted: the OS permission status exists here
+    // solely to drive the "blocked" notice under the toggle. Starts at
+    // 'undetermined' so a fresh mount shows no notice until the real value lands.
+    const [notificationPermission, setNotificationPermission] =
+        useState<NotificationPermissionStatus>('undetermined');
+    // Tracks the previous AppState so the listener below fires only on the
+    // transition into 'active', not on every event.
+    const appStateRef = useRef<AppStateStatus>(AppState.currentState);
     const { setThemePreference } = useTheme();
 
     // Load persisted settings on mount
     useEffect(() => {
         loadSettings().then(setSettings);
     }, []);
+
+    // READ ONLY - reading the status can never raise a system dialog, so this is
+    // safe to run on mount and after every toggle.
+    const refreshNotificationPermission = useCallback(async () => {
+        try {
+            setNotificationPermission(await getPermissionStatus());
+        } catch (error) {
+            console.warn('[notifications] Permission status read failed:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        refreshNotificationPermission();
+    }, [refreshNotificationPermission]);
+
+    // Re-read on foreground return. openNotificationSettings backgrounds the app
+    // without unmounting this screen, so a user who grants the permission in the
+    // system settings comes back to a mount read that never re-runs - the notice
+    // would keep saying "blocked" and the action we offered would look broken.
+    //
+    // Only on the transition INTO 'active' from a non-active state: AppState also
+    // fires for 'inactive' and 'background', and re-reading on those is pointless
+    // work. READ ONLY, so a return from the background can never raise a dialog.
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+            const previousState = appStateRef.current;
+            appStateRef.current = nextState;
+
+            if (previousState !== 'active' && nextState === 'active') {
+                refreshNotificationPermission();
+            }
+        });
+
+        return () => subscription.remove();
+    }, [refreshNotificationPermission]);
 
     const currency = getCurrencyByCode(settings.currency);
     const language = getLanguageByCode(settings.language);
@@ -329,13 +376,30 @@ export function useSettings(): UseSettingsResult {
         const newValue = !settings.notificationsEnabled;
         const result = await setNotificationsEnabled(newValue);
 
+        // Enabling may have just moved the OS status from 'undetermined' to
+        // 'granted' or 'denied', and the notice below the toggle derives from it.
+        await refreshNotificationPermission();
+
         if (result.permissionDenied) {
             Alert.alert(t('alerts.notificationsDenied'), t('alerts.notificationsDeniedMessage'));
             return;
         }
 
         setSettings(prev => ({ ...prev, notificationsEnabled: result.enabled }));
-    }, [settings.notificationsEnabled, t]);
+    }, [settings.notificationsEnabled, refreshNotificationPermission, t]);
+
+    // Once the OS holds a denial there is no in-app way to clear it - only the user
+    // can, in the system settings for this app.
+    const openNotificationSettings = useCallback(() => {
+        Linking.openSettings().catch(error => {
+            console.warn('[notifications] Could not open the system settings:', error);
+        });
+    }, []);
+
+    const notificationsBlockedNotice = shouldShowBlockedNotice(
+        settings.notificationsEnabled,
+        notificationPermission,
+    );
 
     // ── Date Format ───────────────────────────────────────────────────
     const changeDateFormat = useCallback(() => {
@@ -413,6 +477,8 @@ export function useSettings(): UseSettingsResult {
         handleCurrencySelect,
         handleLanguageSelect,
         toggleNotifications,
+        notificationsBlockedNotice,
+        openNotificationSettings,
         resetCurrency,
         cancelCurrencyReset,
         changeDateFormat,

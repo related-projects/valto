@@ -10,9 +10,27 @@ jest.mock('@react-native-async-storage/async-storage', () =>
     require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
+// Handlers registered through the mocked AppState, so a test can drive a
+// background/foreground transition. Dereferenced only when addEventListener is
+// called, which is long after this module has finished initialising.
+const mockAppStateListeners: ((state: string) => void)[] = [];
+
 jest.mock('react-native', () => ({
     Platform: { OS: 'ios' },
     Alert: { alert: jest.fn() },
+    Linking: { openSettings: jest.fn().mockResolvedValue(undefined) },
+    AppState: {
+        currentState: 'active',
+        addEventListener: jest.fn((_event: string, handler: (state: string) => void) => {
+            mockAppStateListeners.push(handler);
+            return {
+                remove: jest.fn(() => {
+                    const index = mockAppStateListeners.indexOf(handler);
+                    if (index >= 0) mockAppStateListeners.splice(index, 1);
+                }),
+            };
+        }),
+    },
     NativeModules: {
         SettingsManager: {
             settings: {
@@ -96,6 +114,10 @@ describe('useSettings', () => {
     beforeEach(async () => {
         await AsyncStorage.clear();
         jest.clearAllMocks();
+        // clearAllMocks keeps implementations, so re-arm the default here: any
+        // test that flips the status to denied would otherwise leak into the next.
+        (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+        mockAppStateListeners.length = 0;
     });
 
     it('loads default settings on mount', async () => {
@@ -250,6 +272,20 @@ describe('useSettings', () => {
             expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
         });
 
+        it('does not schedule into the void when the permission is not granted', async () => {
+            // handleLanguageSelect reschedules so the reminder copy follows the new
+            // language. It must not register a reminder the OS will drop, and the
+            // preference must not be left reading "on" behind it.
+            await seedSettings(true);
+            (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
+
+            await selectFrench();
+
+            expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+            expect(Notifications.requestPermissionsAsync).not.toHaveBeenCalled();
+            expect(await AsyncStorage.getItem('@valto:settings')).toContain('"notificationsEnabled":false');
+        });
+
         it('does not surface a language error when rescheduling fails', async () => {
             await seedSettings(true);
             (Notifications.scheduleNotificationAsync as jest.Mock)
@@ -260,6 +296,74 @@ describe('useSettings', () => {
             // A scheduling failure is not a language failure and must not claim to be one.
             expect(Alert.alert).not.toHaveBeenCalled();
             expect(await AsyncStorage.getItem('@valto:settings')).toContain('"language":"fr"');
+        });
+    });
+
+    describe('blocked notice on foreground return', () => {
+        const seedNotificationsOff = async () => {
+            await AsyncStorage.setItem('@valto:settings', JSON.stringify({
+                theme: 'system',
+                currency: 'USD',
+                currencyLocked: false,
+                language: 'en',
+                dateFormat: 'MM/DD/YYYY',
+                firstDayOfWeek: 'monday',
+                decimalSeparator: 'dot',
+                onboardingCompleted: true,
+                notificationsEnabled: false,
+            }));
+        };
+
+        const readCount = () => (Notifications.getPermissionsAsync as jest.Mock).mock.calls.length;
+
+        it('re-reads the permission and clears the notice when the app returns to the foreground', async () => {
+            await seedNotificationsOff();
+            (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
+
+            const { result } = renderHook(() => useSettings());
+            await waitFor(() => {
+                expect(result.current.notificationsBlockedNotice).toBe(true);
+            });
+            const readsAfterMount = readCount();
+
+            // The user granted the permission in the system settings while the app
+            // was backgrounded. Nothing in the app observed it.
+            (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
+
+            // Leaving for the system settings is not the transition that re-reads.
+            await act(async () => {
+                mockAppStateListeners.forEach(listener => listener('background'));
+            });
+            expect(readCount()).toBe(readsAfterMount);
+
+            // Coming back is.
+            await act(async () => {
+                mockAppStateListeners.forEach(listener => listener('active'));
+            });
+
+            await waitFor(() => {
+                expect(result.current.notificationsBlockedNotice).toBe(false);
+            });
+            // Paired assertions: a bare "never requested" passes with no listener
+            // registered at all, so it only means something next to the read.
+            expect(readCount()).toBe(readsAfterMount + 1);
+            expect(Notifications.requestPermissionsAsync).not.toHaveBeenCalled();
+        });
+
+        it('registers one listener and removes it on unmount', async () => {
+            await seedNotificationsOff();
+
+            const { rerender, unmount } = renderHook(() => useSettings());
+            await waitFor(() => {
+                expect(mockAppStateListeners).toHaveLength(1);
+            });
+
+            // Re-rendering must not stack a second subscription.
+            rerender(undefined);
+            expect(mockAppStateListeners).toHaveLength(1);
+
+            unmount();
+            expect(mockAppStateListeners).toHaveLength(0);
         });
     });
 });

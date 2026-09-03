@@ -385,6 +385,8 @@
         "themeDark": "Тёмная",
         "categories": "Категории",
         "notifications": "Уведомления",
+        "notificationsBlockedNotice": "Уведомления заблокированы в настройках устройства, поэтому ежедневное напоминание не может быть доставлено.",
+        "notificationsBlockedAction": "Открыть настройки устройства",
         "security": "Безопасность",
         "securityPinBiometrics": "PIN + биометрия",
         "securityPin": "PIN включён",

@@ -81,6 +81,9 @@ describe('notificationService', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         (Platform as { OS: string }).OS = 'ios';
+        // Scheduling now reads the permission, so every test needs a status.
+        // Granted is the default; tests that care set their own.
+        mockGetPermissions.mockResolvedValue({ status: 'granted' });
         mockUpdateSetting.mockResolvedValue(undefined);
         mockCancelAllNotifications.mockResolvedValue(undefined);
         mockCancelScheduledNotification.mockResolvedValue(undefined);
@@ -216,6 +219,53 @@ describe('notificationService', () => {
             await scheduleDailyReminder();
 
             expect(mockSetNotificationChannel).not.toHaveBeenCalled();
+        });
+
+        it('schedules nothing and reverts the preference when permission is denied', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'denied' });
+
+            await scheduleDailyReminder();
+
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+            expect(mockUpdateSetting).toHaveBeenCalledWith('notificationsEnabled', false);
+            expect(mockCancelAllNotifications).toHaveBeenCalled();
+            expect(mockEmit).toHaveBeenCalledWith('settings');
+        });
+
+        it('schedules nothing and reverts the preference when permission is undetermined', async () => {
+            // Never asked is not a grant. Scheduling here would register a reminder
+            // the OS drops at fire time while the toggle keeps reading "on".
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'undetermined' });
+
+            await scheduleDailyReminder();
+
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+            expect(mockUpdateSetting).toHaveBeenCalledWith('notificationsEnabled', false);
+        });
+
+        it('reads the permission and never requests it when granted', async () => {
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'granted' });
+
+            await scheduleDailyReminder();
+
+            expect(mockGetPermissions).toHaveBeenCalled();
+            expect(mockRequestPermissions).not.toHaveBeenCalled();
+        });
+
+        it('reads the permission and never requests it when not granted', async () => {
+            // Scheduling runs at startup, after a language change and after a
+            // restore. A request here would raise a system dialog in all three.
+            mockLoadSettings.mockResolvedValue({ notificationsEnabled: true });
+            mockGetPermissions.mockResolvedValue({ status: 'denied' });
+
+            await scheduleDailyReminder();
+
+            expect(mockGetPermissions).toHaveBeenCalled();
+            expect(mockRequestPermissions).not.toHaveBeenCalled();
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
     });
 
