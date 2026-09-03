@@ -52,5 +52,19 @@ jobs:
 
       # --ci: no snapshot writes; --coverage: enforces the scoped coverageThreshold
       # (src/domain, src/data) configured in jest.config.js.
+      # --json --outputFile writes per-file timings alongside the normal reporter
+      # output; it changes nothing about what this step asserts or its exit code.
+      # The runner is the only machine whose timings matter for testTimeout, and
+      # until now it recorded none.
       - name: Test
-        run: npx jest --ci --coverage
+        run: npx jest --ci --coverage --json --outputFile=jest-timings.json
+
+      # Uploaded on failure too - a run that blew the timeout is exactly the one
+      # whose timings need reading.
+      - name: Upload jest timings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-timings
+          path: jest-timings.json
+          if-no-files-found: warn

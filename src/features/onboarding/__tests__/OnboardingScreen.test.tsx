@@ -76,29 +76,6 @@ import React from 'react';
 
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 
-/**
- * Pay the one-time cost of realising this tree ONCE, before any test runs.
- *
- * The first render in this file resolves React Native's lazily-required modules
- * (FlatList, TextInput, TouchableOpacity) and the Ionicons glyphmap. With a cold
- * jest cache that is ~2.9s locally and roughly 3x that on the CI runner - enough to
- * blow the 5s default timeout of whichever test happens to render first. Paying it
- * here removes the order dependence: no arbitrary test carries the allowance, and
- * reordering or adding a test cannot silently move the failure. The 30s allowance is
- * sized against the CI runner, not against local timings.
- */
-beforeAll(async () => {
-    const view = render(<OnboardingScreen onComplete={jest.fn()} />);
-    // Walk the whole path every test walks - welcome, then the currency step's
-    // search input and FlatList, then a selection - so the trees and the async
-    // selection path are both realised here rather than inside the first test.
-    fireEvent.press(view.getByTestId('onboarding_get_started'));
-    fireEvent.changeText(view.getByTestId('currency_search_input'), 'EUR');
-    fireEvent.press(view.getByTestId('currency_item_EUR'));
-    await waitFor(() => expect(view.getByTestId('onboarding_wallet_name')).toBeTruthy());
-    view.unmount();
-}, 30_000);
-
 beforeEach(() => {
     jest.clearAllMocks();
     mockSetOnboardingCurrency.mockResolvedValue(undefined);
