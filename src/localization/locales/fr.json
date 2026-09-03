@@ -429,6 +429,7 @@
     "restoreNow": "Restaurer maintenant",
     "restoreFailed": "Échec de la restauration",
     "restoreFailedMessage": "Impossible de restaurer à partir de la sauvegarde. Le fichier est peut-être invalide.",
+    "restoreMissingCurrencyMessage": "Cette sauvegarde n'indique pas la devise de ses montants ; la restaurer risquerait de fausser la lecture de tous les montants.",
     "restoreSuccess": "Succès",
     "restoreSuccessMessage": "Vos données ont été restaurées avec succès.",
     "resetAllData": "Supprimer les données financières",

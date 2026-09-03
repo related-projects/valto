@@ -186,7 +186,13 @@ describe('Backup Validation', () => {
         expect(result.valid).toBe(true);
     });
 
-    it('accepts snapshot without settings (backward-compat)', () => {
+    // Was 'accepts snapshot without settings (backward-compat)'. The settings
+    // block is where the currency lives, and the currency is the only thing that
+    // says how many minor units make a major one, so a snapshot carrying amounts
+    // without it carries no scale for its own numbers. Refused rather than
+    // restored under whatever currency this device happens to be set to - see
+    // restorePathIntegrity.test.ts.
+    it('rejects a snapshot that carries data but no settings (no currency)', () => {
         const noSettings = {
             ...validSnapshot,
             data: {
@@ -198,7 +204,8 @@ describe('Backup Validation', () => {
             },
         };
         const result = validateSnapshot(noSettings);
-        expect(result.valid).toBe(true);
+        expect(result.valid).toBe(false);
+        expect(result.reason).toBe('missingCurrency');
     });
 });
 

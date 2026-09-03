@@ -21,7 +21,7 @@ import { Platform } from 'react-native';
 // the URI and injected a spurious `/..`, triggering ERR_FILE_NOT_WRITABLE).
 import { File } from 'expo-file-system';
 
-import { asyncStorageAdapter, StorageKeys } from '../storage';
+import { asyncStorageAdapter, LEGACY_KV_FINANCIAL_KEYS, StorageKeys } from '../storage';
 import { closeDatabase, getDb } from '../storage/sql/database';
 import { DB_NAME } from '../storage/sql/OpSQLiteDatabase';
 
@@ -140,13 +140,14 @@ export async function resetCorruptedStore(): Promise<void> {
     // Drop the schema-version + seed pointers so the fresh DB re-runs all
     // migrations and re-seeds, and clear any residual cleartext KV copies.
     // SETTINGS (language/theme/onboarding) and the keystore key are kept.
+    //
+    // The financial keys come from LEGACY_KV_FINANCIAL_KEYS, the same constant
+    // migration v6 purges, rather than from a literal list repeated here: both
+    // paths must remove exactly the same keys, and nothing but the shared
+    // constant makes that true after the next key is added.
     await Promise.all([
         asyncStorageAdapter.remove(StorageKeys.SCHEMA_VERSION),
         asyncStorageAdapter.remove(StorageKeys.SEED_INITIALIZED),
-        asyncStorageAdapter.remove(StorageKeys.WALLETS),
-        asyncStorageAdapter.remove(StorageKeys.TRANSACTIONS),
-        asyncStorageAdapter.remove(StorageKeys.CATEGORIES),
-        asyncStorageAdapter.remove(StorageKeys.BUDGETS),
-        asyncStorageAdapter.remove(StorageKeys.RECURRING_RULES),
+        ...LEGACY_KV_FINANCIAL_KEYS.map((key) => asyncStorageAdapter.remove(key)),
     ]);
 }

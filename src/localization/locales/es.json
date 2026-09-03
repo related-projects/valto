@@ -429,6 +429,7 @@
     "restoreNow": "Restaurar ahora",
     "restoreFailed": "Error al restaurar",
     "restoreFailedMessage": "No se pudo restaurar desde la copia de seguridad. El archivo puede no ser válido.",
+    "restoreMissingCurrencyMessage": "Esta copia de seguridad no indica en qué moneda están sus importes, por lo que restaurarla podría malinterpretar todos los importes.",
     "restoreSuccess": "Listo",
     "restoreSuccessMessage": "Tus datos se han restaurado correctamente.",
     "resetAllData": "Eliminar los datos financieros",

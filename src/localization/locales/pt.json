@@ -429,6 +429,7 @@
         "restoreNow": "Restaurar agora",
         "restoreFailed": "Falha na restauração",
         "restoreFailedMessage": "Não foi possível restaurar do backup. O arquivo pode ser inválido.",
+        "restoreMissingCurrencyMessage": "Este backup não registra em que moeda estão os seus valores, portanto restaurá-lo poderia interpretar todos os valores de forma errada.",
         "restoreSuccess": "Sucesso",
         "restoreSuccessMessage": "Seus dados foram restaurados com sucesso.",
         "resetAllData": "Excluir os dados financeiros",

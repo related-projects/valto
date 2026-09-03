@@ -12,5 +12,8 @@ export {
     StorageError,
     StorageErrorType, type IStorage
 } from './IStorage';
-export { StorageKeys, type StorageKey } from './StorageKeys';
+export {
+    LEGACY_KV_FINANCIAL_KEYS,
+    StorageKeys, type LegacyKvFinancialKey, type StorageKey
+} from './StorageKeys';
 

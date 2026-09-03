@@ -35,3 +35,24 @@ export const StorageKeys = {
 } as const;
 
 export type StorageKey = typeof StorageKeys[keyof typeof StorageKeys];
+
+/**
+ * The legacy key-value copies of the financial entities, every one of which is
+ * now owned by SQLite.
+ *
+ * Two callers must agree on this list exactly: migration v6 purges it once the
+ * import flag proves the data reached SQLite, and resetCorruptedStore removes it
+ * alongside the rebuild pointers. They used to hold a literal copy each, bound
+ * by nothing but a comment. A key added to one and forgotten in the other leaves
+ * a cleartext copy of financial data on disk after an operation that claimed to
+ * remove it, so the list lives here and both consumers import it.
+ */
+export const LEGACY_KV_FINANCIAL_KEYS = [
+    StorageKeys.WALLETS,
+    StorageKeys.TRANSACTIONS,
+    StorageKeys.CATEGORIES,
+    StorageKeys.BUDGETS,
+    StorageKeys.RECURRING_RULES,
+] as const;
+
+export type LegacyKvFinancialKey = typeof LEGACY_KV_FINANCIAL_KEYS[number];

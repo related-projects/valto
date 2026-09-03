@@ -44,6 +44,7 @@ jest.mock('../../core/events', () => ({
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CURRENT_SCHEMA_VERSION, restoreFromSnapshot, type BackupSnapshot } from '../services/backupService';
+import { getDefaultSettings } from '../services/settingsService';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 import { __setDatabaseForTests } from '../storage/sql/database';
 
@@ -79,6 +80,10 @@ const snapshot = (): BackupSnapshot => ({
         budgets: [
             { id: 'b-food', categoryId: 'food', month: '2026-01', limitAmount: 50000, createdAt: ISO, updatedAt: ISO },
         ],
+        // Mandatory once the snapshot carries data: the amounts above are
+        // integers in minor units, and only the currency says how many minor
+        // units make a major one.
+        settings: getDefaultSettings(),
     },
 });
 
