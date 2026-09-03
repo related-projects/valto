@@ -81,14 +81,16 @@
       "totalIncome": "Ingresos totales",
       "totalExpense": "Gastos totales",
       "netBalance": "Saldo neto",
-      "savingsRate": "Tasa de ahorro"
+      "savingsRate": "Tasa de ahorro",
+      "noActivity": "No hay transacciones este mes"
     },
     "ytdSummary": {
       "title": "Acumulado del año ({{year}})",
       "income": "Ingresos",
       "expenses": "Gastos",
       "net": "Neto",
-      "savingsRate": "Tasa de ahorro"
+      "savingsRate": "Tasa de ahorro",
+      "noActivity": "No hay transacciones en este período"
     },
     "overBudget": "¡Presupuesto excedido!",
     "ofBudget": "{{spent}} de {{limit}}"

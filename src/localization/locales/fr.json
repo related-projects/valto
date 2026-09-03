@@ -81,14 +81,16 @@
       "totalIncome": "Revenu total",
       "totalExpense": "Dépense totale",
       "netBalance": "Solde net",
-      "savingsRate": "Taux d'épargne"
+      "savingsRate": "Taux d'épargne",
+      "noActivity": "Aucune transaction ce mois"
     },
     "ytdSummary": {
       "title": "Cumul annuel ({{year}})",
       "income": "Revenus",
       "expenses": "Dépenses",
       "net": "Net",
-      "savingsRate": "Taux d'épargne"
+      "savingsRate": "Taux d'épargne",
+      "noActivity": "Aucune transaction sur cette période"
     },
     "overBudget": "Budget dépassé !",
     "ofBudget": "{{spent}} sur {{limit}}"
