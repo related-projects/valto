@@ -157,7 +157,9 @@
     "deleteTitle": "Delete Category",
     "deleteMessage": "Are you sure you want to delete \"{{name}}\"?",
     "delete": "Delete",
-    "deleteFailed": "Failed to delete category"
+    "deleteFailed": "Failed to delete category",
+    "deleteBlockedByRulesTitle": "Category In Use",
+    "deleteBlockedByRulesMessage": "{{count}} recurring rule(s) still use this category. Point those rules at another category, or delete them, then delete this category."
   },
   "modals": {
     "addTransaction": {
@@ -263,7 +265,9 @@
       "error": "Error",
       "hasTransactionsTitle": "Wallet Has Transactions",
       "hasTransactionsMessage": "This wallet has transactions. Deleting will not affect past transactions but they will no longer be linked to a wallet. Continue?",
-      "deleteAnyway": "Delete Anyway"
+      "deleteAnyway": "Delete Anyway",
+      "deleteBlockedByRulesTitle": "Wallet In Use",
+      "deleteBlockedByRulesMessage": "{{count}} recurring rule(s) still use this wallet. Point those rules at another wallet, or delete them, then delete this wallet."
     },
     "category": {
       "newTitle": "New Category",

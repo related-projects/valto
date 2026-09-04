@@ -157,7 +157,9 @@
         "deleteTitle": "Excluir categoria",
         "deleteMessage": "Tem certeza de que deseja excluir \"{{name}}\"?",
         "delete": "Excluir",
-        "deleteFailed": "Falha ao excluir a categoria"
+        "deleteFailed": "Falha ao excluir a categoria",
+        "deleteBlockedByRulesTitle": "Categoria em uso",
+        "deleteBlockedByRulesMessage": "{{count}} regra(s) recorrente(s) ainda usam esta categoria. Aponte essas regras para outra categoria, ou exclua-as, e depois exclua esta categoria."
     },
     "modals": {
         "addTransaction": {
@@ -263,7 +265,9 @@
             "error": "Erro",
             "hasTransactionsTitle": "A carteira tem transações",
             "hasTransactionsMessage": "Esta carteira tem transações. Excluí-la não afetará as transações passadas, mas elas não estarão mais vinculadas a uma carteira. Continuar?",
-            "deleteAnyway": "Excluir mesmo assim"
+            "deleteAnyway": "Excluir mesmo assim",
+            "deleteBlockedByRulesTitle": "Carteira em uso",
+            "deleteBlockedByRulesMessage": "{{count}} regra(s) recorrente(s) ainda usam esta carteira. Aponte essas regras para outra carteira, ou exclua-as, e depois exclua esta carteira."
         },
         "category": {
             "newTitle": "Nova categoria",

@@ -157,7 +157,9 @@
     "deleteTitle": "Eliminar categoría",
     "deleteMessage": "¿Seguro que deseas eliminar «{{name}}»?",
     "delete": "Eliminar",
-    "deleteFailed": "No se pudo eliminar la categoría"
+    "deleteFailed": "No se pudo eliminar la categoría",
+    "deleteBlockedByRulesTitle": "Categoría en uso",
+    "deleteBlockedByRulesMessage": "{{count}} regla(s) recurrente(s) todavía usan esta categoría. Asigna esas reglas a otra categoría, o elimínalas, y luego elimina esta categoría."
   },
   "modals": {
     "addTransaction": {
@@ -263,7 +265,9 @@
       "error": "Error",
       "hasTransactionsTitle": "La cartera tiene transacciones",
       "hasTransactionsMessage": "Esta cartera tiene transacciones. Al eliminarla no se afectarán las transacciones pasadas, pero ya no estarán vinculadas a una cartera. ¿Continuar?",
-      "deleteAnyway": "Eliminar de todos modos"
+      "deleteAnyway": "Eliminar de todos modos",
+      "deleteBlockedByRulesTitle": "Cartera en uso",
+      "deleteBlockedByRulesMessage": "{{count}} regla(s) recurrente(s) todavía usan esta cartera. Asigna esas reglas a otra cartera, o elimínalas, y luego elimina esta cartera."
     },
     "category": {
       "newTitle": "Nueva categoría",

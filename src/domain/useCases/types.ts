@@ -8,6 +8,7 @@
 import type {
     IBudgetRepository,
     ICategoryRepository,
+    IRecurringTransactionRepository,
     ITransactionRepository,
     IWalletRepository,
 } from '../repositories';
@@ -32,6 +33,7 @@ export interface UseCaseDeps {
     walletRepo: IWalletRepository;
     categoryRepo: ICategoryRepository;
     budgetRepo: IBudgetRepository;
+    recurringRepo: IRecurringTransactionRepository;
     eventBus: EventBus;
     runInTransaction: RunInTransaction;
 }

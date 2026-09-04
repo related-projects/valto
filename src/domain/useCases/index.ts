@@ -7,7 +7,13 @@ export { createWallet } from './createWallet';
 export { deleteCategory } from './deleteCategory';
 export { deleteTransaction } from './deleteTransaction';
 export { deleteWallet } from './deleteWallet';
-export { InsufficientFundsError, LastWalletError, TransferDeletionNotSupportedError } from './errors';
+export {
+    CategoryHasRecurringRulesError,
+    InsufficientFundsError,
+    LastWalletError,
+    TransferDeletionNotSupportedError,
+    WalletHasRecurringRulesError,
+} from './errors';
 export { transferFunds, type TransferFundsInput } from './transferFunds';
 export { verifyFinancialIntegrity } from './verifyFinancialIntegrity';
 export type { EventBus, UseCaseDeps } from './types';

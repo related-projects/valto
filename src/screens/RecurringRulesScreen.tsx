@@ -200,6 +200,7 @@ export const RecurringRulesScreen: React.FC = () => {
                     recurringRepo: container.recurringTransactionRepository,
                     transactionRepo: container.transactionRepository,
                     walletRepo: container.walletRepository,
+                    categoryRepo: container.categoryRepository,
                     eventBus: dataEvents,
                     runInTransaction: getUseCaseDeps().runInTransaction,
                 });

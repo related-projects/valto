@@ -157,7 +157,9 @@
     "deleteTitle": "Supprimer la catégorie",
     "deleteMessage": "Êtes-vous sûr de vouloir supprimer « {{name}} » ?",
     "delete": "Supprimer",
-    "deleteFailed": "Échec de la suppression de la catégorie"
+    "deleteFailed": "Échec de la suppression de la catégorie",
+    "deleteBlockedByRulesTitle": "Catégorie utilisée",
+    "deleteBlockedByRulesMessage": "{{count}} règle(s) récurrente(s) utilisent encore cette catégorie. Réaffectez ces règles à une autre catégorie, ou supprimez-les, puis supprimez cette catégorie."
   },
   "modals": {
     "addTransaction": {
@@ -263,7 +265,9 @@
       "error": "Erreur",
       "hasTransactionsTitle": "Portefeuille avec transactions",
       "hasTransactionsMessage": "Ce portefeuille contient des transactions. La suppression n'affectera pas les transactions passées mais elles ne seront plus liées à un portefeuille. Continuer ?",
-      "deleteAnyway": "Supprimer quand même"
+      "deleteAnyway": "Supprimer quand même",
+      "deleteBlockedByRulesTitle": "Portefeuille utilisé",
+      "deleteBlockedByRulesMessage": "{{count}} règle(s) récurrente(s) utilisent encore ce portefeuille. Réaffectez ces règles à un autre portefeuille, ou supprimez-les, puis supprimez ce portefeuille."
     },
     "category": {
       "newTitle": "Nouvelle catégorie",

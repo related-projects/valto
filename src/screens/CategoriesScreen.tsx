@@ -8,7 +8,9 @@ import { CategoryModal } from '../components/modals/CategoryModal';
 import { IconBadge } from '../components/ui/IconBadge';
 import { ListItem } from '../components/ui/ListItem';
 import { Segment, SegmentControl } from '../components/ui/SegmentControl';
+import { getRecurringTransactionRepository } from '../core/di';
 import { Category, CategoryType } from '../domain/entities';
+import { CategoryHasRecurringRulesError } from '../domain/useCases';
 import { useCategories } from '../hooks/useCategories';
 import { useTheme } from '../theme/theme';
 
@@ -57,6 +59,31 @@ export const CategoriesScreen = () => {
                         try {
                             await deleteCategory(category.id);
                         } catch (error) {
+                            // Register V-29: useCategories.deleteCategory re-wraps every
+                            // failure into a bare `new Error(message)`, so the typed
+                            // refusal thrown by the use case does not survive the hook
+                            // and `instanceof` alone cannot recognise it here. The
+                            // instanceof branch is kept for the day the hook stops
+                            // re-wrapping; until then the count is re-read from the same
+                            // repository the use case consulted. Local to this call site,
+                            // on the error path only, and no change to the hook.
+                            const ruleCount =
+                                error instanceof CategoryHasRecurringRulesError
+                                    ? error.ruleCount
+                                    : (
+                                        await getRecurringTransactionRepository()
+                                            .getByCategoryId(category.id)
+                                            .catch(() => [])
+                                    ).length;
+
+                            if (ruleCount > 0) {
+                                Alert.alert(
+                                    t('categories.deleteBlockedByRulesTitle'),
+                                    t('categories.deleteBlockedByRulesMessage', { count: ruleCount }),
+                                );
+                                return;
+                            }
+
                             Alert.alert(t('alerts.error'), t('categories.deleteFailed'));
                         }
                     }

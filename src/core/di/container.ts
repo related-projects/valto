@@ -101,6 +101,7 @@ export const getUseCaseDeps = (): UseCaseDeps => ({
     walletRepo: container.walletRepository,
     categoryRepo: container.categoryRepository,
     budgetRepo: container.budgetRepository,
+    recurringRepo: container.recurringTransactionRepository,
     eventBus: dataEvents,
     // Atomic boundary backed by the single shared SQLite connection.
     runInTransaction: (work) => getDb().runInTransaction(work),
