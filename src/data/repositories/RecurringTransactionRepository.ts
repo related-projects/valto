@@ -15,7 +15,7 @@ import {
     UpdateRecurringTransactionDTO,
 } from '../../domain/entities/RecurringTransaction';
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
-import { addMonthsClamped } from '../../domain/calculations/recurrenceDates';
+import { addMonthsClamped, startOfDay } from '../../domain/calculations/recurrenceDates';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import {
     recurringMapper,
@@ -47,10 +47,24 @@ export class RecurringTransactionRepository
         return sqlGetById(this.db, recurringMapper, id);
     }
 
+    /**
+     * The rules the engine may execute now.
+     *
+     * A rule is active THROUGH the end of its endDate day. The comparison is on
+     * whole days, not on the instant: `endDate > new Date()` measured the stored
+     * midnight against wall-clock time, so a rule ending today stopped being
+     * active at 00:00 and lost its final occurrence. Every other date decision
+     * in this path - computeDueDates and its endDate fence included - already
+     * runs on startOfDay, and the occurrence the engine would have generated is
+     * on or before endDate by construction, so the day-level comparison is the
+     * one that matches.
+     */
     async getActiveRules(): Promise<RecurringTransaction[]> {
         const rules = await this.getAll();
-        const now = new Date();
-        return rules.filter((r) => !r.isPaused && (!r.endDate || r.endDate > now));
+        const today = startOfDay(new Date()).getTime();
+        return rules.filter(
+            (r) => !r.isPaused && (!r.endDate || startOfDay(r.endDate).getTime() >= today),
+        );
     }
 
     /**

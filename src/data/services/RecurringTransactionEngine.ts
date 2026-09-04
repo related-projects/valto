@@ -17,16 +17,16 @@
  * reported as a business outcome - NOT a system error.
  */
 
-import { TransactionType, type CreateTransactionDTO } from '../../domain/entities/Transaction';
-import { WalletType } from '../../domain/entities/Wallet';
-import { RecurrenceFrequency, type RecurringTransaction } from '../../domain/entities/RecurringTransaction';
+import { type CreateTransactionDTO } from '../../domain/entities/Transaction';
+import type { RecurringTransaction } from '../../domain/entities/RecurringTransaction';
 import type { CategoryRepository } from '../repositories/CategoryRepository';
 import type { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import type { TransactionRepository } from '../repositories/TransactionRepository';
 import type { WalletRepository } from '../repositories/WalletRepository';
 import type { EventBus, RunInTransaction } from '../../domain/useCases/types';
 import { createTransaction } from '../../domain/useCases/createTransaction';
-import { addMonthsClamped } from '../../domain/calculations/recurrenceDates';
+import { computeDueDates, startOfDay } from '../../domain/calculations/recurrenceDates';
+import { checkInsufficientFunds } from '../../domain/recurring';
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -205,23 +205,24 @@ async function generateForRule(
     // Deliberately after the reference check: a rule pointing nowhere is not a
     // funding problem, and reporting it as one would tell the user to add money
     // to a rule that would still never execute afterwards.
-    if (rule.type === TransactionType.EXPENSE) {
-        // Cash and mobile wallets cannot go negative - check total cost
-        if (wallet.type === WalletType.CASH || wallet.type === WalletType.MOBILE) {
-            const totalCost = rule.amount * dueDates.length;
-            if (wallet.balance < totalCost) {
-                return {
-                    generated: 0,
-                    skipped: {
-                        ruleId: rule.id,
-                        reason: SkipReason.INSUFFICIENT_FUNDS,
-                        walletId: rule.walletId,
-                        amount: totalCost,
-                        availableBalance: wallet.balance,
-                    },
-                };
-            }
-        }
+    //
+    // The decision itself lives in checkInsufficientFunds, in the domain. The
+    // rules screen has to answer the same question without running the engine,
+    // and two copies of "insufficient" that agree today do not stay agreed. This
+    // is the only definition; the engine reads it and keeps its own all-or-
+    // nothing grain, which this pass does not change.
+    const shortfall = checkInsufficientFunds(rule, wallet, dueDates);
+    if (shortfall) {
+        return {
+            generated: 0,
+            skipped: {
+                ruleId: rule.id,
+                reason: SkipReason.INSUFFICIENT_FUNDS,
+                walletId: rule.walletId,
+                amount: shortfall.totalCost,
+                availableBalance: shortfall.availableBalance,
+            },
+        };
     }
 
     // ─── Generate transactions ────────────────────────────────────────
@@ -271,91 +272,10 @@ async function generateForRule(
     return { generated: dueDates.length };
 }
 
-// ─── Date Computation ─────────────────────────────────────────────────
-
-/**
- * Compute all due dates for a rule between lastGeneratedDate (exclusive) and today (inclusive).
- * Respects endDate if present.
- */
-export function computeDueDates(
-    rule: RecurringTransaction,
-    today: Date,
-): Date[] {
-    const dates: Date[] = [];
-    const fence = startOfDay(rule.lastGeneratedDate);
-    const end = rule.endDate ? startOfDay(rule.endDate) : null;
-
-    // Start from the rule's startDate and step forward
-    const start = startOfDay(rule.startDate);
-    let cursor = start;
-
-    // Day of the month the rule is anchored on. Monthly and yearly steps re-derive the day
-    // from this instead of from the cursor, so a month too short to hold it (February for a
-    // day-31 rule) is clamped for that month only and the series returns to the anchor day.
-    const anchorDay = start.getDate();
-
-    // Safety limit to prevent infinite loops
-    const MAX_ITERATIONS = 3650; // ~10 years of daily
-    let iterations = 0;
-
-    while (cursor.getTime() <= today.getTime() && iterations < MAX_ITERATIONS) {
-        iterations++;
-
-        // Only include dates after the watermark
-        if (cursor.getTime() > fence.getTime()) {
-            // Respect endDate
-            if (end && cursor.getTime() > end.getTime()) {
-                break;
-            }
-            dates.push(new Date(cursor));
-        }
-
-        cursor = startOfDay(advanceDate(cursor, rule.frequency, rule.interval, anchorDay));
-    }
-
-    return dates;
-}
-
-/**
- * Advance a date by the given frequency and interval.
- *
- * `anchorDay` is the day of the month the rule is anchored on, taken from its startDate.
- * It has to be passed in: `date` is the previous occurrence, which may itself have been
- * clamped into a short month, so the original anchor day cannot be recovered from it.
- * Stepping from the clamped value would pin the whole series to 28 - the same drift bug in
- * a quieter form. Only the monthly and yearly branches need it; day and week steps cannot
- * overflow a month boundary.
- */
-function advanceDate(
-    date: Date,
-    frequency: RecurrenceFrequency,
-    interval: number,
-    anchorDay: number,
-): Date {
-    const next = new Date(date);
-    switch (frequency) {
-        case RecurrenceFrequency.DAILY:
-            next.setDate(next.getDate() + interval);
-            break;
-        case RecurrenceFrequency.WEEKLY:
-            next.setDate(next.getDate() + 7 * interval);
-            break;
-        case RecurrenceFrequency.MONTHLY:
-            return addMonthsClamped(date, interval, anchorDay);
-        case RecurrenceFrequency.YEARLY:
-            // A year is 12 months, so the yearly step gets the same clamping for free:
-            // a 29 February anchor falls on 28 February in non-leap years and returns to
-            // the 29th at the next leap year.
-            return addMonthsClamped(date, 12 * interval, anchorDay);
-    }
-    return next;
-}
-
-/**
- * Strip time component from a Date (midnight UTC-style using local TZ).
- */
-function startOfDay(d: Date): Date {
-    const result = new Date(d);
-    result.setHours(0, 0, 0, 0);
-    return result;
-}
+// --- Date computation -------------------------------------------------
+//
+// computeDueDates moved to src/domain/calculations/recurrenceDates so the rules
+// screen can ask what is pending for a rule without importing the data layer.
+// Re-exported here because it was exported from this module and its callers,
+// tests included, still import it from here.
+export { computeDueDates } from '../../domain/calculations/recurrenceDates';

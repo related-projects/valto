@@ -69,7 +69,8 @@
         "spendingStable": "Расходы примерно на уровне прошлого месяца.",
         "spendingIncreased": "Расходы выросли на {{percent}}% по сравнению с прошлым месяцем.",
         "spendingDecreased": "Расходы снизились на {{percent}}% по сравнению с прошлым месяцем.",
-        "categoryRisk": "На «{{category}}» приходится {{percent}}% ваших расходов."
+        "categoryRisk": "На «{{category}}» приходится {{percent}}% ваших расходов.",
+        "recurringRulesNotRunning": "Некоторые повторяющиеся правила не выполняются. Откройте «Повторяющиеся транзакции», чтобы узнать причину."
     },
     "reports": {
         "subtitle": "Обзор за месяц",
@@ -506,6 +507,9 @@
         "ruleUpdatedMessage": "Повторяющееся правило успешно обновлено.",
         "statusActive": "Активно",
         "statusPaused": "Приостановлено",
+        "statusExpired": "Завершено",
+        "statusMissingReference": "Нет кошелька или категории",
+        "statusInsufficientFunds": "Недостаточно средств",
         "defaultDescription": "Повторяющаяся транзакция",
         "frequencyEvery": "Каждый {{base}}",
         "frequencyEveryN": "Каждые {{interval}} {{base}}",
@@ -612,10 +616,6 @@
             "title": "Бюджеты не заданы",
             "description": "Создайте бюджет, чтобы контролировать расходы"
         },
-        "recurring": {
-            "title": "Пока нет повторяющихся транзакций",
-            "description": "Автоматизируйте доходы и расходы"
-        },
         "reports": {
             "title": "Нет данных за этот период",
             "description": "Добавьте транзакции, чтобы увидеть отчёты"
@@ -635,6 +635,7 @@
         "deleteTransaction": "Удалить операцию",
         "pauseRule": "Приостановить правило",
         "resumeRule": "Возобновить правило",
+        "ruleStatus": "Состояние правила: {{status}}",
         "searchTransactions": "Поиск транзакций",
         "filterTransactions": "Фильтр по {{filter}}",
         "selectCurrency": "Выбрать валюту",
