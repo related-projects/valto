@@ -69,7 +69,8 @@
         "spendingStable": "Os gastos estão praticamente iguais aos do mês passado.",
         "spendingIncreased": "Os gastos aumentaram {{percent}}% em relação ao mês passado.",
         "spendingDecreased": "Os gastos diminuíram {{percent}}% em relação ao mês passado.",
-        "categoryRisk": "{{category}} representa {{percent}}% dos seus gastos."
+        "categoryRisk": "{{category}} representa {{percent}}% dos seus gastos.",
+        "recurringRulesNotRunning": "Algumas regras recorrentes não estão a ser executadas. Abra Transações recorrentes para ver porquê."
     },
     "reports": {
         "subtitle": "Visão geral mensal",
@@ -506,6 +507,9 @@
         "ruleUpdatedMessage": "Regra recorrente atualizada com sucesso.",
         "statusActive": "Ativa",
         "statusPaused": "Pausada",
+        "statusExpired": "Terminada",
+        "statusMissingReference": "Carteira ou categoria em falta",
+        "statusInsufficientFunds": "Fundos insuficientes",
         "defaultDescription": "Transação recorrente",
         "frequencyEvery": "A cada {{base}}",
         "frequencyEveryN": "A cada {{interval}} {{base}}s",
@@ -612,10 +616,6 @@
             "title": "Nenhum orçamento definido",
             "description": "Crie um orçamento para monitorar seus gastos"
         },
-        "recurring": {
-            "title": "Nenhuma transação recorrente ainda",
-            "description": "Automatize suas receitas e despesas"
-        },
         "reports": {
             "title": "Nenhum dado para este período",
             "description": "Adicione transações para ver seus relatórios"
@@ -635,6 +635,7 @@
         "deleteTransaction": "Excluir transação",
         "pauseRule": "Pausar regra",
         "resumeRule": "Retomar regra",
+        "ruleStatus": "Estado da regra: {{status}}",
         "searchTransactions": "Buscar transações",
         "filterTransactions": "Filtrar por {{filter}}",
         "selectCurrency": "Selecionar moeda",

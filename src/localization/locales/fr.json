@@ -69,7 +69,8 @@
     "spendingStable": "Les dépenses sont à peu près les mêmes que le mois dernier.",
     "spendingIncreased": "Les dépenses ont augmenté de {{percent}}% par rapport au mois dernier.",
     "spendingDecreased": "Les dépenses ont diminué de {{percent}}% par rapport au mois dernier.",
-    "categoryRisk": "{{category}} représente {{percent}}% de vos dépenses."
+    "categoryRisk": "{{category}} représente {{percent}}% de vos dépenses.",
+    "recurringRulesNotRunning": "Certaines règles récurrentes ne s'exécutent pas. Ouvrez Transactions récurrentes pour en connaître la raison."
   },
   "reports": {
     "subtitle": "Aperçu mensuel",
@@ -506,6 +507,9 @@
     "ruleUpdatedMessage": "Règle récurrente mise à jour avec succès.",
     "statusActive": "Actif",
     "statusPaused": "En pause",
+    "statusExpired": "Terminée",
+    "statusMissingReference": "Portefeuille ou catégorie manquant",
+    "statusInsufficientFunds": "Fonds insuffisants",
     "defaultDescription": "Transaction récurrente",
     "frequencyEvery": "Chaque {{base}}",
     "frequencyEveryN": "Tous les {{interval}} {{base}}s",
@@ -612,10 +616,6 @@
       "title": "Aucun budget défini",
       "description": "Créez un budget pour surveiller vos dépenses"
     },
-    "recurring": {
-      "title": "Aucune transaction récurrente",
-      "description": "Automatisez vos revenus et dépenses"
-    },
     "reports": {
       "title": "Aucune donnée pour cette période",
       "description": "Ajoutez des transactions pour voir vos rapports"
@@ -635,6 +635,7 @@
     "deleteTransaction": "Supprimer la transaction",
     "pauseRule": "Mettre en pause la règle",
     "resumeRule": "Reprendre la règle",
+    "ruleStatus": "État de la règle : {{status}}",
     "searchTransactions": "Rechercher des transactions",
     "filterTransactions": "Filtrer par {{filter}}",
     "selectCurrency": "Sélectionner la devise",

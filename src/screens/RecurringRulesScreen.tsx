@@ -22,10 +22,11 @@ import { container, getUseCaseDeps } from '../core/di/container';
 import { dataEvents } from '../core/events/dataEvents';
 import { processRecurringRules } from '../data/services/RecurringTransactionEngine';
 import { RecurrenceFrequency, type CreateRecurringTransactionDTO, type RecurringTransaction, type UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
+import { RecurringRuleStatus, isFaultStatus } from '../domain/recurring';
 import { useFormatting } from '../hooks/useFormatting';
 import { useRecurringRules } from '../hooks/useRecurringRules';
 import { useTheme } from '../theme/theme';
-import { getButtonA11y } from '../utils/accessibility';
+import { getA11y, getButtonA11y } from '../utils/accessibility';
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 const FREQ_KEYS: Record<RecurrenceFrequency, string> = {
@@ -35,20 +36,49 @@ const FREQ_KEYS: Record<RecurrenceFrequency, string> = {
     yearly: 'recurring.freqYear',
 };
 
+/**
+ * One label per status. The badge used to read from rule.isPaused alone, so a
+ * rule that had reached its endDate, lost its wallet or could not be paid for
+ * all rendered "Active" while producing nothing.
+ */
+const STATUS_KEYS: Record<RecurringRuleStatus, string> = {
+    [RecurringRuleStatus.ACTIVE]: 'recurring.statusActive',
+    [RecurringRuleStatus.PAUSED]: 'recurring.statusPaused',
+    [RecurringRuleStatus.EXPIRED]: 'recurring.statusExpired',
+    [RecurringRuleStatus.MISSING_REFERENCE]: 'recurring.statusMissingReference',
+    [RecurringRuleStatus.INSUFFICIENT_FUNDS]: 'recurring.statusInsufficientFunds',
+};
+
 // ─── Rule Card ────────────────────────────────────────────────────────
 
 const RuleCard: React.FC<{
     rule: RecurringTransaction;
+    status: RecurringRuleStatus;
     onEdit: (rule: RecurringTransaction) => void;
     onTogglePause: (rule: RecurringTransaction) => void;
     onDelete: (rule: RecurringTransaction) => void;
-}> = ({ rule, onEdit, onTogglePause, onDelete }) => {
+}> = ({ rule, status, onEdit, onTogglePause, onDelete }) => {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const { formatAmount } = useFormatting();
 
-    const statusColor = rule.isPaused ? colors.mutedForeground : colors.primary;
-    const statusLabel = rule.isPaused ? t('recurring.statusPaused') : t('recurring.statusActive');
+    // The label carries the state. Colour and the warning icon are redundant
+    // cues on top of it, never the only thing separating a fault from a rule
+    // that is simply paused or finished.
+    const statusLabel = t(STATUS_KEYS[status]);
+    const isFault = isFaultStatus(status);
+    const isRunning = status === RecurringRuleStatus.ACTIVE;
+
+    let statusBackground = colors.muted;
+    let statusColor = colors.mutedForeground;
+    if (isFault) {
+        statusBackground = colors.warningBackground;
+        statusColor = colors.warningText;
+    } else if (isRunning) {
+        statusBackground = colors.accent;
+        statusColor = colors.primary;
+    }
+
     const typeIcon = rule.type === 'income' ? 'trending-up' : 'trending-down';
     const typeColor = rule.type === 'income' ? (colors.success ?? '#22c55e') : (colors.destructive ?? '#ef4444');
 
@@ -77,13 +107,30 @@ const RuleCard: React.FC<{
                         {rule.description || t('recurring.defaultDescription')}
                     </Text>
                 </View>
-                <View style={{
-                    backgroundColor: rule.isPaused ? colors.muted : colors.accent,
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: 2,
-                    borderRadius: radius.sm,
-                }}>
-                    <Text style={{ color: statusColor, fontSize: typography.sizes.xs, fontWeight: '600' }}>
+                <View
+                    style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        flexShrink: 1,
+                        backgroundColor: statusBackground,
+                        paddingInline: spacing.sm,
+                        paddingBlock: 2,
+                        borderRadius: radius.sm,
+                        marginInlineStart: spacing.xs,
+                    }}
+                    {...getA11y(t('a11y.ruleStatus', { status: statusLabel }), 'text')}
+                >
+                    {isFault && (
+                        <Ionicons
+                            name="alert-circle-outline"
+                            size={12}
+                            color={statusColor}
+                            style={{ marginInlineEnd: 4 }}
+                        />
+                    )}
+                    <Text
+                        style={{ color: statusColor, fontSize: typography.sizes.xs, fontWeight: '600', flexShrink: 1 }}
+                    >
                         {statusLabel}
                     </Text>
                 </View>
@@ -137,7 +184,7 @@ export const RecurringRulesScreen: React.FC = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { rules, loading, createRule, updateRule, deleteRule, pauseRule, resumeRule } = useRecurringRules();
+    const { rules, statuses, loading, createRule, updateRule, deleteRule, pauseRule, resumeRule } = useRecurringRules();
     const [formVisible, setFormVisible] = useState(false);
     const [editingRule, setEditingRule] = useState<RecurringTransaction | undefined>();
 
@@ -233,12 +280,13 @@ export const RecurringRulesScreen: React.FC = () => {
         ({ item }: { item: RecurringTransaction }) => (
             <RuleCard
                 rule={item}
+                status={statuses[item.id] ?? RecurringRuleStatus.ACTIVE}
                 onEdit={handleEdit}
                 onTogglePause={handleTogglePause}
                 onDelete={handleDelete}
             />
         ),
-        [handleEdit, handleTogglePause, handleDelete],
+        [statuses, handleEdit, handleTogglePause, handleDelete],
     );
 
     const renderEmpty = () => (
