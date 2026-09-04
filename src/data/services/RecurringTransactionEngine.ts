@@ -20,6 +20,7 @@
 import { TransactionType, type CreateTransactionDTO } from '../../domain/entities/Transaction';
 import { WalletType } from '../../domain/entities/Wallet';
 import { RecurrenceFrequency, type RecurringTransaction } from '../../domain/entities/RecurringTransaction';
+import type { CategoryRepository } from '../repositories/CategoryRepository';
 import type { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import type { TransactionRepository } from '../repositories/TransactionRepository';
 import type { WalletRepository } from '../repositories/WalletRepository';
@@ -47,6 +48,8 @@ export interface RecurringEngineDeps {
     recurringRepo: RecurringTransactionRepository;
     transactionRepo: TransactionRepository;
     walletRepo: WalletRepository;
+    /** Needed by the reference pre-check: a rule's category has no constraint behind it. */
+    categoryRepo: CategoryRepository;
     eventBus: EventBus;
     runInTransaction: RunInTransaction;
 }
@@ -144,9 +147,12 @@ export async function retryRule(
  * Generate all missing transactions for a single rule.
  * Returns the number of transactions generated and any skip info.
  *
- * Pre-check: For expense rules targeting cash/mobile wallets,
- * verifies the wallet can cover the total cost of all pending dues
- * BEFORE creating any transactions (all-or-nothing).
+ * Pre-checks, in order, and only once something is actually due:
+ *  1. Reference integrity - the rule's wallet and category must both still
+ *     exist. Applies to every rule type. Throws.
+ *  2. Insufficient funds - for expense rules targeting cash/mobile wallets,
+ *     verifies the wallet can cover the total cost of all pending dues
+ *     BEFORE creating any transactions (all-or-nothing). Skips, does not throw.
  */
 async function generateForRule(
     deps: RecurringEngineDeps,
@@ -157,13 +163,49 @@ async function generateForRule(
 
     if (dueDates.length === 0) return { generated: 0 };
 
-    // ─── Pre-check: Insufficient funds guard ──────────────────────────
-    if (rule.type === TransactionType.EXPENSE) {
-        const wallet = await deps.walletRepo.getById(rule.walletId);
-        if (!wallet) {
-            throw new Error(`Wallet ${rule.walletId} not found for rule ${rule.id}`);
-        }
+    // --- Pre-check: reference integrity ---
+    //
+    // Neither reference has a database constraint behind it, so a rule can
+    // outlive its wallet or its category. Both are checked here, for every rule
+    // type, before any write:
+    //
+    //  - the wallet check used to live inside the expense branch below, so an
+    //    income rule reached createTransaction and failed inside
+    //    walletRepo.updateBalance - after the write transaction had opened and
+    //    a transaction row had been inserted, then rolled back;
+    //  - the category was checked nowhere at all. validateTransaction only
+    //    requires a non-empty string and transactions.category_id has no
+    //    constraint, so a rule whose category was deleted did not fail: it
+    //    wrote a transaction pointing at a category that does not exist and
+    //    advanced the watermark past the occurrence.
+    //
+    // This throws rather than skipping, pausing or repairing. A skip is a
+    // business outcome the user can resolve (add funds); a broken reference is
+    // not something the engine may decide for the user, and repairing it would
+    // mean silently re-pointing a standing order at some other wallet or
+    // category. The throw is caught per rule in processRecurringRules, which
+    // leaves the watermark unadvanced - the occurrences stay due, so repairing
+    // the reference lets the next run generate them.
+    //
+    // Placed AFTER the "nothing due" return above: a rule with nothing due must
+    // stay silent, broken or not, or every boot would report rules that had no
+    // work to do anyway.
+    const wallet = await deps.walletRepo.getById(rule.walletId);
+    if (!wallet) {
+        throw new Error(`Wallet ${rule.walletId} not found for rule ${rule.id}`);
+    }
 
+    const category = await deps.categoryRepo.getById(rule.categoryId);
+    if (!category) {
+        throw new Error(`Category ${rule.categoryId} not found for rule ${rule.id}`);
+    }
+
+    // ─── Pre-check: Insufficient funds guard ──────────────────────────
+    //
+    // Deliberately after the reference check: a rule pointing nowhere is not a
+    // funding problem, and reporting it as one would tell the user to add money
+    // to a rule that would still never execute afterwards.
+    if (rule.type === TransactionType.EXPENSE) {
         // Cash and mobile wallets cannot go negative - check total cost
         if (wallet.type === WalletType.CASH || wallet.type === WalletType.MOBILE) {
             const totalCost = rule.amount * dueDates.length;

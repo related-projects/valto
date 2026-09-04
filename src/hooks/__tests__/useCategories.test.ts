@@ -10,6 +10,7 @@ import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
+import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { CategoryType, TransactionType, WalletType } from '../../domain/entities';
@@ -20,18 +21,21 @@ let mockCategoryRepo: CategoryRepository;
 let mockTransactionRepo: TransactionRepository;
 let mockWalletRepo: WalletRepository;
 let mockBudgetRepo: BudgetRepository;
+let mockRecurringRepo: RecurringTransactionRepository;
 
 // Mock DI container
 jest.mock('../../core/di', () => ({
     getCategoryRepository: () => mockCategoryRepo,
     getTransactionRepository: () => mockTransactionRepo,
     getWalletRepository: () => mockWalletRepo,
+    getRecurringTransactionRepository: () => mockRecurringRepo,
     getUseCaseDeps: () => ({
         runInTransaction: (work: any) => mockDb.runInTransaction(work),
         transactionRepo: mockTransactionRepo,
         walletRepo: mockWalletRepo,
         categoryRepo: mockCategoryRepo,
         budgetRepo: mockBudgetRepo,
+        recurringRepo: mockRecurringRepo,
         eventBus: { emit: jest.fn(), emitMultiple: jest.fn() },
     }),
 }));
@@ -54,6 +58,7 @@ describe('useCategories', () => {
         mockTransactionRepo = new TransactionRepository(mockDb);
         mockWalletRepo = new WalletRepository(mockDb);
         mockBudgetRepo = new BudgetRepository(mockDb);
+        mockRecurringRepo = new RecurringTransactionRepository(mockDb);
     });
 
     it('loads categories on mount', async () => {

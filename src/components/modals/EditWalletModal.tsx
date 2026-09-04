@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { Wallet, WalletType } from "../../domain/entities";
+import { WalletHasRecurringRulesError } from "../../domain/useCases";
 import { useFormatting } from "../../hooks/useFormatting";
 import { useWallets } from "../../hooks/useWallets";
 import { radius } from "../../theme/radius";
@@ -167,6 +168,19 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
       onSuccess?.();
       onClose();
     } catch (error) {
+      // useWallets.deleteWallet rethrows the ORIGINAL error, so the typed
+      // refusal survives and gets its own localized copy instead of falling
+      // through to the developer-facing message below.
+      if (error instanceof WalletHasRecurringRulesError) {
+        Alert.alert(
+          t("modals.editWallet.deleteBlockedByRulesTitle"),
+          t("modals.editWallet.deleteBlockedByRulesMessage", {
+            count: error.ruleCount,
+          }),
+        );
+        return;
+      }
+
       Alert.alert(
         t("modals.addWallet.error"),
         error instanceof Error

@@ -142,13 +142,34 @@ function RootLayout() {
       await assertStoreReadable();
 
       // Process recurring transaction rules (idempotent)
-      await processRecurringRules({
+      const recurringResult = await processRecurringRules({
         recurringRepo: container.recurringTransactionRepository,
         transactionRepo: container.transactionRepository,
         walletRepo: container.walletRepository,
+        categoryRepo: container.categoryRepository,
         eventBus: dataEvents,
         runInTransaction: getUseCaseDeps().runInTransaction,
       });
+
+      // A rule that fails here is a standing order that did not execute, and
+      // the user is told nothing: the engine catches per rule and boot carries
+      // on. Discarding the result made that failure invisible to us as well -
+      // the only trace was a console.error nobody reads in a release build.
+      //
+      // Rule ids and counts only. The engine's error strings can carry whatever
+      // a repository or driver put in them, and this app logs balances, so the
+      // messages themselves are deliberately not sent.
+      const failedRuleIds = recurringResult?.errors?.map((e) => e.ruleId) ?? [];
+      if (failedRuleIds.length > 0) {
+        const msg =
+          `[RecurringEngine] ${failedRuleIds.length} of ` +
+          `${recurringResult.rulesEvaluated} rule(s) failed to generate: ` +
+          failedRuleIds.join(", ");
+        console.warn(msg);
+        if (!__DEV__) {
+          Sentry.captureMessage(msg, "warning");
+        }
+      }
 
       // Sync i18n with persisted language preference
       const settings = await loadSettings();

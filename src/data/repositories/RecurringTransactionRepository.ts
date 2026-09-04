@@ -27,10 +27,12 @@ import {
     sqlUpdate,
 } from '../storage/sql/mappers';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
+import type { IRecurringTransactionRepository } from '../../domain/repositories';
 import type { IRepository } from './IRepository';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
 
-export class RecurringTransactionRepository implements IRepository<RecurringTransaction> {
+export class RecurringTransactionRepository
+    implements IRepository<RecurringTransaction>, IRecurringTransactionRepository {
     constructor(private db: SqlDatabase) { }
 
     async getAll(): Promise<RecurringTransaction[]> {
@@ -49,6 +51,24 @@ export class RecurringTransactionRepository implements IRepository<RecurringTran
         const rules = await this.getAll();
         const now = new Date();
         return rules.filter((r) => !r.isPaused && (!r.endDate || r.endDate > now));
+    }
+
+    /**
+     * Every rule drawing on a given wallet, paused and expired ones included.
+     *
+     * Built on getAll, NOT on getActiveRules: this answers "does anything still
+     * point here", which is a different question from "what executes now". A
+     * paused rule is still a standing order - see IRecurringTransactionRepository.
+     */
+    async getByWalletId(walletId: string): Promise<RecurringTransaction[]> {
+        const rules = await this.getAll();
+        return rules.filter((r) => r.walletId === walletId);
+    }
+
+    /** Every rule filing against a given category, paused and expired included. */
+    async getByCategoryId(categoryId: string): Promise<RecurringTransaction[]> {
+        const rules = await this.getAll();
+        return rules.filter((r) => r.categoryId === categoryId);
     }
 
     async save(rule: RecurringTransaction): Promise<RecurringTransaction> {

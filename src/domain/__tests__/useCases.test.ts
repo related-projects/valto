@@ -6,8 +6,9 @@
  */
 
 import { createMockRepositories, type MockRepositoryBundle } from '../../test-utils/mockRepositories';
-import { CategoryType, TransactionType, WalletType } from '../entities';
+import { CategoryType, RecurrenceFrequency, TransactionType, WalletType } from '../entities';
 import {
+    CategoryHasRecurringRulesError,
     createTransaction,
     createWallet,
     deleteCategory,
@@ -16,6 +17,7 @@ import {
     LastWalletError,
     transferFunds,
     TransferDeletionNotSupportedError,
+    WalletHasRecurringRulesError,
 } from '../useCases';
 
 // ─── Shared test infrastructure ─────────────────────────────────────
@@ -27,6 +29,7 @@ let transactionRepo: MockRepositoryBundle['transactionRepo'];
 let walletRepo: MockRepositoryBundle['walletRepo'];
 let categoryRepo: MockRepositoryBundle['categoryRepo'];
 let budgetRepo: MockRepositoryBundle['budgetRepo'];
+let recurringRepo: MockRepositoryBundle['recurringRepo'];
 let eventBus: MockRepositoryBundle['eventBus'];
 
 function getDeps() {
@@ -35,6 +38,7 @@ function getDeps() {
         walletRepo,
         categoryRepo,
         budgetRepo,
+        recurringRepo,
         eventBus,
         runInTransaction: repos.runInTransaction,
     };
@@ -42,8 +46,28 @@ function getDeps() {
 
 beforeEach(async () => {
     repos = await createMockRepositories();
-    ({ transactionRepo, walletRepo, categoryRepo, budgetRepo, eventBus } = repos);
+    ({ transactionRepo, walletRepo, categoryRepo, budgetRepo, recurringRepo, eventBus } = repos);
 });
+
+/**
+ * A monthly rule pointing at the given wallet and category.
+ *
+ * Created unpaused; the tests that need a paused one pause it afterwards, which
+ * must not change the guards' answer. The deletion guards count every rule that
+ * exists, a wider set than the engine's getActiveRules.
+ */
+async function createLiveRule(walletId: string, categoryId: string) {
+    return recurringRepo.create({
+        type: TransactionType.EXPENSE,
+        amount: 5000,
+        walletId,
+        categoryId,
+        description: 'Standing order',
+        startDate: new Date(),
+        frequency: RecurrenceFrequency.MONTHLY,
+        interval: 1,
+    });
+}
 
 // ─── createTransaction ──────────────────────────────────────────────
 
@@ -373,6 +397,67 @@ describe('deleteCategory', () => {
         expect(await categoryRepo.getAll()).toHaveLength(1);
         expect(eventBus.emit).not.toHaveBeenCalledWith('categories');
     });
+
+    it('rejects deletion when a live recurring rule references the category', async () => {
+        const cat = await categoryRepo.create({
+            name: 'Subscriptions',
+            type: CategoryType.EXPENSE,
+            color: '#FF0000',
+            icon: 'repeat',
+        });
+        await categoryRepo.create({
+            name: 'Kept',
+            type: CategoryType.EXPENSE,
+            color: '#00FF00',
+            icon: 'cart',
+        });
+
+        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+
+        // No transaction and no budget: the two existing reference checks both
+        // pass, so only the rule check can refuse this.
+        await createLiveRule(wallet.id, cat.id);
+
+        const error = await deleteCategory(getDeps(), cat.id).catch((e: unknown) => e);
+
+        // Behaviour first: the category has to survive. The typed shape below
+        // is what the UI needs, but the refusal itself is the regression.
+        expect(await categoryRepo.getAll()).toHaveLength(2);
+        expect(eventBus.emit).not.toHaveBeenCalledWith('categories');
+
+        expect(error).toBeInstanceOf(CategoryHasRecurringRulesError);
+        expect((error as CategoryHasRecurringRulesError).code).toBe('CATEGORY_HAS_RECURRING_RULES');
+        expect((error as CategoryHasRecurringRulesError).ruleCount).toBe(1);
+    });
+
+    it('rejects deletion when the only rule referencing the category is paused', async () => {
+        const cat = await categoryRepo.create({
+            name: 'Dormant',
+            type: CategoryType.EXPENSE,
+            color: '#FF0000',
+            icon: 'repeat',
+        });
+        await categoryRepo.create({
+            name: 'Kept',
+            type: CategoryType.EXPENSE,
+            color: '#00FF00',
+            icon: 'cart',
+        });
+
+        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const rule = await createLiveRule(wallet.id, cat.id);
+        await recurringRepo.pauseRule(rule.id);
+
+        // is_paused says WHEN a rule runs, not whether it exists. A paused rule
+        // is still a standing order, and resuming it must not resume it into a
+        // category that was deleted while it slept. The guard therefore counts
+        // every rule, unlike the engine, which correctly runs active ones only.
+        const error = await deleteCategory(getDeps(), cat.id).catch((e: unknown) => e);
+
+        expect(await categoryRepo.getAll()).toHaveLength(2);
+        expect(error).toBeInstanceOf(CategoryHasRecurringRulesError);
+        expect((error as CategoryHasRecurringRulesError).ruleCount).toBe(1);
+    });
 });
 
 describe('deleteWallet', () => {
@@ -407,5 +492,70 @@ describe('deleteWallet', () => {
         expect(error).toBeInstanceOf(LastWalletError);
         expect((error as LastWalletError).code).toBe('LAST_WALLET');
         expect((error as LastWalletError).name).toBe('LastWalletError');
+    });
+
+    it('rejects deletion when a live recurring rule references the wallet', async () => {
+        const doomed = await walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH });
+        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+
+        const cat = await categoryRepo.create({
+            name: 'Rent',
+            type: CategoryType.EXPENSE,
+            color: '#FF0000',
+            icon: 'home',
+        });
+
+        await createLiveRule(doomed.id, cat.id);
+
+        const error = await deleteWallet(getDeps(), doomed.id).catch((e: unknown) => e);
+
+        // Behaviour first, typed shape second - see the category twin above.
+        expect(await walletRepo.getAll()).toHaveLength(2);
+        expect(eventBus.emit).not.toHaveBeenCalledWith('wallets');
+
+        expect(error).toBeInstanceOf(WalletHasRecurringRulesError);
+        expect((error as WalletHasRecurringRulesError).code).toBe('WALLET_HAS_RECURRING_RULES');
+        expect((error as WalletHasRecurringRulesError).ruleCount).toBe(1);
+    });
+
+    it('still deletes a wallet that holds transactions - only rules block', async () => {
+        const doomed = await walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH });
+        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+
+        await transactionRepo.create({
+            type: TransactionType.EXPENSE,
+            amount: 5000,
+            categoryId: 'food',
+            walletId: doomed.id,
+            date: new Date(),
+        });
+
+        // The asymmetry is the point: a past transaction may lose its wallet,
+        // a standing order may not.
+        await deleteWallet(getDeps(), doomed.id);
+
+        expect(await walletRepo.getAll()).toHaveLength(1);
+    });
+
+    it('rejects deletion when the only rule referencing the wallet is paused', async () => {
+        const doomed = await walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH });
+        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+
+        const cat = await categoryRepo.create({
+            name: 'Rent',
+            type: CategoryType.EXPENSE,
+            color: '#FF0000',
+            icon: 'home',
+        });
+
+        const rule = await createLiveRule(doomed.id, cat.id);
+        await recurringRepo.pauseRule(rule.id);
+
+        // See the category twin above: pausing is not an escape hatch.
+        const error = await deleteWallet(getDeps(), doomed.id).catch((e: unknown) => e);
+
+        expect(await walletRepo.getAll()).toHaveLength(2);
+        expect(error).toBeInstanceOf(WalletHasRecurringRulesError);
+        expect((error as WalletHasRecurringRulesError).ruleCount).toBe(1);
     });
 });

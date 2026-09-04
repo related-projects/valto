@@ -81,8 +81,11 @@ export async function resetAppData(): Promise<void> {
     await wipeFinancialData();
     await ensureUsableState();
 
-    // Trigger full reactive refresh
-    dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets']);
+    // Trigger full reactive refresh. 'recurringRules' belongs here: the wipe
+    // above clears recurring_rules along with its four siblings, so a rules
+    // screen left mounted across the reset kept rendering rows that no longer
+    // exist until something else happened to refresh it.
+    dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets', 'recurringRules']);
 }
 
 /**
@@ -111,6 +114,9 @@ export async function resetFinancialDataForCurrencyReset(newCode: string): Promi
     await wipeFinancialData();
     await ensureUsableState();
     const updated = await unlockAndResetCurrency(newCode);
-    dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets', 'settings']);
+    // 'recurringRules' for the same reason as resetAppData above.
+    dataEvents.emitMultiple([
+        'wallets', 'transactions', 'categories', 'budgets', 'recurringRules', 'settings',
+    ]);
     return updated;
 }

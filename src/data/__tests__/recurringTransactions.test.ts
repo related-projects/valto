@@ -9,7 +9,9 @@
 
 import { TransactionType } from '../../domain/entities/Transaction';
 import { WalletType } from '../../domain/entities/Wallet';
+import { CategoryType } from '../../domain/entities/Category';
 import { RecurrenceFrequency, type RecurringTransaction } from '../../domain/entities/RecurringTransaction';
+import { CategoryRepository } from '../repositories/CategoryRepository';
 import { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
@@ -404,12 +406,14 @@ describe('RecurringTransactionEngine', () => {
     let recurringRepo: RecurringTransactionRepository;
     let transactionRepo: TransactionRepository;
     let walletRepo: WalletRepository;
+    let categoryRepo: CategoryRepository;
 
     beforeEach(async () => {
         db = await createTestDb();
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
+        categoryRepo = new CategoryRepository(db);
 
         // Seed a wallet for transaction creation
         await walletRepo.save({
@@ -418,6 +422,16 @@ describe('RecurringTransactionEngine', () => {
             balance: 10000,
             type: 'cash' as any,
             createdAt: new Date('2025-01-01'),
+        });
+
+        // Seed the category validRule() points at. It was missing: these tests
+        // ran the engine on rules whose category did not exist, and were green,
+        // because nothing checked the category. See the pre-flight in
+        // generateForRule and recurringRuleReferences.test.ts.
+        await categoryRepo.save({
+            id: 'cat-1',
+            name: 'Test Category',
+            type: CategoryType.EXPENSE,
         });
     });
 
@@ -433,6 +447,7 @@ describe('RecurringTransactionEngine', () => {
             recurringRepo,
             transactionRepo,
             walletRepo,
+            categoryRepo,
             eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
@@ -454,7 +469,7 @@ describe('RecurringTransactionEngine', () => {
         }));
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         const countAfterFirst = (await transactionRepo.getAll()).length;
@@ -462,7 +477,7 @@ describe('RecurringTransactionEngine', () => {
         expect(countAfterFirst).toBe(3);
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         const countAfterSecond = (await transactionRepo.getAll()).length;
@@ -473,7 +488,7 @@ describe('RecurringTransactionEngine', () => {
         await recurringRepo.save(validRule({ isPaused: true }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         expect(result.rulesEvaluated).toBe(0);
@@ -487,7 +502,7 @@ describe('RecurringTransactionEngine', () => {
         }));
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         // Watermark advanced to the last due date - this month's occurrence
@@ -503,12 +518,22 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
     let recurringRepo: RecurringTransactionRepository;
     let transactionRepo: TransactionRepository;
     let walletRepo: WalletRepository;
+    let categoryRepo: CategoryRepository;
 
     beforeEach(async () => {
         db = await createTestDb();
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
+        categoryRepo = new CategoryRepository(db);
+
+        // The category validRule() points at - see the note in the describe
+        // above. Each test here seeds its own wallet; the category is constant.
+        await categoryRepo.save({
+            id: 'cat-1',
+            name: 'Test Category',
+            type: CategoryType.EXPENSE,
+        });
     });
 
     it('skips expense rule when cash wallet has insufficient funds', async () => {
@@ -531,7 +556,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         // Rule was evaluated and skipped - not errored
@@ -570,7 +595,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         // ALL skipped - no partial generation, even though $150 covers a single due
@@ -602,7 +627,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         expect(result.skipped).toHaveLength(0);
@@ -628,7 +653,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         const result = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         expect(result.skipped).toHaveLength(0);
@@ -658,7 +683,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         }));
 
         await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
         // console.error should NOT have been called for this business case
@@ -699,7 +724,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
         // First run - should be skipped
         const firstResult = await processRecurringRules({
-            recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
+            recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
         expect(firstResult.skipped).toHaveLength(1);
         expect(firstResult.skipped[0].amount).toBe(EXPECTED_COST);
@@ -709,7 +734,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
         // Retry the specific rule
         const retryResult = await retryRule(
-            { recurringRepo, transactionRepo, walletRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction },
+            { recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction },
             'rule-1',
         );
 
