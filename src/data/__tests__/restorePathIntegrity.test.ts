@@ -80,6 +80,7 @@ const snapshot = (): BackupSnapshot => ({
         ],
         categories: [{ id: 'food', name: 'Food', type: 'expense' as never }],
         budgets: [],
+        recurringRules: [],
         settings: getDefaultSettings(),
     },
 });
@@ -235,7 +236,7 @@ describe('validateSnapshot requires the unit the amounts are counted in', () => 
 
     it('accepts an empty snapshot without a settings block - no amounts, no unit needed', () => {
         const snap = snapshot();
-        snap.data = { wallets: [], transactions: [], categories: [], budgets: [] };
+        snap.data = { wallets: [], transactions: [], categories: [], budgets: [], recurringRules: [] };
 
         expect(validateSnapshot(snap).valid).toBe(true);
     });

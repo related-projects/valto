@@ -114,9 +114,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import i18n from 'i18next';
 import { Alert } from 'react-native';
-import { SnapshotRejectedError } from '../../data/services/backupService';
+import { type RestoreOutcome, SnapshotRejectedError } from '../../data/services/backupService';
 import { getDefaultSettings } from '../../data/services/settingsService';
 import { useSettings } from '../useSettings';
+
+/**
+ * A restore with nothing to report: the catch-up ran, generated nothing and
+ * left no rule behind. The shape matters - pickAndRestoreBackup returns the
+ * outcome the alert is built from, and a bare `true` would let the counts path
+ * pass by reading undefined.
+ */
+const QUIET_RESTORE: RestoreOutcome = {
+    catchUpGenerated: 0,
+    rulesNotProcessed: 0,
+    catchUpFailed: false,
+};
 
 /** Walk the two-step confirmation the restore flow puts in front of the user. */
 async function confirmRestore(restoreBackup: () => void) {
@@ -160,7 +172,7 @@ describe('useSettings restore applies the restored language', () => {
                 '@valto:settings',
                 JSON.stringify({ ...getDefaultSettings(), language: 'fr', theme: 'dark' }),
             );
-            return true;
+            return QUIET_RESTORE;
         });
 
         const result = await mountSettings();
@@ -178,7 +190,7 @@ describe('useSettings restore applies the restored language', () => {
                 '@valto:settings',
                 JSON.stringify({ ...getDefaultSettings(), language: 'en' }),
             );
-            return true;
+            return QUIET_RESTORE;
         });
 
         const result = await mountSettings();
@@ -188,13 +200,65 @@ describe('useSettings restore applies the restored language', () => {
     });
 
     it('does nothing when the user cancels the file picker', async () => {
-        mockPickAndRestoreBackup.mockResolvedValue(false);
+        mockPickAndRestoreBackup.mockResolvedValue(null);
 
         const result = await mountSettings();
         await confirmRestore(result.current.restoreBackup);
 
         expect(i18n.changeLanguage).not.toHaveBeenCalled();
         expect(mockSetThemePreference).not.toHaveBeenCalled();
+    });
+});
+
+/**
+ * The restore runs the recurring engine once it has committed. A standing order
+ * that did not execute used to be told to nobody: the engine caught per rule,
+ * boot carried on, and the only trace was a console line.
+ */
+describe('useSettings restore reports the recurring catch-up', () => {
+    beforeEach(() => {
+        mockPickAndRestoreBackup.mockImplementation(async () => {
+            await AsyncStorage.setItem('@valto:settings', JSON.stringify(getDefaultSettings()));
+            return restoreOutcome;
+        });
+    });
+
+    let restoreOutcome: RestoreOutcome;
+
+    it('reports both counts when the catch-up did something', async () => {
+        restoreOutcome = { catchUpGenerated: 6, rulesNotProcessed: 2, catchUpFailed: false };
+
+        const result = await mountSettings();
+        await confirmRestore(result.current.restoreBackup);
+
+        expect(Alert.alert).toHaveBeenCalledWith(
+            'alerts.restoreSuccess',
+            'alerts.restoreSuccessWithRulesMessage',
+        );
+    });
+
+    it('reports rules it could not run even when nothing was generated', async () => {
+        restoreOutcome = { catchUpGenerated: 0, rulesNotProcessed: 1, catchUpFailed: false };
+
+        const result = await mountSettings();
+        await confirmRestore(result.current.restoreBackup);
+
+        expect(Alert.alert).toHaveBeenCalledWith(
+            'alerts.restoreSuccess',
+            'alerts.restoreSuccessWithRulesMessage',
+        );
+    });
+
+    it('still reports success when the catch-up itself failed', async () => {
+        restoreOutcome = { catchUpGenerated: 0, rulesNotProcessed: 0, catchUpFailed: true };
+
+        const result = await mountSettings();
+        await confirmRestore(result.current.restoreBackup);
+
+        expect(Alert.alert).toHaveBeenCalledWith(
+            'alerts.restoreSuccess',
+            'alerts.restoreSuccessRulesFailedMessage',
+        );
     });
 });
 

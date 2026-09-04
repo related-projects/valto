@@ -9,8 +9,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import {
+    container,
     getBudgetRepository,
     getCategoryRepository,
+    getRecurringTransactionRepository,
     getTransactionRepository,
     getWalletRepository,
 } from '../../core/di';
@@ -18,27 +20,37 @@ import { dataEvents } from '../../core/events';
 import {
     SerializableBudget,
     SerializableCategory,
+    SerializableRecurringTransaction,
     SerializableTransaction,
     SerializableWallet,
     deserializeBudget,
     deserializeCategory,
+    deserializeRecurringTransaction,
     deserializeTransaction,
     deserializeWallet,
     serializeBudget,
     serializeCategory,
+    serializeRecurringTransaction,
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
-import { ValidationError, validateTransaction, validateWallet } from '../../domain/validators';
+import {
+    ValidationError,
+    validateRecurringTransaction,
+    validateTransaction,
+    validateWallet,
+} from '../../domain/validators';
 import { getDb } from '../storage/sql/database';
 import {
     budgetMapper,
     categoryMapper,
+    recurringMapper,
     sqlInsert,
     transactionMapper,
 } from '../storage/sql/mappers';
+import { processRecurringRules } from './RecurringTransactionEngine';
 import { scheduleDailyReminder } from './notificationService';
 import { AppSettings, loadSettings, saveSettings } from './settingsService';
 import { ensureUsableState } from './usableStateService';
@@ -58,12 +70,70 @@ export interface BackupSnapshot {
         transactions: SerializableTransaction[];
         categories: SerializableCategory[];
         budgets: SerializableBudget[];
+        /** Standing orders. Present from schema version 2; absent in v1 files. */
+        recurringRules: SerializableRecurringTransaction[];
         settings?: AppSettings;
     };
 }
 
 /** Current schema version */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
+
+/**
+ * The version at which recurring rules joined the file.
+ *
+ * A v1 file has no `recurringRules` key at all and is still accepted by the
+ * range check in validateSnapshot, so every read of the file has to ask what
+ * the file carries rather than what this build knows how to write.
+ */
+const RULES_SCHEMA_VERSION = 2;
+
+/**
+ * The tables a snapshot of `version` covers, in the order the restore clears
+ * them: rows are dropped before the rows they reference.
+ *
+ * Derived from the file's own version, deliberately NOT from FINANCIAL_TABLES.
+ * A restore replaces what the file carries and leaves alone what it does not,
+ * and those are the same list: clearing a table the file cannot repopulate is
+ * not a restore, it is a deletion. Merging this into FINANCIAL_TABLES would
+ * clear `recurring_rules` for a v1 file too, which carries none - every
+ * standing order on the device would go, silently, the first time a user
+ * restored an older backup.
+ *
+ * The insert sequence in restoreFromSnapshot derives from this same call, so
+ * the two can never disagree about which tables a file owns.
+ *
+ * Verified, not merely asserted here:
+ *  - backupRestoreRecurringRules.test.ts, "a v1 file does not delete the live
+ *    recurring rules", restores a version:1 file over live rules and reads them
+ *    back;
+ *  - backupRestoreSqlite.test.ts, "replaces every table the v2 file carries"
+ *    and "leaves recurring rules alone when the file is a v1 snapshot".
+ */
+export function snapshotTables(version: number): readonly string[] {
+    return version >= RULES_SCHEMA_VERSION
+        ? (['transactions', 'budgets', 'recurring_rules', 'wallets', 'categories'] as const)
+        : (['transactions', 'budgets', 'wallets', 'categories'] as const);
+}
+
+/**
+ * What a restore left behind, for the caller to report to the user.
+ *
+ * The restore itself either succeeded or threw; nothing here is a failure of
+ * the restore. These are counts of work the catch-up did or could not do.
+ */
+export interface RestoreOutcome {
+    /** Transactions the recurring engine generated to catch up after the restore. */
+    catchUpGenerated: number;
+    /**
+     * Rules that did not execute: the engine's per-rule failures plus every rule
+     * left pointing at a wallet or category the restore did not put back. Each
+     * rule counted once, however many ways it failed.
+     */
+    rulesNotProcessed: number;
+    /** True when the catch-up run itself failed. The restore still succeeded. */
+    catchUpFailed: boolean;
+}
 
 // ─── Validation ───────────────────────────────────────────────────────
 
@@ -145,6 +215,18 @@ export function validateSnapshot(data: unknown): ValidationResult {
         }
     }
 
+    // Recurring rules joined the file at v2. A v1 file has no such key and stays
+    // valid - it is accepted by the range check above and its restore leaves the
+    // rules table alone. From v2 on the array is REQUIRED rather than optional:
+    // a truncated v2 file would otherwise read as "this user had no standing
+    // orders" and the restore would clear the table on the strength of it.
+    const carriesRules =
+        typeof snapshot.version === 'number' && snapshot.version >= RULES_SCHEMA_VERSION;
+
+    if (carriesRules && !Array.isArray(snapshotData.recurringRules)) {
+        errors.push('data.recurringRules must be an array');
+    }
+
     if (errors.length > 0) {
         return { valid: false, errors };
     }
@@ -221,6 +303,24 @@ export function validateSnapshot(data: unknown): ValidationResult {
         }
     }
 
+    // A rule is checked harder than a transaction is, for the same reason
+    // deleteWallet and deleteCategory refuse to orphan one: a transaction is a
+    // past fact that stays true without its wallet, a rule is a future
+    // instruction that cannot execute without one. Refusing the file here is
+    // what lets the restore clear and repopulate the table at all - a rule that
+    // arrives pointing nowhere would be written, look armed on the rules screen,
+    // and fail on every run.
+    if (carriesRules) {
+        for (const r of snapshotData.recurringRules as SerializableRecurringTransaction[]) {
+            if (!walletIds.has(r.walletId)) {
+                errors.push(`Recurring rule ${r.id} references non-existent wallet ${r.walletId}`);
+            }
+            if (!categoryIds.has(r.categoryId)) {
+                errors.push(`Recurring rule ${r.id} references non-existent category ${r.categoryId}`);
+            }
+        }
+    }
+
     return { valid: errors.length === 0, errors };
 }
 
@@ -231,11 +331,12 @@ export function validateSnapshot(data: unknown): ValidationResult {
  * Module-private - consumed only by createAndShareBackup below.
  */
 async function createBackupSnapshot(): Promise<BackupSnapshot> {
-    const [wallets, transactions, categories, budgets, settings] = await Promise.all([
+    const [wallets, transactions, categories, budgets, recurringRules, settings] = await Promise.all([
         getWalletRepository().getAll(),
         getTransactionRepository().getAll(),
         getCategoryRepository().getAll(),
         getBudgetRepository().getAll(),
+        getRecurringTransactionRepository().getAll(),
         loadSettings(),
     ]);
 
@@ -248,6 +349,10 @@ async function createBackupSnapshot(): Promise<BackupSnapshot> {
             transactions: transactions.map(serializeTransaction),
             categories: categories.map(serializeCategory),
             budgets: budgets.map(serializeBudget),
+            // Every rule, paused and expired ones included: `is_paused` records
+            // when a rule runs, not whether it exists, and a backup that dropped
+            // paused rules would lose them on the next restore.
+            recurringRules: recurringRules.map(serializeRecurringTransaction),
             settings,
         },
     };
@@ -278,16 +383,20 @@ export async function createAndShareBackup(): Promise<void> {
 // ─── Restore ──────────────────────────────────────────────────────────
 
 /**
- * The tables a snapshot carries, in the order the restore clears them.
+ * Readable names for the entity a ValidationError names.
  *
- * Deliberately NOT the full FINANCIAL_TABLES list: `recurring_rules` is not part
- * of the backup file, so clearing it would delete data the snapshot cannot put
- * back. A restored rule may end up referencing a wallet or category the snapshot
- * did not contain; processRecurringRules catches that per rule and records it in
- * `errors` rather than failing boot, so a dangling reference degrades to a
- * logged error instead of data loss.
+ * `entity` is the domain class name, and the refusal below used to lowercase it
+ * verbatim - which was fine for Wallet and Transaction and produced "an invalid
+ * recurringtransaction" for a rule.
  */
-const SNAPSHOT_TABLES = ['transactions', 'budgets', 'wallets', 'categories'] as const;
+const ENTITY_LABELS: Record<string, string> = {
+    Wallet: 'wallet',
+    Transaction: 'transaction',
+    RecurringTransaction: 'recurring rule',
+    Settings: 'setting',
+};
+
+const entityLabel = (entity: string): string => ENTITY_LABELS[entity] ?? entity.toLowerCase();
 
 /**
  * Restore app data from a validated snapshot.
@@ -318,10 +427,15 @@ const SNAPSHOT_TABLES = ['transactions', 'budgets', 'wallets', 'categories'] as 
  * transaction is invalid rolls the other 899 back with it. A partial restore is
  * never a valid outcome.
  *
+ * Which tables that covers comes from snapshotTables(snapshot.version), so a v1
+ * file - which carries no recurring rules - clears and rewrites four tables and
+ * leaves the fifth exactly as it found it.
+ *
+ * @returns counts from the post-restore catch-up, for the caller to report
  * @throws SnapshotRejectedError if snapshot validation fails
  * @throws Error if any entity fails its domain invariants, or any write fails
  */
-export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<void> {
+export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<RestoreOutcome> {
     // Validate before touching any data
     const validation = validateSnapshot(snapshot);
     if (!validation.valid) {
@@ -331,16 +445,22 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
         );
     }
 
+    const tables = snapshotTables(snapshot.version);
+    const carriesRules = tables.includes('recurring_rules');
+
     const wallets = snapshot.data.wallets.map(deserializeWallet);
     const transactions = snapshot.data.transactions.map(deserializeTransaction);
     const categories = snapshot.data.categories.map(deserializeCategory);
     const budgets = snapshot.data.budgets.map(deserializeBudget);
+    const recurringRules = carriesRules
+        ? snapshot.data.recurringRules.map(deserializeRecurringTransaction)
+        : [];
 
     const db = getDb();
 
     try {
         await db.runInTransaction(async () => {
-            for (const table of SNAPSHOT_TABLES) {
+            for (const table of tables) {
                 await db.execute(`DELETE FROM ${table}`);
             }
 
@@ -390,6 +510,16 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
             for (const b of budgets) {
                 await sqlInsert(db, budgetMapper, b);
             }
+
+            // Rules last: they reference both wallets and categories, and
+            // `recurringRules` is empty unless snapshotTables said this file
+            // owns the table, so a v1 restore never reaches this loop.
+            // validateRecurringTransaction is the same function
+            // RecurringTransactionRepository calls on save and update.
+            for (const r of recurringRules) {
+                validateRecurringTransaction(r);
+                await sqlInsert(db, recurringMapper, r);
+            }
         });
     } catch (writeError) {
         console.error('[Backup] Restore failed, transaction rolled back:', writeError);
@@ -399,7 +529,7 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
         // bad rather than that their disk is.
         if (writeError instanceof ValidationError) {
             throw new Error(
-                `Restore refused: the backup contains an invalid ${writeError.entity.toLowerCase()} ` +
+                `Restore refused: the backup contains an invalid ${entityLabel(writeError.entity)} ` +
                 `(${writeError.field}). Your previous data has been preserved.`,
             );
         }
@@ -445,8 +575,69 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
         console.warn('[notifications] Reminder reconcile after restore failed:', reminderError);
     }
 
-    // Trigger full reactive refresh across the app
-    dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets']);
+    const outcome = await runPostRestoreCatchUp();
+
+    // Trigger full reactive refresh across the app. 'recurringRules' belongs
+    // here for the same reason it belongs on the reset paths: a v2 restore
+    // replaces the whole table, and the catch-up above moved every watermark it
+    // touched, so a rules screen left mounted across the restore would keep
+    // rendering rows that no longer exist.
+    dataEvents.emitMultiple([
+        'wallets', 'transactions', 'categories', 'budgets', 'recurringRules',
+    ]);
+
+    return outcome;
+}
+
+/**
+ * Bring the restored standing orders up to date, and count what could not run.
+ *
+ * A restored file is as old as the backup, so every occurrence between a rule's
+ * watermark and today is still due. Running the engine here rather than waiting
+ * for the next cold boot is what makes the restored ledger the one the user
+ * expects to see. The watermark travels in the file, so nothing generated here
+ * duplicates a row the same file already carried.
+ *
+ * Once, no retry: a rule that fails now fails again on the next boot, where
+ * app/_layout already reports it, and retrying inside a restore would only make
+ * the same failure take longer to surface.
+ *
+ * Deliberately after the commit and outside every rollback. The ledger is
+ * already correct; a standing order that cannot execute is something to tell the
+ * user about, never a reason to undo a good restore. A v2 file cannot leave a
+ * broken reference behind because validateSnapshot refuses one, but a v1 file
+ * carries no rules at all, so the live ones can outlive the wallet or category
+ * the restore just replaced - findWithMissingReferences is what finds those.
+ */
+async function runPostRestoreCatchUp(): Promise<RestoreOutcome> {
+    try {
+        const engineResult = await processRecurringRules({
+            recurringRepo: container.recurringTransactionRepository,
+            transactionRepo: container.transactionRepository,
+            walletRepo: container.walletRepository,
+            categoryRepo: container.categoryRepository,
+            eventBus: dataEvents,
+            runInTransaction: (work) => getDb().runInTransaction(work),
+        });
+
+        // One rule can both fail in the engine and point at a missing wallet.
+        // The user is being told how many standing orders did not run, not how
+        // many ways each one failed, so the ids are unioned before counting.
+        const notProcessed = new Set(engineResult.errors.map((e) => e.ruleId));
+        const unresolved = await container.recurringTransactionRepository.findWithMissingReferences();
+        for (const rule of unresolved) {
+            notProcessed.add(rule.id);
+        }
+
+        return {
+            catchUpGenerated: engineResult.transactionsGenerated,
+            rulesNotProcessed: notProcessed.size,
+            catchUpFailed: false,
+        };
+    } catch (catchUpError) {
+        console.warn('[Backup] Post-restore recurring catch-up failed:', catchUpError);
+        return { catchUpGenerated: 0, rulesNotProcessed: 0, catchUpFailed: true };
+    }
 }
 
 /**
@@ -460,17 +651,17 @@ function stripBOM(content: string): string {
  * Pick a backup JSON file from device storage, validate, and restore.
  * Uses expo-document-picker for file selection.
  *
- * @returns true if restore was successful, false if user cancelled
+ * @returns the restore outcome, or null if the user cancelled the picker
  * @throws Error on validation failure or corrupted file
  */
-export async function pickAndRestoreBackup(): Promise<boolean> {
+export async function pickAndRestoreBackup(): Promise<RestoreOutcome | null> {
     const result = await DocumentPicker.getDocumentAsync({
         type: 'application/json',
         copyToCacheDirectory: true,
     });
 
     if (result.canceled) {
-        return false;
+        return null;
     }
 
     const asset = result.assets[0];
@@ -519,6 +710,5 @@ export async function pickAndRestoreBackup(): Promise<boolean> {
         throw new Error('The selected file does not contain a valid backup structure.');
     }
 
-    await restoreFromSnapshot(parsed as BackupSnapshot);
-    return true;
+    return restoreFromSnapshot(parsed as BackupSnapshot);
 }

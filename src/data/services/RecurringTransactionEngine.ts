@@ -227,8 +227,24 @@ async function generateForRule(
     // ─── Generate transactions ────────────────────────────────────────
     console.log(`[RecurringEngine] Rule ${rule.id}: generating ${dueDates.length} transaction(s)`);
 
-    let lastDate = rule.lastGeneratedDate;
-
+    // The watermark advances once per occurrence, immediately after that
+    // occurrence has committed.
+    //
+    // It used to be a single write after the loop. createTransaction commits
+    // each occurrence in its own transaction, so a failure on the fourth of six
+    // left the first three in the ledger with the watermark still on the old
+    // fence: the next run recomputed from that fence and generated all six
+    // again. Nothing detects the result - there is no unique constraint on a
+    // transaction and no column linking one back to the rule that made it.
+    //
+    // That stayed latent while a run covered one or two occurrences. The restore
+    // now runs a catch-up over however old the backup file is, so a run of five
+    // or ten occurrences is ordinary and so is a failure part-way through one.
+    //
+    // The remaining window is one occurrence wide: a crash between an
+    // occurrence's commit and its watermark write re-emits that occurrence, and
+    // closing it would take a boundary spanning the ledger write and the rule
+    // update.
     for (const dueDate of dueDates) {
         const dto: CreateTransactionDTO = {
             type: rule.type,
@@ -249,11 +265,8 @@ async function generateForRule(
             dto,
         );
 
-        lastDate = dueDate;
+        await deps.recurringRepo.updateLastGeneratedDate(rule.id, dueDate);
     }
-
-    // Update watermark - only after all transactions successfully created
-    await deps.recurringRepo.updateLastGeneratedDate(rule.id, lastDate);
 
     return { generated: dueDates.length };
 }

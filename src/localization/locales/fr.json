@@ -333,12 +333,12 @@
       {
         "id": "backup-data",
         "question": "Comment sauvegarder mes données ?",
-        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
+        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets, règles récurrentes et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
       },
       {
         "id": "restore-data",
         "question": "Comment restaurer depuis une sauvegarde ?",
-        "answer": "Allez dans Paramètres > Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Cette action est irréversible, pensez à sauvegarder d'abord."
+        "answer": "Allez dans Paramètres > Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Les sauvegardes créées par cette version remplacent aussi vos règles récurrentes ; les fichiers plus anciens n'en contiennent pas, vos règles actuelles sont donc conservées. Cette action est irréversible, pensez à sauvegarder d'abord."
       },
       {
         "id": "change-currency",
@@ -429,13 +429,15 @@
     "restoreData": "Restaurer les données",
     "restoreDataMessage": "Cela remplacera TOUTES vos données actuelles par la sauvegarde. Cette action est irréversible.",
     "restoreConfirm": "Êtes-vous absolument sûr ?",
-    "restoreConfirmMessage": "Tous les portefeuilles, transactions, catégories et budgets actuels seront remplacés définitivement.",
+    "restoreConfirmMessage": "Tous les portefeuilles, transactions, catégories et budgets actuels seront remplacés définitivement. Les règles récurrentes sont également remplacées si la sauvegarde en contient.",
     "restoreNow": "Restaurer maintenant",
     "restoreFailed": "Échec de la restauration",
     "restoreFailedMessage": "Impossible de restaurer à partir de la sauvegarde. Le fichier est peut-être invalide.",
     "restoreMissingCurrencyMessage": "Cette sauvegarde n'indique pas la devise de ses montants ; la restaurer risquerait de fausser la lecture de tous les montants.",
     "restoreSuccess": "Succès",
     "restoreSuccessMessage": "Vos données ont été restaurées avec succès.",
+    "restoreSuccessWithRulesMessage": "Vos données ont été restaurées avec succès. {{generated}} transaction(s) générée(s) pour rattraper le retard, {{unprocessed}} règle(s) récurrente(s) n'ont pas pu être traitées.",
+    "restoreSuccessRulesFailedMessage": "Vos données ont été restaurées avec succès, mais vos règles récurrentes n'ont pas pu être traitées. Elles seront vérifiées à la prochaine ouverture de l'application.",
     "resetAllData": "Supprimer les données financières",
     "resetAllDataMessage": "Cela supprimera définitivement TOUS vos portefeuilles, transactions, catégories, budgets et règles récurrentes.",
     "resetIrreversible": "Action irréversible",
