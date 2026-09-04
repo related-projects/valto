@@ -8,6 +8,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
+import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
@@ -18,6 +19,7 @@ let mockDb: SqlDatabase;
 let mockCategoryRepo: CategoryRepository;
 let mockTransactionRepo: TransactionRepository;
 let mockWalletRepo: WalletRepository;
+let mockBudgetRepo: BudgetRepository;
 
 // Mock DI container
 jest.mock('../../core/di', () => ({
@@ -29,6 +31,7 @@ jest.mock('../../core/di', () => ({
         transactionRepo: mockTransactionRepo,
         walletRepo: mockWalletRepo,
         categoryRepo: mockCategoryRepo,
+        budgetRepo: mockBudgetRepo,
         eventBus: { emit: jest.fn(), emitMultiple: jest.fn() },
     }),
 }));
@@ -50,6 +53,7 @@ describe('useCategories', () => {
         mockCategoryRepo = new CategoryRepository(mockDb);
         mockTransactionRepo = new TransactionRepository(mockDb);
         mockWalletRepo = new WalletRepository(mockDb);
+        mockBudgetRepo = new BudgetRepository(mockDb);
     });
 
     it('loads categories on mount', async () => {
@@ -129,12 +133,21 @@ describe('useCategories', () => {
         expect(result.current.categories[0].name).toBe('Groceries');
     });
 
+    // Two categories, not one: deleting the only category is refused by the
+    // use case, so a single-category fixture would exercise the floor rather
+    // than the delete this test is named for.
     it('deletes unreferenced category', async () => {
         const created = await mockCategoryRepo.create({
             name: 'Unused',
             type: CategoryType.EXPENSE,
             icon: '🗑️',
             color: '#999999',
+        });
+        await mockCategoryRepo.create({
+            name: 'Kept',
+            type: CategoryType.EXPENSE,
+            icon: '🛒',
+            color: '#00FF00',
         });
 
         const { result } = renderHook(() => useCategories());
@@ -143,13 +156,14 @@ describe('useCategories', () => {
             expect(result.current.loading).toBe(false);
         });
 
-        expect(result.current.categories).toHaveLength(1);
+        expect(result.current.categories).toHaveLength(2);
 
         await act(async () => {
             await result.current.deleteCategory(created.id);
         });
 
-        expect(result.current.categories).toHaveLength(0);
+        expect(result.current.categories).toHaveLength(1);
+        expect(result.current.categories[0].name).toBe('Kept');
     });
 
     it('throws when deleting category with references', async () => {

@@ -12,6 +12,7 @@ import { dataEvents } from '../core/events';
 import { UpdateWalletDTO, Wallet, WalletType } from '../domain/entities';
 import {
     createWallet as createWalletUC,
+    deleteWallet as deleteWalletUC,
     transferFunds as transferFundsUC,
 } from '../domain/useCases';
 
@@ -137,21 +138,24 @@ export function useWallets(): UseWalletsResult {
     }, [transactionRepo]);
 
     /**
-     * Delete a wallet
+     * Delete a wallet (delegates to use case)
+     *
+     * The use case owns the refusal to delete the last wallet, and emits the
+     * 'wallets' event on success.
      */
     const deleteWallet = useCallback(async (id: string): Promise<void> => {
         try {
-            await walletRepo.delete(id);
+            const deps = getUseCaseDeps();
+            await deleteWalletUC(deps, id);
             await loadWallets();
-
-            // Emit wallet change event for other components
-            dataEvents.emit('wallets');
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to delete wallet';
             setError(errorMessage);
-            throw new Error(errorMessage);
+            // Rethrow the ORIGINAL error so typed domain errors (e.g.
+            // LastWalletError) survive to the UI for localized handling.
+            throw err;
         }
-    }, [walletRepo, loadWallets]);
+    }, [loadWallets]);
 
     /**
      * Transfer money between two wallets (delegates to use case)

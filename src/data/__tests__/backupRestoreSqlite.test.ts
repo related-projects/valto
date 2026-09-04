@@ -12,6 +12,7 @@
  */
 
 import { createTestDb } from '../../../tests/helpers/createTestDb';
+import { container } from '../../core/di/container';
 import { TransactionType, WalletType } from '../../domain/entities';
 import { BudgetRepository } from '../repositories/BudgetRepository';
 import { CategoryRepository } from '../repositories/CategoryRepository';
@@ -145,6 +146,34 @@ describe('restoreFromSnapshot writes the ledger to SQLite', () => {
         const budgets = await new BudgetRepository(db).getAll();
         expect(budgets).toHaveLength(1);
         expect(budgets[0].limitAmount).toBe(50000);
+    });
+
+    /**
+     * An all-empty snapshot is structurally valid and stays valid - every
+     * referential check in validateSnapshot is satisfied vacuously by zero rows,
+     * and refusing the file would refuse a legitimate backup of a cleared app.
+     * What must not survive is the restore LANDING on zero wallets: the clear
+     * runs unconditionally, so restoring emptiness over a working install used
+     * to leave nothing to attach a transaction to.
+     */
+    it('leaves a usable install after restoring an all-empty snapshot', async () => {
+        container.reset();
+        await seedPreRestoreState(db);
+
+        const empty = snapshot();
+        empty.data = { wallets: [], transactions: [], categories: [], budgets: [] };
+
+        await restoreFromSnapshot(empty);
+
+        // The snapshot's emptiness is honoured: none of the old rows survive.
+        const wallets = await new WalletRepository(db).getAll();
+        expect(wallets.some((w) => w.id === 'w-old')).toBe(false);
+        expect(await new TransactionRepository(db).getAll()).toHaveLength(0);
+
+        // ...but the install is left able to record something again.
+        expect(wallets.length).toBeGreaterThanOrEqual(1);
+        expect(wallets[0].balance).toBe(0);
+        expect((await new CategoryRepository(db).getAll()).length).toBeGreaterThan(0);
     });
 
     it('replaces the pre-restore ledger instead of merging into it', async () => {

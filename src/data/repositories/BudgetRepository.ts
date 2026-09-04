@@ -23,11 +23,11 @@ import {
     sqlInsert,
     sqlUpdate,
 } from '../storage/sql/mappers';
+import type { IBudgetRepository } from '../../domain/repositories';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
-import type { IRepository } from './IRepository';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
 
-export class BudgetRepository implements IRepository<Budget> {
+export class BudgetRepository implements IBudgetRepository {
     constructor(private db: SqlDatabase) { }
 
     async getAll(): Promise<Budget[]> {
@@ -158,5 +158,17 @@ export class BudgetRepository implements IRepository<Budget> {
     async getByCategoryAndMonth(categoryId: string, month: string): Promise<Budget | null> {
         const budgets = await this.getAll();
         return budgets.find((b) => b.categoryId === categoryId && b.month === month) || null;
+    }
+
+    /**
+     * Every budget pointing at a category, across all months.
+     *
+     * getByCategoryAndMonth answers "is this month already budgeted"; this one
+     * answers "is this category referenced at all", which is what a deletion
+     * has to ask - a budget for any month is a reference that would dangle.
+     */
+    async getByCategoryId(categoryId: string): Promise<Budget[]> {
+        const budgets = await this.getAll();
+        return budgets.filter((b) => b.categoryId === categoryId);
     }
 }

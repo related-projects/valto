@@ -5,13 +5,12 @@
  * Clears the ledger, re-seeds the defaults, and triggers a UI refresh.
  */
 
-import { getWalletRepository } from '../../core/di';
 import { dataEvents } from '../../core/events';
-import { initializeSeedData, resetDefaultWallet } from '../seed';
 import { getDb } from '../storage/sql/database';
 import { FINANCIAL_TABLES } from '../storage/sql/schema';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 import { type AppSettings, unlockAndResetCurrency } from './settingsService';
+import { ensureUsableState } from './usableStateService';
 
 /**
  * Wipe every financial record and re-seed the defaults, WITHOUT touching the
@@ -26,8 +25,9 @@ import { type AppSettings, unlockAndResetCurrency } from './settingsService';
  * removes the settings blob any more, so the guarantee in the first paragraph
  * now holds for the whole operation and not just for this helper.
  *
- * Creates no wallet: resetAppData adds one afterwards, the currency reset does
- * not, and first launch gets its wallet from onboarding.
+ * Leaves the tables empty. Re-populating them is ensureUsableState's job, and
+ * both callers invoke it - this helper deliberately materializes nothing, so
+ * there is only one definition of what a reset leaves behind.
  */
 async function wipeFinancialData(): Promise<void> {
     // Financial data lives in SQLite - clear every table atomically.
@@ -50,16 +50,14 @@ async function wipeFinancialData(): Promise<void> {
         asyncStorageAdapter.remove(StorageKeys.RECURRING_RULES),
         asyncStorageAdapter.remove(StorageKeys.SEED_INITIALIZED),
     ]);
-
-    // Re-initialize seed data (defaults land the user on a working app).
-    await initializeSeedData();
 }
 
 /**
  * Delete every financial record and start the ledger over.
  *
- * 1. Wipes financial data from SQLite + legacy KV copies and re-seeds defaults
- * 2. Creates the one empty wallet the user needs to record anything again
+ * 1. Wipes financial data from SQLite + legacy KV copies
+ * 2. Materializes the terminal state: the seeded categories, and the one empty
+ *    wallet the user needs to record anything again
  * 3. Emits all data events for a full UI refresh
  *
  * This deletes DATA, not the app. The settings blob is deliberately untouched -
@@ -75,18 +73,13 @@ async function wipeFinancialData(): Promise<void> {
  *
  * onboardingCompleted staying true is intentional - the user has onboarded, and
  * this is not a factory reset. Nothing here re-runs onboarding, which is why the
- * wallet below has to be created on this path.
+ * terminal state below has to be materialized on this path.
  *
  * Callers MUST require double confirmation before invoking this function.
  */
 export async function resetAppData(): Promise<void> {
     await wipeFinancialData();
-
-    // The seed creates categories only; onboarding normally creates the first
-    // wallet, and it does not run again for a user who has already onboarded.
-    // Without this the user lands on an app with zero wallets, where the add-
-    // transaction flow has nothing to attach an amount to.
-    await getWalletRepository().create(resetDefaultWallet);
+    await ensureUsableState();
 
     // Trigger full reactive refresh
     dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets']);
@@ -107,10 +100,16 @@ export async function resetAppData(): Promise<void> {
  * "old currency + freshly-seeded 0-balance data" - never "new currency + old
  * amounts".
  *
+ * The terminal state is materialized through the same helper resetAppData uses,
+ * and BEFORE the currency is written: the wallet this creates has a zero balance
+ * and no transactions, so it carries no amount that could be read under the
+ * wrong unit whichever of the two failure states above occurs.
+ *
  * Callers MUST require explicit destructive confirmation before invoking this.
  */
 export async function resetFinancialDataForCurrencyReset(newCode: string): Promise<AppSettings> {
     await wipeFinancialData();
+    await ensureUsableState();
     const updated = await unlockAndResetCurrency(newCode);
     dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets', 'settings']);
     return updated;
