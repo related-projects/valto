@@ -21,8 +21,19 @@ import { CategoryType, TransactionType } from '../../domain/entities';
 
 // ─── Backup Validation Tests ──────────────────────────────────────────
 
-describe('Backup Validation', () => {
-    const validSnapshot: BackupSnapshot = {
+/**
+ * These fixtures are pinned at `version: 1` ON PURPOSE, and the cast is part of
+ * the fixture: a v1 file has no `recurringRules` key at all.
+ *
+ * Recurring rules joined the file at v2 and CURRENT_SCHEMA_VERSION moved with
+ * them. Every backup a user already holds is a v1 file, so v1 has to stay a
+ * valid, restorable shape - the version range check still accepts it, and the
+ * restore covers only the four tables such a file carries. These are the
+ * regression fixtures that prove it, which is why they must NOT be migrated to
+ * CURRENT_SCHEMA_VERSION when the constant next moves.
+ */
+describe('Backup Validation of a v1 file, which is what every existing backup is', () => {
+    const validSnapshot = {
         version: 1,
         createdAt: '2026-03-01T00:00:00Z',
         appVersion: '1.0.0',
@@ -58,7 +69,7 @@ describe('Backup Validation', () => {
                 onboardingCompleted: false,
             },
         },
-    };
+    } as unknown as BackupSnapshot;
 
     it('validates a correct snapshot', () => {
         const result = validateSnapshot(validSnapshot);
@@ -95,7 +106,7 @@ describe('Backup Validation', () => {
     });
 
     it('detects orphaned transaction referencing non-existent wallet', () => {
-        const bad: BackupSnapshot = {
+        const bad = {
             ...validSnapshot,
             data: {
                 ...validSnapshot.data,
@@ -114,7 +125,7 @@ describe('Backup Validation', () => {
     });
 
     it('detects orphaned transaction referencing non-existent category', () => {
-        const bad: BackupSnapshot = {
+        const bad = {
             ...validSnapshot,
             data: {
                 ...validSnapshot.data,
@@ -133,7 +144,7 @@ describe('Backup Validation', () => {
     });
 
     it('detects orphaned budget referencing non-existent category', () => {
-        const bad: BackupSnapshot = {
+        const bad = {
             ...validSnapshot,
             data: {
                 ...validSnapshot.data,
@@ -150,8 +161,12 @@ describe('Backup Validation', () => {
         expect(result.errors.some((e: string) => e.includes('category'))).toBe(true);
     });
 
-    it('validates snapshot with empty data arrays', () => {
-        const empty: BackupSnapshot = {
+    // Also pinned at v1 on purpose, and also with no `recurringRules` key: this
+    // is what an empty backup from an older build looks like, and it has to keep
+    // validating. From v2 on the array is required, so the same fixture at the
+    // current version would - correctly - be refused.
+    it('validates a v1 snapshot with empty data arrays and no recurringRules key', () => {
+        const empty = {
             version: 1,
             createdAt: '2026-03-01T00:00:00Z',
             appVersion: '1.0.0',
@@ -161,9 +176,23 @@ describe('Backup Validation', () => {
                 categories: [],
                 budgets: [],
             },
-        };
+        } as unknown as BackupSnapshot;
         const result = validateSnapshot(empty);
         expect(result.valid).toBe(true);
+    });
+
+    // The other half of the same rule: v2 promises the key, so a v2 file without
+    // it is truncated, not "a user with no standing orders". Reading it as the
+    // latter would clear the rules table on the strength of a missing key.
+    it('refuses a current-version snapshot that omits recurringRules', () => {
+        const truncated = {
+            ...validSnapshot,
+            version: CURRENT_SCHEMA_VERSION,
+        } as unknown as BackupSnapshot;
+
+        const result = validateSnapshot(truncated);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e: string) => e.includes('recurringRules'))).toBe(true);
     });
 
     it('rejects future schema version', () => {

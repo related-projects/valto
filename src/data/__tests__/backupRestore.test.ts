@@ -18,6 +18,7 @@ describe('validateSnapshot', () => {
             transactions: [],
             categories: [{ id: 'cat-1', name: 'Food', type: 'expense', icon: '🍕', color: '#FF5722' } as any],
             budgets: [],
+            recurringRules: [],
             // A snapshot carrying data must carry the currency those amounts are
             // counted in - see the missing-currency block below.
             settings: getDefaultSettings(),

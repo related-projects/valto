@@ -28,4 +28,14 @@ export interface IRecurringTransactionRepository extends IRepository<RecurringTr
 
     /** Every rule filing against a given category, paused and expired included. */
     getByCategoryId(categoryId: string): Promise<RecurringTransaction[]>;
+
+    /**
+     * Every rule whose wallet or category no longer exists.
+     *
+     * The whole-table form of the two above, and a third scope: they refuse a
+     * delete before it orphans a rule, this finds the rules something else
+     * already orphaned. A restore replaces the wallet and category tables
+     * without passing through either guard.
+     */
+    findWithMissingReferences(): Promise<RecurringTransaction[]>;
 }

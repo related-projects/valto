@@ -333,12 +333,12 @@
       {
         "id": "backup-data",
         "question": "How do I back up my data?",
-        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, and settings. You can share or save this file to your device or cloud storage."
+        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, recurring rules, and settings. You can share or save this file to your device or cloud storage."
       },
       {
         "id": "restore-data",
         "question": "How do I restore from a backup?",
-        "answer": "Go to Settings > Restore Data. Pick your backup file using the file picker. The app will validate the backup and replace all current data. This action cannot be undone, consider backing up first."
+        "answer": "Go to Settings > Restore Data. Pick your backup file using the file picker. The app will validate the backup and replace all current data. Backups made by this version also replace your recurring rules; older backup files do not carry them, so your current rules are kept. This action cannot be undone, consider backing up first."
       },
       {
         "id": "change-currency",
@@ -429,13 +429,15 @@
     "restoreData": "Restore Data",
     "restoreDataMessage": "This will replace ALL your current data with the backup. This cannot be undone.",
     "restoreConfirm": "Are you absolutely sure?",
-    "restoreConfirmMessage": "All current wallets, transactions, categories, and budgets will be permanently replaced.",
+    "restoreConfirmMessage": "All current wallets, transactions, categories and budgets will be permanently replaced. Recurring rules are replaced too if the backup carries them.",
     "restoreNow": "Restore Now",
     "restoreFailed": "Restore Failed",
     "restoreFailedMessage": "Could not restore from backup. The file may be invalid.",
     "restoreMissingCurrencyMessage": "This backup does not record which currency its amounts are in, so restoring it could misread every amount.",
     "restoreSuccess": "Success",
     "restoreSuccessMessage": "Your data has been restored successfully.",
+    "restoreSuccessWithRulesMessage": "Your data has been restored successfully. {{generated}} transaction(s) generated to catch up, {{unprocessed}} recurring rule(s) could not be processed.",
+    "restoreSuccessRulesFailedMessage": "Your data has been restored successfully, but your recurring rules could not be processed. They will be checked again the next time you open the app.",
     "resetAllData": "Delete Financial Data",
     "resetAllDataMessage": "This will permanently delete ALL your wallets, transactions, categories, budgets and recurring rules.",
     "resetIrreversible": "This is irreversible",

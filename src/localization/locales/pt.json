@@ -333,12 +333,12 @@
             {
                 "id": "backup-data",
                 "question": "Como faço o backup dos meus dados?",
-                "answer": "Vá em Configurações > Backup de Dados. Isso cria um arquivo JSON contendo todas as suas carteiras, transações, categorias, orçamentos e configurações. Você pode compartilhar ou salvar este arquivo no dispositivo ou na nuvem."
+                "answer": "Vá em Configurações > Backup de Dados. Isso cria um arquivo JSON contendo todas as suas carteiras, transações, categorias, orçamentos, regras recorrentes e configurações. Você pode compartilhar ou salvar este arquivo no dispositivo ou na nuvem."
             },
             {
                 "id": "restore-data",
                 "question": "Como restauro a partir de um backup?",
-                "answer": "Vá em Configurações > Restaurar Dados. Escolha o arquivo de backup usando o seletor de arquivos. O app validará o backup e substituirá todos os dados atuais. Essa ação não pode ser desfeita: considere fazer um backup antes."
+                "answer": "Vá em Configurações > Restaurar Dados. Escolha o arquivo de backup usando o seletor de arquivos. O app validará o backup e substituirá todos os dados atuais. Backups feitos por esta versão também substituem suas regras recorrentes; arquivos mais antigos não as contêm, então suas regras atuais são mantidas. Essa ação não pode ser desfeita: considere fazer um backup antes."
             },
             {
                 "id": "change-currency",
@@ -429,13 +429,15 @@
         "restoreData": "Restaurar dados",
         "restoreDataMessage": "Isso substituirá TODOS os seus dados atuais pelo backup. Isso não pode ser desfeito.",
         "restoreConfirm": "Tem absoluta certeza?",
-        "restoreConfirmMessage": "Todas as carteiras, transações, categorias e orçamentos atuais serão substituídos permanentemente.",
+        "restoreConfirmMessage": "Todas as carteiras, transações, categorias e orçamentos atuais serão substituídos permanentemente. As regras recorrentes também são substituídas se o backup as contiver.",
         "restoreNow": "Restaurar agora",
         "restoreFailed": "Falha na restauração",
         "restoreFailedMessage": "Não foi possível restaurar do backup. O arquivo pode ser inválido.",
         "restoreMissingCurrencyMessage": "Este backup não registra em que moeda estão os seus valores, portanto restaurá-lo poderia interpretar todos os valores de forma errada.",
         "restoreSuccess": "Sucesso",
         "restoreSuccessMessage": "Seus dados foram restaurados com sucesso.",
+        "restoreSuccessWithRulesMessage": "Seus dados foram restaurados com sucesso. {{generated}} transação(ões) gerada(s) para colocar em dia, {{unprocessed}} regra(s) recorrente(s) não puderam ser processadas.",
+        "restoreSuccessRulesFailedMessage": "Seus dados foram restaurados com sucesso, mas suas regras recorrentes não puderam ser processadas. Elas serão verificadas na próxima vez que você abrir o app.",
         "resetAllData": "Excluir os dados financeiros",
         "resetAllDataMessage": "Isso excluirá permanentemente TODAS as suas carteiras, transações, categorias, orçamentos e regras recorrentes.",
         "resetIrreversible": "Isso é irreversível",

@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, AppState, type AppStateStatus, Linking } from 'react-native';
 import { dataEvents } from '../core/events/dataEvents';
-import { createAndShareBackup, pickAndRestoreBackup, SnapshotRejectedError } from '../data/services/backupService';
+import { createAndShareBackup, pickAndRestoreBackup, type RestoreOutcome, SnapshotRejectedError } from '../data/services/backupService';
 import { getPermissionStatus, scheduleDailyReminder, setNotificationsEnabled } from '../data/services/notificationService';
 import { resetAppData, resetFinancialDataForCurrencyReset } from '../data/services/resetService';
 import {
@@ -30,6 +30,38 @@ import { getLanguageByCode, type LanguageDefinition } from '../domain/constants/
 import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES } from '../domain/constants/numberFormats';
 import { useTheme } from '../theme/theme';
 import { type NotificationPermissionStatus, shouldShowBlockedNotice } from '../utils/notificationPermission';
+
+/** Minimal shape of the i18next `t` this file uses. */
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+/**
+ * What the user is told after a successful restore.
+ *
+ * The restore replaces the ledger and then runs the recurring engine once, so
+ * there are three things it can have to say and they are one message, not a
+ * queue of alerts:
+ *  - the catch-up ran and there is nothing to report -> the plain confirmation;
+ *  - it generated transactions, or left standing orders it could not run ->
+ *    both counts, so a user whose rules stopped arriving knows why;
+ *  - the catch-up itself failed -> the restore still succeeded, and the rules
+ *    are retried on the next launch.
+ *
+ * Counts only. Rule ids and amounts stay out of an alert.
+ */
+function restoreSuccessMessage(t: Translate, outcome: RestoreOutcome): string {
+    if (outcome.catchUpFailed) {
+        return t('alerts.restoreSuccessRulesFailedMessage');
+    }
+
+    if (outcome.catchUpGenerated > 0 || outcome.rulesNotProcessed > 0) {
+        return t('alerts.restoreSuccessWithRulesMessage', {
+            generated: outcome.catchUpGenerated,
+            unprocessed: outcome.rulesNotProcessed,
+        });
+    }
+
+    return t('alerts.restoreSuccessMessage');
+}
 
 // ─── Interface ────────────────────────────────────────────────────────
 
@@ -176,8 +208,18 @@ export function useSettings(): UseSettingsResult {
                                                 if (newSettings.language && newSettings.language !== i18n.language) {
                                                     await i18n.changeLanguage(newSettings.language);
                                                 }
-                                                dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets', 'settings']);
-                                                Alert.alert(t('alerts.restoreSuccess'), t('alerts.restoreSuccessMessage'));
+                                                // 'recurringRules' belongs here: a v2 file replaces
+                                                // the whole rules table, and the catch-up the restore
+                                                // just ran moved the watermarks it touched.
+                                                dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets', 'recurringRules', 'settings']);
+                                                // The restore ran the recurring engine once it had
+                                                // committed. Counts only - a standing order that did
+                                                // not execute is something the user has to be told
+                                                // about, and it used to be told to nobody.
+                                                Alert.alert(
+                                                    t('alerts.restoreSuccess'),
+                                                    restoreSuccessMessage(t, restored),
+                                                );
                                             }
                                         } catch (error) {
                                             // A refused backup gets its own copy: "the file may be

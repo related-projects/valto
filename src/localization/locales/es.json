@@ -333,12 +333,12 @@
       {
         "id": "backup-data",
         "question": "¿Cómo hago una copia de seguridad de mis datos?",
-        "answer": "Ve a Ajustes > Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube."
+        "answer": "Ve a Ajustes > Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos, reglas recurrentes y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube."
       },
       {
         "id": "restore-data",
         "question": "¿Cómo restauro desde una copia de seguridad?",
-        "answer": "Ve a Ajustes > Restaurar datos. Elige tu archivo de copia de seguridad con el selector de archivos. La app validará la copia y reemplazará todos los datos actuales. Esta acción no se puede deshacer: considera hacer primero una copia de seguridad."
+        "answer": "Ve a Ajustes > Restaurar datos. Elige tu archivo de copia de seguridad con el selector de archivos. La app validará la copia y reemplazará todos los datos actuales. Las copias creadas por esta versión también reemplazan tus reglas recurrentes; los archivos más antiguos no las incluyen, así que tus reglas actuales se conservan. Esta acción no se puede deshacer: considera hacer primero una copia de seguridad."
       },
       {
         "id": "change-currency",
@@ -429,13 +429,15 @@
     "restoreData": "Restaurar datos",
     "restoreDataMessage": "Esto reemplazará TODOS tus datos actuales con la copia de seguridad. Esto no se puede deshacer.",
     "restoreConfirm": "¿Estás completamente seguro?",
-    "restoreConfirmMessage": "Todas las carteras, transacciones, categorías y presupuestos actuales se reemplazarán permanentemente.",
+    "restoreConfirmMessage": "Todas las carteras, transacciones, categorías y presupuestos actuales se reemplazarán permanentemente. Las reglas recurrentes también se reemplazan si la copia de seguridad las incluye.",
     "restoreNow": "Restaurar ahora",
     "restoreFailed": "Error al restaurar",
     "restoreFailedMessage": "No se pudo restaurar desde la copia de seguridad. El archivo puede no ser válido.",
     "restoreMissingCurrencyMessage": "Esta copia de seguridad no indica en qué moneda están sus importes, por lo que restaurarla podría malinterpretar todos los importes.",
     "restoreSuccess": "Listo",
     "restoreSuccessMessage": "Tus datos se han restaurado correctamente.",
+    "restoreSuccessWithRulesMessage": "Tus datos se han restaurado correctamente. {{generated}} transacción(es) generada(s) para ponerse al día, {{unprocessed}} regla(s) recurrente(s) no se pudieron procesar.",
+    "restoreSuccessRulesFailedMessage": "Tus datos se han restaurado correctamente, pero tus reglas recurrentes no se pudieron procesar. Se revisarán la próxima vez que abras la app.",
     "resetAllData": "Eliminar los datos financieros",
     "resetAllDataMessage": "Esto eliminará permanentemente TODAS tus carteras, transacciones, categorías, presupuestos y reglas recurrentes.",
     "resetIrreversible": "Esto es irreversible",

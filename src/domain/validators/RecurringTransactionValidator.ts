@@ -65,4 +65,13 @@ export function validateRecurringTransaction(rule: RecurringTransaction): void {
     if (!(rule.createdAt instanceof Date) || isNaN(rule.createdAt.getTime())) {
         throw new ValidationError('RecurringTransaction', 'createdAt', rule.createdAt, 'Rule createdAt must be a valid Date');
     }
+
+    // `is_paused` is an INTEGER column and the mapper coerces both ways, so a
+    // rule built in code has always had a real boolean here. A rule read out of
+    // a backup file has not: the JSON carries whatever was written, and the
+    // restore inserts through the same mapper, where a truthy non-boolean would
+    // be stored as 1 and read back as a rule the engine silently never runs.
+    if (typeof rule.isPaused !== 'boolean') {
+        throw new ValidationError('RecurringTransaction', 'isPaused', rule.isPaused, 'Rule isPaused must be a boolean');
+    }
 }

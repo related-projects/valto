@@ -13,9 +13,10 @@
 
 import { createTestDb } from '../../../tests/helpers/createTestDb';
 import { container } from '../../core/di/container';
-import { TransactionType, WalletType } from '../../domain/entities';
+import { RecurrenceFrequency, TransactionType, WalletType } from '../../domain/entities';
 import { BudgetRepository } from '../repositories/BudgetRepository';
 import { CategoryRepository } from '../repositories/CategoryRepository';
+import { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { WalletRepository } from '../repositories/WalletRepository';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
@@ -81,6 +82,24 @@ const snapshot = (): BackupSnapshot => ({
         budgets: [
             { id: 'b-food', categoryId: 'food', month: '2026-01', limitAmount: 50000, createdAt: ISO, updatedAt: ISO },
         ],
+        // Starts in 2030 so the catch-up the restore runs has nothing due for
+        // it: this fixture's assertions are about what the file put in the
+        // tables, and a generated transaction would show up among them.
+        recurringRules: [
+            {
+                id: 'rr-file',
+                type: TransactionType.EXPENSE,
+                amount: 3000,
+                walletId: 'w-cash',
+                categoryId: 'food',
+                startDate: '2030-01-01T00:00:00.000Z',
+                frequency: RecurrenceFrequency.MONTHLY,
+                interval: 1,
+                lastGeneratedDate: '2029-12-01T00:00:00.000Z',
+                isPaused: false,
+                createdAt: ISO,
+            },
+        ],
         // Mandatory once the snapshot carries data: the amounts above are
         // integers in minor units, and only the currency says how many minor
         // units make a major one.
@@ -88,7 +107,21 @@ const snapshot = (): BackupSnapshot => ({
     },
 });
 
-/** Pre-restore ledger: one wallet, one category, one transaction, one budget. */
+/**
+ * The same ledger as a file written before recurring rules joined the format:
+ * version 1, and no `recurringRules` key at all.
+ */
+const v1Snapshot = (): BackupSnapshot => {
+    const snap = snapshot();
+    const data = { ...snap.data } as Partial<BackupSnapshot['data']>;
+    delete data.recurringRules;
+    return { ...snap, version: 1, data } as unknown as BackupSnapshot;
+};
+
+/**
+ * Pre-restore ledger: one wallet, one category, one transaction, one budget and
+ * one recurring rule - one row in every table a snapshot can own.
+ */
 async function seedPreRestoreState(db: SqlDatabase) {
     await db.execute(
         `INSERT INTO wallets (id, name, balance, opening_balance, type, color, created_at)
@@ -108,6 +141,12 @@ async function seedPreRestoreState(db: SqlDatabase) {
         `INSERT INTO budgets (id, category_id, month, limit_amount, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         ['b-old', 'cat-old', '2025-12', 1000, ISO, ISO],
+    );
+    await db.execute(
+        `INSERT INTO recurring_rules
+            (id, type, amount, wallet_id, category_id, start_date, frequency, interval_count, last_generated_date, is_paused, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ['rr-old', 'expense', 3000, 'w-old', 'cat-old', '2030-01-01T00:00:00.000Z', 'monthly', 1, '2029-12-01T00:00:00.000Z', 0, ISO],
     );
 }
 
@@ -161,7 +200,7 @@ describe('restoreFromSnapshot writes the ledger to SQLite', () => {
         await seedPreRestoreState(db);
 
         const empty = snapshot();
-        empty.data = { wallets: [], transactions: [], categories: [], budgets: [] };
+        empty.data = { wallets: [], transactions: [], categories: [], budgets: [], recurringRules: [] };
 
         await restoreFromSnapshot(empty);
 
@@ -189,6 +228,11 @@ describe('restoreFromSnapshot writes the ledger to SQLite', () => {
         expect(categories.some((c) => c.id === 'cat-old')).toBe(false);
         const budgets = await new BudgetRepository(db).getAll();
         expect(budgets.some((b) => b.id === 'b-old')).toBe(false);
+        // The fifth table is named explicitly. Listing only four used to encode
+        // the old coverage by omission: the test passed whether or not the
+        // restore touched recurring_rules, and said nothing either way.
+        const rules = await new RecurringTransactionRepository(db).getAll();
+        expect(rules.some((r) => r.id === 'rr-old')).toBe(false);
     });
 
     it('writes no financial key to the unencrypted key-value store', async () => {
@@ -220,18 +264,37 @@ describe('restoreFromSnapshot writes the ledger to SQLite', () => {
         }
     });
 
-    it('leaves recurring rules alone - the snapshot cannot restore them', async () => {
-        await db.execute(
-            `INSERT INTO recurring_rules
-                (id, type, amount, wallet_id, category_id, start_date, frequency, interval_count, last_generated_date, is_paused, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['rr-1', 'expense', 3000, 'w-old', 'cat-old', ISO, 'monthly', 1, ISO, 0, ISO],
-        );
+    /**
+     * The inverse of what this file used to assert. Recurring rules were not in
+     * the snapshot, so the restore deliberately did not touch the table and this
+     * test proved the live rule survived. From v2 the file carries them, so the
+     * table is cleared and repopulated like every other table the file owns -
+     * the surviving row must be the FILE's rule, not the device's.
+     */
+    it('clears and repopulates recurring_rules when the file is a v2 snapshot', async () => {
+        await seedPreRestoreState(db);
 
         await restoreFromSnapshot(snapshot());
 
-        const { rows } = await db.execute('SELECT COUNT(*) AS c FROM recurring_rules');
-        expect(Number(rows[0].c)).toBe(1);
+        const rules = await new RecurringTransactionRepository(db).getAll();
+        expect(rules.map((r) => r.id)).toEqual(['rr-file']);
+        expect(rules[0].amount).toBe(3000);
+        expect(rules[0].isPaused).toBe(false);
+    });
+
+    /**
+     * The other half, and the data-loss guard: a v1 file carries no rules, so
+     * there is nothing to put back and the table must not be cleared. Every
+     * backup a user already holds is a v1 file.
+     */
+    it('leaves recurring rules alone when the file is a v1 snapshot', async () => {
+        expect(CURRENT_SCHEMA_VERSION).toBeGreaterThan(1);
+        await seedPreRestoreState(db);
+
+        await restoreFromSnapshot(v1Snapshot());
+
+        const rules = await new RecurringTransactionRepository(db).getAll();
+        expect(rules.map((r) => r.id)).toEqual(['rr-old']);
     });
 });
 
