@@ -9,3 +9,4 @@ export type { IRepository } from './IRepository';
 export type { BalanceAudit, IWalletRepository } from './IWalletRepository';
 export type { ITransactionRepository } from './ITransactionRepository';
 export type { ICategoryRepository } from './ICategoryRepository';
+export type { IBudgetRepository } from './IBudgetRepository';

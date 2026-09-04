@@ -12,6 +12,8 @@ import {
     createWallet,
     deleteCategory,
     deleteTransaction,
+    deleteWallet,
+    LastWalletError,
     transferFunds,
     TransferDeletionNotSupportedError,
 } from '../useCases';
@@ -24,6 +26,7 @@ let repos: MockRepositoryBundle;
 let transactionRepo: MockRepositoryBundle['transactionRepo'];
 let walletRepo: MockRepositoryBundle['walletRepo'];
 let categoryRepo: MockRepositoryBundle['categoryRepo'];
+let budgetRepo: MockRepositoryBundle['budgetRepo'];
 let eventBus: MockRepositoryBundle['eventBus'];
 
 function getDeps() {
@@ -31,6 +34,7 @@ function getDeps() {
         transactionRepo,
         walletRepo,
         categoryRepo,
+        budgetRepo,
         eventBus,
         runInTransaction: repos.runInTransaction,
     };
@@ -38,7 +42,7 @@ function getDeps() {
 
 beforeEach(async () => {
     repos = await createMockRepositories();
-    ({ transactionRepo, walletRepo, categoryRepo, eventBus } = repos);
+    ({ transactionRepo, walletRepo, categoryRepo, budgetRepo, eventBus } = repos);
 });
 
 // ─── createTransaction ──────────────────────────────────────────────
@@ -281,6 +285,11 @@ describe('createWallet', () => {
 // ─── deleteCategory ─────────────────────────────────────────────────
 
 describe('deleteCategory', () => {
+    /**
+     * Two categories, not one: deleting the only category is now refused, so a
+     * fixture with a single category would be testing the floor rather than the
+     * happy path it is named for.
+     */
     it('deletes a category with no references', async () => {
         const cat = await categoryRepo.create({
             name: 'Unused',
@@ -288,11 +297,18 @@ describe('deleteCategory', () => {
             color: '#FF0000',
             icon: 'close',
         });
+        await categoryRepo.create({
+            name: 'Kept',
+            type: CategoryType.EXPENSE,
+            color: '#00FF00',
+            icon: 'cart',
+        });
 
         await deleteCategory(getDeps(), cat.id);
 
         const all = await categoryRepo.getAll();
-        expect(all).toHaveLength(0);
+        expect(all).toHaveLength(1);
+        expect(all[0].name).toBe('Kept');
         expect(eventBus.emit).toHaveBeenCalledWith('categories');
     });
 
@@ -315,5 +331,81 @@ describe('deleteCategory', () => {
         });
 
         await expect(deleteCategory(getDeps(), cat.id)).rejects.toThrow('Cannot delete category');
+    });
+
+    it('rejects deletion when a budget references the category', async () => {
+        const cat = await categoryRepo.create({
+            name: 'Budgeted',
+            type: CategoryType.EXPENSE,
+            color: '#FF0000',
+            icon: 'wallet',
+        });
+        await categoryRepo.create({
+            name: 'Kept',
+            type: CategoryType.EXPENSE,
+            color: '#00FF00',
+            icon: 'cart',
+        });
+
+        // No transaction anywhere: the transaction check passes, and only the
+        // budget check stands between this delete and a dangling category_id.
+        await budgetRepo.create({ categoryId: cat.id, month: '2026-09', limitAmount: 50000 });
+
+        await expect(deleteCategory(getDeps(), cat.id)).rejects.toThrow(
+            'Cannot delete category. It is used in 1 budgets.',
+        );
+
+        expect(await categoryRepo.getAll()).toHaveLength(2);
+    });
+
+    it('rejects deletion of the last category, even with nothing referencing it', async () => {
+        const cat = await categoryRepo.create({
+            name: 'Only',
+            type: CategoryType.EXPENSE,
+            color: '#FF0000',
+            icon: 'close',
+        });
+
+        await expect(deleteCategory(getDeps(), cat.id)).rejects.toThrow(
+            'At least one category is required',
+        );
+
+        expect(await categoryRepo.getAll()).toHaveLength(1);
+        expect(eventBus.emit).not.toHaveBeenCalledWith('categories');
+    });
+});
+
+describe('deleteWallet', () => {
+    it('deletes a wallet when another one remains', async () => {
+        const doomed = await walletRepo.create({ name: 'Doomed', balance: 1000, type: WalletType.CASH });
+        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+
+        await deleteWallet(getDeps(), doomed.id);
+
+        const all = await walletRepo.getAll();
+        expect(all).toHaveLength(1);
+        expect(all[0].name).toBe('Kept');
+        expect(eventBus.emit).toHaveBeenCalledWith('wallets');
+    });
+
+    it('refuses to delete the last wallet', async () => {
+        const only = await walletRepo.create({ name: 'Only', balance: 1000, type: WalletType.CASH });
+
+        await expect(deleteWallet(getDeps(), only.id)).rejects.toThrow(LastWalletError);
+
+        expect(await walletRepo.getAll()).toHaveLength(1);
+        expect(eventBus.emit).not.toHaveBeenCalledWith('wallets');
+    });
+
+    it('raises a typed error so the UI can tell the refusal from a storage failure', async () => {
+        const only = await walletRepo.create({ name: 'Only', balance: 0, type: WalletType.CASH });
+
+        // A message-string match would pass against a bare `new Error` re-wrap;
+        // the code is what survives being rethrown through the hook.
+        const error = await deleteWallet(getDeps(), only.id).catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(LastWalletError);
+        expect((error as LastWalletError).code).toBe('LAST_WALLET');
+        expect((error as LastWalletError).name).toBe('LastWalletError');
     });
 });

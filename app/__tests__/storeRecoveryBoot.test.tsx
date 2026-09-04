@@ -88,6 +88,14 @@ jest.mock('@/src/core/di/container', () => ({
     getUseCaseDeps: () => ({ runInTransaction: (fn: () => unknown) => fn() }),
 }));
 
+// The boot repair is exercised on its own in usableStateService.test.ts. Here it
+// is stubbed out: this suite is about the corrupted-store gate, and a repair
+// reaching for repositories the container mock above does not carry would fail
+// the boot for a reason that has nothing to do with what is under test.
+jest.mock('@/src/data/services/usableStateService', () => ({
+    ensureUsableState: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@/src/core/events/dataEvents', () => ({
     dataEvents: { emit: jest.fn(), emitMultiple: jest.fn() },
 }));

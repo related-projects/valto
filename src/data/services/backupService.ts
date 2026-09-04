@@ -41,6 +41,7 @@ import {
 } from '../storage/sql/mappers';
 import { scheduleDailyReminder } from './notificationService';
 import { AppSettings, loadSettings, saveSettings } from './settingsService';
+import { ensureUsableState } from './usableStateService';
 
 // ─── Snapshot Types ───────────────────────────────────────────────────
 
@@ -405,6 +406,20 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<voi
 
         throw new Error('Restore failed while writing data. Your previous data has been preserved.');
     }
+
+    // A snapshot is allowed to be empty: an all-empty file is structurally
+    // valid, every referential check in validateSnapshot is satisfied vacuously
+    // by zero rows, and refusing it would refuse a legitimate backup of an app
+    // whose ledger the user had cleared. What must not happen is the restore
+    // LANDING on an install with no wallet or no category, which the clear above
+    // guarantees whenever the snapshot carried none.
+    //
+    // So the terminal state is asserted here rather than in validateSnapshot -
+    // outside the transaction, because the restored ledger has already committed
+    // correctly and a failure to materialize a default wallet is not a reason to
+    // roll it back. Idempotent: a snapshot that carried wallets and categories
+    // leaves this a no-op.
+    await ensureUsableState();
 
     // Settings live in key-value storage, outside the SQLite transaction above.
     // Written only after the ledger has committed, so a failed restore can never

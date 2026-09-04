@@ -36,3 +36,26 @@ export class TransferDeletionNotSupportedError extends Error {
         this.name = 'TransferDeletionNotSupportedError';
     }
 }
+
+/**
+ * Raised when deleting a wallet would leave the install with none.
+ *
+ * A wallet is the only object a transaction can be attached to, so an install
+ * with zero wallets cannot record anything and offers no way back in place: the
+ * add-transaction flow refuses to submit, and onboarding - the one flow that
+ * creates a wallet unprompted - never runs again for a user who has already
+ * completed it. The floor is a business rule, not a storage constraint, so it
+ * lives in the use case rather than in the repository: WalletRepository.delete
+ * stays a primitive that deletes exactly the row it was given.
+ *
+ * Typed rather than a message string so the UI can tell "you cannot delete your
+ * last wallet" from a genuine storage failure.
+ */
+export class LastWalletError extends Error {
+    readonly code = 'LAST_WALLET' as const;
+
+    constructor(message = 'Cannot delete the last wallet. Create another wallet first.') {
+        super(message);
+        this.name = 'LastWalletError';
+    }
+}

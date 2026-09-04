@@ -17,6 +17,7 @@ import {
 import { processRecurringRules } from "@/src/data/services/RecurringTransactionEngine";
 import { loadSettings } from "@/src/data/services/settingsService";
 import { resetCorruptedStore } from "@/src/data/services/storeRecoveryService";
+import { ensureUsableState } from "@/src/data/services/usableStateService";
 import { assertStoreReadable } from "@/src/data/storage/sql/database";
 import { verifyFinancialIntegrity } from "@/src/domain/useCases";
 import { OnboardingScreen } from "@/src/features/onboarding/screens/OnboardingScreen";
@@ -157,6 +158,20 @@ function RootLayout() {
 
       // Check if onboarding is needed
       setNeedsOnboarding(!settings.onboardingCompleted);
+
+      // Boot repair. An install that has onboarded and has no wallet, or no
+      // category, cannot record a transaction and has no way back in place:
+      // onboarding is the only flow that creates them unprompted and it never
+      // runs again. Installs already in that state exist in production - three
+      // paths could reach it - and nothing short of a boot check reaches them.
+      //
+      // Gated on onboardingCompleted so a first launch is untouched: seeding a
+      // wallet before onboarding has asked for one would hand the user a wallet
+      // they did not name, and skip the step that locks the currency.
+      // Idempotent, so it costs two counts on every other boot.
+      if (settings.onboardingCompleted) {
+        await ensureUsableState();
+      }
 
       // (Re)assert the daily reminder. Must run AFTER the i18n sync above so the
       // notification copy resolves in the user's language, and inside its own
