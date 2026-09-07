@@ -24,6 +24,7 @@ import bn from '../../localization/locales/bn.json';
 import ru from '../../localization/locales/ru.json';
 import ur from '../../localization/locales/ur.json';
 import zh from '../../localization/locales/zh.json';
+import { COMPLETE_LANGUAGE_CODES } from '../../domain/constants/languages';
 
 type NestedRecord = { [key: string]: string | NestedRecord };
 
@@ -73,9 +74,92 @@ const ALL_LOCALES: Record<string, NestedRecord> = {
 // Locales held to FULL parity with en.json (excluding faq.items).
 const COMPLETE_LOCALES = ['fr', 'es', 'pt', 'ru'] as const;
 
+// en.json included: the derivation below asks which bundles are complete, and
+// en is trivially complete against itself. COMPLETE_LANGUAGE_CODES carries it
+// for the same reason - it is a valid automatic choice on an English device.
+const ALL_BUNDLES: Record<string, NestedRecord> = {
+    en: en as unknown as NestedRecord,
+    ...ALL_LOCALES,
+};
+
 // Interpolation tokens like {{code}} must match en exactly per key.
 const tokensOf = (value: string): string[] =>
     (value.match(/\{\{[^}]+\}\}/g) ?? []).sort();
+
+/**
+ * COMPLETE_LANGUAGE_CODES is what getDeviceLanguage is allowed to pick FOR a
+ * user on a first launch. It is a hand-written constant, so it can go stale in
+ * two directions, and both are silent in production: a bundle finished but not
+ * listed means francophone-grade coverage nobody gets, and a code listed whose
+ * bundle regressed means an automatic UI that falls back to English mid-flow.
+ *
+ * This derives the answer from the bundles instead of restating it. A locale is
+ * complete when its key set equals en.json's in BOTH directions - no missing
+ * keys, no extra ones. Note this is stricter than the parity describe above,
+ * which exempts faq.items; the five complete bundles carry those too, so the
+ * strict rule is the honest one here and needs no exemption.
+ */
+describe('COMPLETE_LANGUAGE_CODES matches the bundles', () => {
+    const enKeySet = new Set(extractKeys(en as unknown as NestedRecord));
+
+    const isCompleteBundle = (bundle: NestedRecord): boolean => {
+        const keys = extractKeys(bundle);
+        if (keys.length !== enKeySet.size) return false;
+        return keys.every(k => enKeySet.has(k));
+    };
+
+    const derived = Object.keys(ALL_BUNDLES)
+        .filter(code => isCompleteBundle(ALL_BUNDLES[code]))
+        .sort();
+
+    it('lists exactly the locales at full key parity with en.json', () => {
+        const declared: string[] = [...COMPLETE_LANGUAGE_CODES].sort();
+
+        const reachedParity = derived.filter(c => !declared.includes(c));
+        const noLongerComplete = declared.filter(c => !derived.includes(c));
+
+        const problems: string[] = [];
+        if (reachedParity.length > 0) {
+            problems.push(
+                `${reachedParity.join(', ')} reached full key parity with en.json but ` +
+                'is not in COMPLETE_LANGUAGE_CODES. Add it in ' +
+                'src/domain/constants/languages.ts so a device set to that language ' +
+                'gets it automatically on first launch.'
+            );
+        }
+        if (noLongerComplete.length > 0) {
+            problems.push(
+                `${noLongerComplete.join(', ')} is in COMPLETE_LANGUAGE_CODES but its ` +
+                'bundle is no longer at full key parity with en.json. Either restore ' +
+                'the missing keys or remove the code from ' +
+                'src/domain/constants/languages.ts - as listed, a device set to that ' +
+                'language gets a UI that falls back to English part-way through.'
+            );
+        }
+
+        // `throw`, not the jasmine `fail()` the describes below still use: jest
+        // runs on jest-circus, where `fail` is not defined, so a fail() call
+        // reports "ReferenceError: fail is not defined" and swallows the message
+        // it was given. The whole point of this test is the message.
+        if (problems.length > 0) {
+            throw new Error(
+                `COMPLETE_LANGUAGE_CODES is stale.\n  ${problems.join('\n  ')}\n` +
+                `  declared: [${declared.join(', ')}]\n` +
+                `  derived:  [${derived.join(', ')}]`
+            );
+        }
+    });
+
+    it('agrees with the parity list this file already enforces', () => {
+        // Two lists of complete locales in one repo is one too many. COMPLETE_LOCALES
+        // drives the parity describes above and excludes en (en cannot miss its own
+        // keys); COMPLETE_LANGUAGE_CODES includes it because en is a valid automatic
+        // choice. Beyond that they must not drift.
+        expect([...COMPLETE_LOCALES].sort()).toEqual(
+            [...COMPLETE_LANGUAGE_CODES].filter(c => c !== 'en').sort()
+        );
+    });
+});
 
 describe('i18n Locale Coverage', () => {
     const en_ = en as unknown as NestedRecord;

@@ -10,17 +10,12 @@ jest.mock('@react-native-async-storage/async-storage', () =>
     require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
-jest.mock('react-native', () => ({
-    Platform: { OS: 'ios' },
-    NativeModules: {
-        SettingsManager: {
-            settings: {
-                AppleLanguages: ['en-US'],
-                AppleLocale: 'en_US',
-            },
-        },
-    },
-}));
+jest.mock('react-native', () =>
+    require('@/tests/helpers/deviceLocaleMock').createDeviceLocaleMock(() => ({
+        os: 'ios',
+        value: 'en_US',
+    }))
+);
 
 // Mock expo-notifications
 jest.mock('expo-notifications', () => ({
