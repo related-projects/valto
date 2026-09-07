@@ -21,7 +21,6 @@ type AlertButton = { text?: string; onPress?: () => void | Promise<void> };
 const alertCalls: [string, string | undefined, AlertButton[] | undefined][] = [];
 
 jest.mock('react-native', () => ({
-    Platform: { OS: 'ios' },
     Alert: {
         alert: jest.fn((title: string, message?: string, buttons?: AlertButton[]) => {
             alertCalls.push([title, message, buttons]);
@@ -32,11 +31,10 @@ jest.mock('react-native', () => ({
         currentState: 'active',
         addEventListener: jest.fn(() => ({ remove: jest.fn() })),
     },
-    NativeModules: {
-        SettingsManager: {
-            settings: { AppleLanguages: ['en-US'], AppleLocale: 'en_US' },
-        },
-    },
+    ...require('@/tests/helpers/deviceLocaleMock').createDeviceLocaleMock(() => ({
+        os: 'ios',
+        value: 'en_US',
+    })),
 }));
 
 jest.mock('expo-notifications', () => ({

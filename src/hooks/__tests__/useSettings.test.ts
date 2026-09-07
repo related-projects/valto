@@ -16,7 +16,6 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 const mockAppStateListeners: ((state: string) => void)[] = [];
 
 jest.mock('react-native', () => ({
-    Platform: { OS: 'ios' },
     Alert: { alert: jest.fn() },
     Linking: { openSettings: jest.fn().mockResolvedValue(undefined) },
     AppState: {
@@ -31,14 +30,10 @@ jest.mock('react-native', () => ({
             };
         }),
     },
-    NativeModules: {
-        SettingsManager: {
-            settings: {
-                AppleLanguages: ['en-US'],
-                AppleLocale: 'en_US',
-            },
-        },
-    },
+    ...require('@/tests/helpers/deviceLocaleMock').createDeviceLocaleMock(() => ({
+        os: 'ios',
+        value: 'en_US',
+    })),
 }));
 
 jest.mock('expo-notifications', () => ({

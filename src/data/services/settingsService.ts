@@ -32,7 +32,7 @@ export function getDefaultSettings(): AppSettings {
         currency: DEFAULT_CURRENCY_CODE,
         currencyLocked: false,
         notificationsEnabled: false,
-        language: getDeviceLanguage(),
+        language: DEFAULT_LANGUAGE_CODE,
         dateFormat: 'MM/DD/YYYY',
         firstDayOfWeek: 'monday',
         decimalSeparator: DEFAULT_NUMBER_FORMAT,
@@ -43,20 +43,28 @@ export function getDefaultSettings(): AppSettings {
 /**
  * Settings for an install that has never stored any.
  *
- * This is the ONLY place the device locale reaches the number-format profile, and
- * it runs on exactly one condition: the settings storage key is absent, which by
- * definition is first launch. Every later load takes the merge path in
- * loadSettings, where a stored `decimalSeparator` overrides the default, so a
- * user's explicit choice can never be overwritten by their device locale - not on
- * a language change, not on a device migration, not on an app update.
+ * This is the ONLY place the device reaches ANY setting, and it runs on exactly
+ * one condition: the settings storage key is absent, which by definition is
+ * first launch. Every later load takes the merge path in loadSettings, where a
+ * stored value overrides the default, so a user's explicit choice can never be
+ * overwritten by their device - not on a language change, not on a device
+ * migration, not on an app update.
+ *
+ * `language` derives here rather than in getDefaultSettings for exactly that
+ * reason. getDefaultSettings is the merge base at every subsequent load AND the
+ * catch-path return, so a device read placed there runs on paths that are not a
+ * first launch; it was only ever harmless because a stored `language` shadows it.
+ * Placing it here makes the paragraph above true of the whole blob rather than of
+ * one field.
  *
  * Deliberately NOT used by the catch path in loadSettings: a transient storage
  * read failure is not a first launch, and re-deriving there could flip a chosen
- * format on a bad read.
+ * format or language on a bad read.
  */
 export function getInitialSettings(): AppSettings {
     return {
         ...getDefaultSettings(),
+        language: getDeviceLanguage(),
         decimalSeparator: numberFormatForLocale(getDeviceLocale()),
     };
 }
