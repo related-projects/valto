@@ -36,23 +36,39 @@ const SUPPORTED_CODES = new Set(SUPPORTED_LANGUAGES.map(l => l.code));
 /**
  * The locales whose bundle is at full key parity with en.json.
  *
- * SUPPORTED_LANGUAGES is what the language PICKER offers: all ten are declared,
- * all ten load, and a user who picks one gets it. This list is narrower and
- * answers a different question - which locales may be chosen FOR the user, with
- * nobody there to correct the choice.
+ * Two different questions are asked of this module and they have two different
+ * answers. SUPPORTED_LANGUAGES is the LOADABLE set: every code storage may
+ * legitimately hold, every code isSupportedLanguage accepts, every bundle i18n
+ * registers. This list is narrower - the locales a user can be handed without
+ * also being handed English.
  *
- * The five that are absent (zh, ar, hi, bn, ur) ship real translations, not
- * pasted English, but they are partial: they carry no `onboarding` block at all.
- * Deriving one of them automatically would open the app on an onboarding flow
- * that falls back to English key by key while Settings is already translated. A
- * coherent English UI beats a UI that changes language between screens, so an
- * unlisted device locale lands on DEFAULT_LANGUAGE_CODE instead.
+ * The five that are absent (zh, ar, hi, bn, ur) are partial: ar, hi, bn and ur
+ * carry 71 of en.json's 558 keys and zh carries 89. The rest falls back to
+ * English key by key, so a screen in one of them is part translated and part
+ * English - including the onboarding flow, which those bundles do not cover at
+ * all.
+ *
+ * So neither path that chooses a language offers all ten:
+ *  - the automatic path, getDeviceLanguage below, resolves against this list
+ *    only, because nobody is there to correct the choice;
+ *  - the explicit path, the language picker, takes its rows from
+ *    getOfferedLanguages, which adds back only the code the install already
+ *    holds - an install on ar keeps seeing ar, and can leave it.
+ *
+ * SUPPORTED_LANGUAGES stays at ten regardless. Narrowing it would narrow
+ * isSupportedLanguage with it, and the load-time sanitizer in loadSettings, the
+ * isSupportedLanguage guard in src/data/services/settingsService.ts, would then
+ * rewrite a stored `ar` to `en` at the next launch - silently discarding a
+ * choice the user made.
  *
  * This list is NOT maintained by hand against the bundles. It is proved against
  * them: src/localization/__tests__/i18n.test.ts derives the set of locales whose
  * key set equals en.json's in both directions and asserts it equals this
  * constant. Completing a bundle without adding its code here fails that test,
- * and the failure says which side is stale.
+ * and the failure says which side is stale. The loadable-versus-offered
+ * distinction is held by
+ * src/components/settings/__tests__/getOfferedLanguages.test.ts and
+ * src/components/settings/__tests__/LanguagePickerModal.offeredLanguages.test.tsx.
  */
 export const COMPLETE_LANGUAGE_CODES = ['en', 'es', 'fr', 'pt', 'ru'] as const;
 
@@ -147,4 +163,25 @@ export function getLanguageByCode(code: string): LanguageDefinition {
  */
 export function isSupportedLanguage(code: string): boolean {
     return SUPPORTED_CODES.has(code);
+}
+
+/**
+ * The languages the picker offers: the complete locales, plus whatever the
+ * install currently holds.
+ *
+ * The active code is added back unconditionally, incomplete locale or not,
+ * because an install already on `ar` has to be able to find its own language in
+ * the list, see it marked as current, and choose something else from there.
+ * Withholding it would show that user a picker with nothing selected and no
+ * explanation. A code that is in no entry - a value that predates a rename, say
+ * - matches nothing and simply yields the complete set.
+ *
+ * This filters SUPPORTED_LANGUAGES rather than building a list of its own, so
+ * declaration order is preserved and there is still exactly one place where the
+ * languages themselves are written down.
+ */
+export function getOfferedLanguages(activeCode: string): LanguageDefinition[] {
+    return SUPPORTED_LANGUAGES.filter(
+        l => COMPLETE_CODES.has(l.code) || l.code === activeCode,
+    );
 }

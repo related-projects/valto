@@ -46,9 +46,11 @@ import {
     SUPPORTED_CURRENCIES,
 } from '../../domain/constants/currencies';
 import {
+    COMPLETE_LANGUAGE_CODES,
     DEFAULT_LANGUAGE_CODE,
     getDeviceLanguage,
     getLanguageByCode,
+    getOfferedLanguages,
     isSupportedLanguage,
     SUPPORTED_LANGUAGES,
 } from '../../domain/constants/languages';
@@ -233,8 +235,23 @@ describe('Currency Feature', () => {
 // ─── Language Feature ─────────────────────────────────────────────────
 
 describe('Language Feature', () => {
-    it('has 10 supported languages', () => {
-        expect(SUPPORTED_LANGUAGES).toHaveLength(10);
+    // SUPPORTED_LANGUAGES answers "may storage hold this code", not "may a user
+    // choose it". The two used to be the same list and the picker offered every
+    // partially translated locale as a result. Asserting the relationship rather
+    // than the cardinality: a count says nothing about why it is what it is, and
+    // reads as a product promise when the next person tries to change it.
+    it('every loadable language is accepted by the load-time sanitizer', () => {
+        expect(SUPPORTED_LANGUAGES.length).toBeGreaterThan(0);
+        for (const l of SUPPORTED_LANGUAGES) {
+            expect(isSupportedLanguage(l.code)).toBe(true);
+        }
+    });
+
+    it('offers only the complete locales, which are fewer than the loadable ones', () => {
+        const offered = getOfferedLanguages(DEFAULT_LANGUAGE_CODE).map(l => l.code);
+
+        expect(offered).toEqual([...COMPLETE_LANGUAGE_CODES]);
+        expect(offered.length).toBeLessThan(SUPPORTED_LANGUAGES.length);
     });
 
     it('every language has code, name, and nativeName', () => {
