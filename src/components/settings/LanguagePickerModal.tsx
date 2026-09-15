@@ -1,8 +1,9 @@
 /**
  * Language Picker Modal
  *
- * Simple list of 10 supported languages.
- * Shows native name + English name with checkmark on current selection.
+ * Lists the languages getOfferedLanguages allows - the complete locales, plus
+ * the one the install already holds. Shows native name + English name with a
+ * checkmark on the current selection.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +11,7 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SUPPORTED_LANGUAGES, type LanguageDefinition } from '../../domain/constants/languages';
+import { getOfferedLanguages, type LanguageDefinition } from '../../domain/constants/languages';
 import { useTheme } from '../../theme/theme';
 
 interface LanguagePickerModalProps {
@@ -34,6 +35,11 @@ export const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({
         onSelect(lang);
         onClose();
     }, [onSelect, onClose]);
+
+    // Derived from the active code, not from SUPPORTED_LANGUAGES: the set that
+    // may be OFFERED is narrower than the set that may be STORED. See the
+    // COMPLETE_LANGUAGE_CODES block in domain/constants/languages.ts.
+    const offeredLanguages = getOfferedLanguages(selectedCode);
 
     return (
         <Modal
@@ -63,9 +69,9 @@ export const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({
                         borderRadius: radius.md,
                         ...shadows.card,
                     }]}>
-                        {SUPPORTED_LANGUAGES.map((lang, index) => {
+                        {offeredLanguages.map((lang, index) => {
                             const isSelected = lang.code === selectedCode;
-                            const isLast = index === SUPPORTED_LANGUAGES.length - 1;
+                            const isLast = index === offeredLanguages.length - 1;
                             return (
                                 <TouchableOpacity
                                     key={lang.code}
