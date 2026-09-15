@@ -90,9 +90,14 @@ function renderAtCurrencyStep() {
 }
 
 describe('OnboardingScreen - currency step error surfacing', () => {
-    it('shows the failure when a currency selection is rejected', async () => {
+    it('renders the translated key, never the raw error, when a currency selection is rejected', async () => {
         // Both the old and the new service entry point reject, so this test
-        // isolates one thing: whether the step renders the failure at all.
+        // isolates one thing: what the step puts on screen when they do.
+        //
+        // `t` is mocked to the identity above, so a translated line renders the
+        // KEY. That is the whole assertion: the user is shown a string this app
+        // wrote and translated, not whatever the rejecting service happened to
+        // put in its message.
         mockSetOnboardingCurrency.mockRejectedValue(new Error('storage unavailable'));
         mockSelectAndLockCurrency.mockRejectedValue(new Error('storage unavailable'));
 
@@ -104,9 +109,15 @@ describe('OnboardingScreen - currency step error surfacing', () => {
 
         await waitFor(() => {
             expect(getByTestId('onboarding_currency_error')).toHaveTextContent(
-                'storage unavailable',
+                'onboarding.currencySelectFailed',
             );
         });
+
+        // The failure is still SHOWN - the point the previous version of this
+        // test made - and what is shown carries none of the rejection's text.
+        expect(getByTestId('onboarding_currency_error')).not.toHaveTextContent(
+            'storage unavailable',
+        );
 
         // Still on the currency step - no silent advance.
         expect(getByTestId('currency_search_input')).toBeTruthy();

@@ -99,12 +99,10 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
       });
       resetForm();
       onClose();
-    } catch (error) {
+    } catch {
       Alert.alert(
         t("modals.addBudget.error"),
-        error instanceof Error
-          ? error.message
-          : t("modals.addBudget.createFailed"),
+        t("modals.addBudget.createFailed"),
       );
     } finally {
       setSaving(false);

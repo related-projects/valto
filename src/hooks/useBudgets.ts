@@ -165,9 +165,12 @@ export function useBudgets(): UseBudgetsResult {
             dataEvents.emit('budgets');
             return budget;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Failed to create budget';
-            setError(msg);
-            throw new Error(msg);
+            setError(err instanceof Error ? err.message : 'Failed to create budget');
+            // Rethrow the ORIGINAL error. A hook never constructs an Error from
+            // an Error it caught: doing so destroys `instanceof` before the UI
+            // can branch on it. See useBudgets.test.ts
+            // 'createBudget preserves the typed error class'.
+            throw err;
         }
     }, [budgetRepo, loadBudgets]);
 
@@ -180,9 +183,9 @@ export function useBudgets(): UseBudgetsResult {
             await loadBudgets();
             dataEvents.emit('budgets');
         } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Failed to delete budget';
-            setError(msg);
-            throw new Error(msg);
+            setError(err instanceof Error ? err.message : 'Failed to delete budget');
+            // Rethrow the ORIGINAL error - see createBudget above.
+            throw err;
         }
     }, [budgetRepo, loadBudgets]);
 

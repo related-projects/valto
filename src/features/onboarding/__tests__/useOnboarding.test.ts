@@ -77,7 +77,7 @@ describe('useOnboarding - back navigation out of the currency step', () => {
         });
 
         await waitFor(() => expect(result.current.step).toBe(2));
-        expect(result.current.error).toBeNull();
+        expect(result.current.errorKey).toBeNull();
         expect((await loadSettings()).currency).toBe('USD');
     });
 
@@ -96,7 +96,7 @@ describe('useOnboarding - back navigation out of the currency step', () => {
         });
 
         await waitFor(() => expect(result.current.step).toBe(2));
-        expect(result.current.error).toBeNull();
+        expect(result.current.errorKey).toBeNull();
     });
 });
 
@@ -157,7 +157,7 @@ describe('useOnboarding - when the currency locks', () => {
         });
 
         await waitFor(() => expect(result.current.step).toBe(2));
-        expect(result.current.error).toBeNull();
+        expect(result.current.errorKey).toBeNull();
 
         const settings = await loadSettings();
         expect(settings.currency).toBe('USD');
@@ -178,8 +178,13 @@ describe('useOnboarding - error surfacing', () => {
             await result.current.selectCurrency(USD);
         });
 
-        await waitFor(() => expect(result.current.error).toBeTruthy());
-        expect(result.current.error).toContain('Currency cannot be changed');
+        // A translation key, not the service's message. The settings service
+        // refuses with the English literal 'Currency cannot be changed once
+        // selected.'; that string must not reach the hook's state, because the
+        // screen renders this value.
+        await waitFor(() => expect(result.current.errorKey).toBeTruthy());
+        expect(result.current.errorKey).toBe('onboarding.currencySelectFailed');
+        expect(result.current.errorKey).not.toContain('Currency cannot be changed');
         expect(result.current.step).toBe(1);
     });
 
@@ -198,8 +203,13 @@ describe('useOnboarding - error surfacing', () => {
         });
 
         expect(completed).toBe(false);
-        await waitFor(() => expect(result.current.error).toBeTruthy());
-        expect(result.current.error).toContain('Failed to write to storage');
+        // A translation key, not the storage adapter's message. StorageError
+        // interpolates the storage KEY into its message ('Failed to write to
+        // storage for key: ...'), so letting that through would put an internal
+        // identifier on the onboarding screen.
+        await waitFor(() => expect(result.current.errorKey).toBeTruthy());
+        expect(result.current.errorKey).toBe('onboarding.completeFailed');
+        expect(result.current.errorKey).not.toContain('storage');
 
         spy.mockRestore();
     });

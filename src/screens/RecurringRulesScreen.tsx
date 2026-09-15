@@ -205,8 +205,8 @@ export const RecurringRulesScreen: React.FC = () => {
             } else {
                 await pauseRule(rule.id);
             }
-        } catch (error) {
-            Alert.alert(t('common.error'), error instanceof Error ? error.message : t('recurring.saveFailed'));
+        } catch {
+            Alert.alert(t('common.error'), t('recurring.saveFailed'));
         }
     }, [pauseRule, resumeRule, t]);
 
@@ -222,8 +222,13 @@ export const RecurringRulesScreen: React.FC = () => {
                     onPress: async () => {
                         try {
                             await deleteRule(rule.id);
-                        } catch (error) {
-                            Alert.alert(t('common.error'), error instanceof Error ? error.message : t('recurring.saveFailed'));
+                        } catch {
+                            // Its own key, not the save one: this is the delete
+                            // path, and telling a user who just confirmed a
+                            // deletion that the app failed to SAVE invites them
+                            // to assume an edit was lost. See
+                            // RecurringRulesScreen.alertKeys.test.tsx.
+                            Alert.alert(t('common.error'), t('recurring.deleteFailed'));
                         }
                     },
                 },

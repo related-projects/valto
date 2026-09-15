@@ -16,7 +16,7 @@ import {
   View,
 } from "react-native";
 import { Wallet, WalletType } from "../../domain/entities";
-import { WalletHasRecurringRulesError } from "../../domain/useCases";
+import { LastWalletError, WalletHasRecurringRulesError } from "../../domain/useCases";
 import { useFormatting } from "../../hooks/useFormatting";
 import { useWallets } from "../../hooks/useWallets";
 import { radius } from "../../theme/radius";
@@ -105,12 +105,12 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
 
       onSuccess?.();
       onClose();
-    } catch (error) {
+    } catch {
+      // The edit path says so now: it used to borrow the add-wallet modal's
+      // "failed to create" copy.
       Alert.alert(
-        t("modals.addWallet.error"),
-        error instanceof Error
-          ? error.message
-          : t("modals.addWallet.createFailed"),
+        t("modals.editWallet.error"),
+        t("modals.editWallet.updateFailed"),
       );
     } finally {
       setSaving(false);
@@ -168,9 +168,10 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
       onSuccess?.();
       onClose();
     } catch (error) {
-      // useWallets.deleteWallet rethrows the ORIGINAL error, so the typed
-      // refusal survives and gets its own localized copy instead of falling
-      // through to the developer-facing message below.
+      // useWallets.deleteWallet rethrows the ORIGINAL error, so each typed
+      // refusal the use case can raise gets its own localized copy. Anything
+      // else falls to the generic key below - a repository or storage failure
+      // has no user-facing copy of its own and its message is not shown.
       if (error instanceof WalletHasRecurringRulesError) {
         Alert.alert(
           t("modals.editWallet.deleteBlockedByRulesTitle"),
@@ -181,11 +182,17 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
         return;
       }
 
+      if (error instanceof LastWalletError) {
+        Alert.alert(
+          t("modals.editWallet.deleteBlockedLastWalletTitle"),
+          t("modals.editWallet.deleteBlockedLastWalletMessage"),
+        );
+        return;
+      }
+
       Alert.alert(
-        t("modals.addWallet.error"),
-        error instanceof Error
-          ? error.message
-          : t("modals.editWallet.deleteFailed"),
+        t("modals.editWallet.error"),
+        t("modals.editWallet.deleteFailed"),
       );
     } finally {
       setDeleting(false);

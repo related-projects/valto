@@ -141,9 +141,12 @@ export function useTransactions(): UseTransactionsResult {
 
             return transaction;
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to create transaction';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+            setError(err instanceof Error ? err.message : 'Failed to create transaction');
+            // Rethrow the ORIGINAL error. A hook never constructs an Error from
+            // an Error it caught: doing so destroys `instanceof` before the UI
+            // can branch on it. See useTransactions.test.ts
+            // 'createTransaction preserves the typed error class'.
+            throw err;
         }
     }, [loadTransactions]);
 
@@ -158,9 +161,12 @@ export function useTransactions(): UseTransactionsResult {
             // Refresh local state
             await loadTransactions();
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to delete transaction';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+            setError(err instanceof Error ? err.message : 'Failed to delete transaction');
+            // Rethrow the ORIGINAL error - see createTransaction above. This is
+            // what lets TransferDeletionNotSupportedError reach a caller as
+            // itself. See useTransactions.test.ts
+            // 'deleteTransaction preserves the typed error class'.
+            throw err;
         }
     }, [loadTransactions]);
 

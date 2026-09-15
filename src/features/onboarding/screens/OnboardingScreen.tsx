@@ -9,12 +9,10 @@
  *
  * Uses useOnboarding hook for state management.
  *
- * All text rendered by this screen is localized via i18n, with one exception:
- * the error line renders whatever useOnboarding put in `error`, and that hook
- * is not localized. Its selectCurrency, createWallet and completeOnboarding
- * handlers each fall back to an English literal, and otherwise surface
- * `err.message`, which is untranslated too. That belongs to the Tier 2
- * error-message class and is deliberately not fixed here.
+ * Every string this screen renders is localized, the error line included: the
+ * hook hands over a translation KEY (`errorKey`), never a message, so nothing
+ * here can put a developer-facing English string on screen. See
+ * OnboardingScreen.test.tsx 'renders the translated key, never the raw error'.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -65,7 +63,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         createWallet,
         complete,
         loading,
-        error,
+        errorKey,
     } = useOnboarding();
 
     // Currency search
@@ -113,8 +111,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
     // Every step that can fail renders this: an error must always be visible to
     // the user, never left sitting in state that nothing shows.
+    //
+    // `errorKey` is a translation key, so this line is localized like every
+    // other. It can never carry a repository or storage message: the hook does
+    // not put one there.
     const renderError = (testID: string) => (
-        error ? (
+        errorKey ? (
             <Text
                 testID={testID}
                 style={{
@@ -124,7 +126,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     textAlign: 'center',
                 }}
             >
-                {error}
+                {t(errorKey)}
             </Text>
         ) : null
     );

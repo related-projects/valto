@@ -34,8 +34,19 @@ export interface UseOnboardingResult {
     complete: () => Promise<boolean>;
     /** Loading state */
     loading: boolean;
-    /** Error message */
-    error: string | null;
+    /**
+     * Translation key for the current failure, or null.
+     *
+     * A KEY, not a message, so what the consumer renders is in the user's own
+     * language. That it IS a key rather than a message is held by
+     * useOnboarding.test.ts 'surfaces a currency-selection failure instead of
+     * failing silently' and 'surfaces a completion failure and reports that it
+     * did not complete', which assert the exact key and assert that the
+     * rejecting service's own wording is absent. That the consumer translates
+     * it is held by OnboardingScreen.test.tsx 'renders the translated key,
+     * never the raw error'.
+     */
+    errorKey: string | null;
     /** The selected currency code */
     selectedCurrency: string | null;
 }
@@ -43,29 +54,29 @@ export interface UseOnboardingResult {
 export function useOnboarding(): UseOnboardingResult {
     const [step, setStep] = useState<OnboardingStep>(0);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [errorKey, setErrorKey] = useState<string | null>(null);
     const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 
     const next = useCallback(() => {
         setStep(prev => Math.min(prev + 1, 3) as OnboardingStep);
-        setError(null);
+        setErrorKey(null);
     }, []);
 
     const back = useCallback(() => {
         setStep(prev => Math.max(prev - 1, 0) as OnboardingStep);
-        setError(null);
+        setErrorKey(null);
     }, []);
 
     const selectCurrency = useCallback(async (currency: CurrencyDefinition) => {
         setLoading(true);
-        setError(null);
+        setErrorKey(null);
         try {
             await setOnboardingCurrency(currency.code);
             setSelectedCurrency(currency.code);
             dataEvents.emit('settings');
             next();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to select currency');
+        } catch {
+            setErrorKey('onboarding.currencySelectFailed');
         } finally {
             setLoading(false);
         }
@@ -73,7 +84,7 @@ export function useOnboarding(): UseOnboardingResult {
 
     const createWallet = useCallback(async (name: string, type: string, balanceCents: number) => {
         setLoading(true);
-        setError(null);
+        setErrorKey(null);
         try {
             await container.walletRepository.create({
                 name,
@@ -82,8 +93,8 @@ export function useOnboarding(): UseOnboardingResult {
             });
             dataEvents.emit('wallets');
             next();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create wallet');
+        } catch {
+            setErrorKey('onboarding.walletCreateFailed');
         } finally {
             setLoading(false);
         }
@@ -91,7 +102,7 @@ export function useOnboarding(): UseOnboardingResult {
 
     const complete = useCallback(async (): Promise<boolean> => {
         setLoading(true);
-        setError(null);
+        setErrorKey(null);
         try {
             // The currency locks here, not on selection: this is the point at
             // which the first wallet exists and the choice becomes binding.
@@ -99,10 +110,10 @@ export function useOnboarding(): UseOnboardingResult {
             await updateSetting('onboardingCompleted', true);
             dataEvents.emit('settings');
             return true;
-        } catch (err) {
+        } catch {
             // Never report a failed write as a finished onboarding - the gate
             // would close while `onboardingCompleted` is still false on disk.
-            setError(err instanceof Error ? err.message : 'Failed to complete onboarding');
+            setErrorKey('onboarding.completeFailed');
             return false;
         } finally {
             setLoading(false);
@@ -117,7 +128,7 @@ export function useOnboarding(): UseOnboardingResult {
         createWallet,
         complete,
         loading,
-        error,
+        errorKey,
         selectedCurrency,
     };
 }

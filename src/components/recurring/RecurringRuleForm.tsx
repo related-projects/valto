@@ -165,8 +165,8 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                 };
                 await onSubmit(dto);
             }
-        } catch (error) {
-            Alert.alert(t('common.error'), error instanceof Error ? error.message : t('recurring.saveFailed'));
+        } catch {
+            Alert.alert(t('common.error'), t('recurring.saveFailed'));
         } finally {
             setSubmitting(false);
         }

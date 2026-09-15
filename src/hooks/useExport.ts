@@ -1,8 +1,13 @@
 /**
  * useExport Hook
  *
- * Provides export functionality with loading/error state management.
+ * Provides export functionality with loading state management.
  * Wraps TransactionExportService for use in React components.
+ *
+ * There is deliberately no `error` state. Both operations reject, and
+ * ExportScreen catches and presents the failure itself
+ * (src/screens/ExportScreen.tsx handleExportCSV / handleExportPDF). A second
+ * copy of the same failure held in hook state had no reader.
  */
 
 import { useCallback, useState } from 'react';
@@ -11,7 +16,6 @@ import { shareCSV, shareMonthlyPDF } from '../data/services/export/TransactionEx
 
 export function useExport() {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const transactionRepo = container.transactionRepository;
     const walletRepo = container.walletRepository;
@@ -19,7 +23,6 @@ export function useExport() {
 
     const exportCSV = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const [transactions, wallets, categories] = await Promise.all([
                 transactionRepo.getAll(),
@@ -27,10 +30,6 @@ export function useExport() {
                 categoryRepo.getAll(),
             ]);
             await shareCSV(transactions, wallets, categories);
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : 'CSV export failed';
-            setError(msg);
-            throw err;
         } finally {
             setLoading(false);
         }
@@ -38,7 +37,6 @@ export function useExport() {
 
     const exportMonthlyPDF = useCallback(async (year: number, month: number) => {
         setLoading(true);
-        setError(null);
         try {
             const startDate = new Date(year, month - 1, 1);
             const endDate = new Date(year, month, 0, 23, 59, 59, 999); // Last moment of month
@@ -49,10 +47,6 @@ export function useExport() {
                 categoryRepo.getAll(),
             ]);
             await shareMonthlyPDF(year, month, transactions, wallets, categories);
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : 'PDF export failed';
-            setError(msg);
-            throw err;
         } finally {
             setLoading(false);
         }
@@ -62,6 +56,5 @@ export function useExport() {
         exportCSV,
         exportMonthlyPDF,
         loading,
-        error,
     };
 }

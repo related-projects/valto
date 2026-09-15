@@ -263,12 +263,15 @@
             "deleteTitle": "Excluir carteira",
             "deleteMessage": "Tem certeza de que deseja excluir \"{{name}}\"? Isso não pode ser desfeito.",
             "deleteFailed": "Falha ao excluir a carteira",
+            "updateFailed": "Falha ao atualizar a carteira",
             "error": "Erro",
             "hasTransactionsTitle": "A carteira tem transações",
             "hasTransactionsMessage": "Esta carteira tem transações. Excluí-la não afetará as transações passadas, mas elas não estarão mais vinculadas a uma carteira. Continuar?",
             "deleteAnyway": "Excluir mesmo assim",
             "deleteBlockedByRulesTitle": "Carteira em uso",
-            "deleteBlockedByRulesMessage": "{{count}} regra(s) recorrente(s) ainda usam esta carteira. Aponte essas regras para outra carteira, ou exclua-as, e depois exclua esta carteira."
+            "deleteBlockedByRulesMessage": "{{count}} regra(s) recorrente(s) ainda usam esta carteira. Aponte essas regras para outra carteira, ou exclua-as, e depois exclua esta carteira.",
+            "deleteBlockedLastWalletTitle": "Última carteira",
+            "deleteBlockedLastWalletMessage": "Esta é a sua única carteira, e toda transação precisa pertencer a uma. Crie outra carteira primeiro e depois exclua esta."
         },
         "category": {
             "newTitle": "Nova categoria",
@@ -546,7 +549,8 @@
         "segmentYearly": "Anual",
         "selectWallet": "Selecionar carteira",
         "noWallets": "Nenhuma carteira disponível",
-        "noCategories": "Nenhuma categoria disponível"
+        "noCategories": "Nenhuma categoria disponível",
+        "deleteFailed": "Falha ao excluir a regra"
     },
     "export": {
         "title": "Exportar dados",
@@ -607,7 +611,10 @@
         "walletType": "Tipo de carteira",
         "allSet": "Tudo pronto!",
         "allSetDescription": "Comece a controlar suas finanças com o Valto.",
-        "goToDashboard": "Ir para o painel"
+        "goToDashboard": "Ir para o painel",
+        "currencySelectFailed": "Não foi possível salvar sua moeda. Tente novamente.",
+        "walletCreateFailed": "Não foi possível criar sua carteira. Tente novamente.",
+        "completeFailed": "Não foi possível concluir a configuração. Tente novamente."
     },
     "empty": {
         "transactions": {
