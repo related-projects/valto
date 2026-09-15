@@ -308,6 +308,8 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         items={walletItems}
                         selectedId={walletId}
                         onSelect={setWalletId}
+                        placeholder={t('recurring.selectWallet')}
+                        emptyText={t('recurring.noWallets')}
                     />
                 </View>
 
@@ -319,6 +321,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         selectedId={categoryId}
                         onSelect={setCategoryId}
                         placeholder={t('recurring.selectCategory')}
+                        emptyText={t('recurring.noCategories')}
                     />
                 </View>
 

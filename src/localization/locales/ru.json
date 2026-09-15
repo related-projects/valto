@@ -543,7 +543,10 @@
         "segmentDaily": "Ежедневно",
         "segmentWeekly": "Еженедельно",
         "segmentMonthly": "Ежемесячно",
-        "segmentYearly": "Ежегодно"
+        "segmentYearly": "Ежегодно",
+        "selectWallet": "Выберите кошелёк",
+        "noWallets": "Нет доступных кошельков",
+        "noCategories": "Нет доступных категорий"
     },
     "export": {
         "title": "Экспорт данных",
@@ -581,6 +584,9 @@
         "lockedFor": "Слишком много попыток. Повторите через {{seconds}} с.",
         "enableBiometricTitle": "Включить {{types}}?",
         "enableBiometricSubtitle": "Используйте биометрию как быструю альтернативу PIN."
+    },
+    "languagePicker": {
+        "title": "Выбор языка"
     },
     "currencyPicker": {
         "title": "Выбор валюты",

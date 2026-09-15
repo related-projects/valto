@@ -8,7 +8,13 @@
  *   Step 3 - All Set (completion)
  *
  * Uses useOnboarding hook for state management.
- * All text is fully localized via i18n.
+ *
+ * All text rendered by this screen is localized via i18n, with one exception:
+ * the error line renders whatever useOnboarding put in `error`, and that hook
+ * is not localized. Its selectCurrency, createWallet and completeOnboarding
+ * handlers each fall back to an English literal, and otherwise surface
+ * `err.message`, which is untranslated too. That belongs to the Tier 2
+ * error-message class and is deliberately not fixed here.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -33,11 +39,13 @@ import { useOnboarding } from '../hooks/useOnboarding';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Module-level, so t() is not in scope here: the entries carry the key and the
+// component translates it at render. Same keys the wallet screens already use.
 const WALLET_TYPES = [
-    { label: 'Cash', value: WalletType.CASH, icon: 'wallet-outline' as keyof typeof Ionicons.glyphMap },
-    { label: 'Bank', value: WalletType.BANK, icon: 'card-outline' as keyof typeof Ionicons.glyphMap },
-    { label: 'Mobile', value: WalletType.MOBILE, icon: 'phone-portrait-outline' as keyof typeof Ionicons.glyphMap },
-    { label: 'Savings', value: WalletType.SAVINGS, icon: 'cash-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.cash', value: WalletType.CASH, icon: 'wallet-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.bank', value: WalletType.BANK, icon: 'card-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.mobile', value: WalletType.MOBILE, icon: 'phone-portrait-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.savings', value: WalletType.SAVINGS, icon: 'cash-outline' as keyof typeof Ionicons.glyphMap },
 ];
 
 interface OnboardingScreenProps {
@@ -302,7 +310,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                             borderRadius: radius.md,
                             ...shadows.card,
                         }}
-                        {...getButtonA11y(wt.label)}
+                        {...getButtonA11y(t(wt.labelKey))}
                     >
                         <Ionicons
                             name={wt.icon}
@@ -315,7 +323,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                             marginTop: 4,
                             fontWeight: '600',
                         }}>
-                            {wt.label}
+                            {t(wt.labelKey)}
                         </Text>
                     </TouchableOpacity>
                 ))}
