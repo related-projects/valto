@@ -180,6 +180,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={() => setLanguagePickerVisible(true)}
+                        accessibilityLabel={t('a11y.selectLanguage')}
                         testID="settings_language_item"
                     />
                     <ListItem

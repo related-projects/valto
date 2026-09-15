@@ -543,7 +543,10 @@
     "segmentDaily": "Diaria",
     "segmentWeekly": "Semanal",
     "segmentMonthly": "Mensual",
-    "segmentYearly": "Anual"
+    "segmentYearly": "Anual",
+    "selectWallet": "Seleccionar cartera",
+    "noWallets": "No hay carteras disponibles",
+    "noCategories": "No hay categorías disponibles"
   },
   "export": {
     "title": "Exportar datos",
@@ -581,6 +584,9 @@
     "lockedFor": "Demasiados intentos. Reintenta en {{seconds}}s.",
     "enableBiometricTitle": "¿Activar {{types}}?",
     "enableBiometricSubtitle": "Usa la autenticación biométrica como alternativa rápida a tu PIN."
+  },
+  "languagePicker": {
+    "title": "Seleccionar idioma"
   },
   "currencyPicker": {
     "title": "Seleccionar moneda",

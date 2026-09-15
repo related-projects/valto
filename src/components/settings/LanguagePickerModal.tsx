@@ -7,6 +7,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPPORTED_LANGUAGES, type LanguageDefinition } from '../../domain/constants/languages';
@@ -26,6 +27,7 @@ export const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({
     selectedCode,
 }) => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
+    const { t } = useTranslation();
     const insets = useSafeAreaInsets();
 
     const handleSelect = useCallback((lang: LanguageDefinition) => {
@@ -47,7 +49,7 @@ export const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({
                         <Ionicons name="close" size={24} color={colors.foreground} />
                     </TouchableOpacity>
                     <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                        Select Language
+                        {t('languagePicker.title')}
                     </Text>
                     <View style={{ width: 24 }} />
                 </View>

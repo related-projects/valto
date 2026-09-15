@@ -36,12 +36,18 @@ interface DropdownPickerProps {
     selectedId: string;
     /** Called when an item is selected */
     onSelect: (id: string) => void;
-    /** Placeholder when no item selected */
-    placeholder?: string;
+    /**
+     * Placeholder when no item selected. Required, and deliberately has no
+     * default: a default would have to be an English literal, because a prop
+     * default cannot call t(). Making it required pushes the string out to the
+     * call site, where a translation is in scope, and lets the compiler find any
+     * site that forgets one.
+     */
+    placeholder: string;
     /** Optional icon for the trigger row */
     triggerIcon?: React.ReactNode;
-    /** Empty state text */
-    emptyText?: string;
+    /** Empty state text. Required for the same reason as placeholder. */
+    emptyText: string;
     /** Maximum height of the dropdown list */
     maxHeight?: number;
     /** Optional testID */
@@ -55,9 +61,9 @@ export const DropdownPicker: React.FC<DropdownPickerProps> = ({
     items,
     selectedId,
     onSelect,
-    placeholder = 'Select...',
+    placeholder,
     triggerIcon,
-    emptyText = 'No items available',
+    emptyText,
     maxHeight = 200,
     testID,
 }) => {
