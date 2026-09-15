@@ -129,7 +129,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
             } else {
                 Alert.alert(
                     t('modals.transfer.error'),
-                    error instanceof Error ? error.message : t('modals.transfer.transferFailed')
+                    t('modals.transfer.transferFailed')
                 );
             }
         } finally {

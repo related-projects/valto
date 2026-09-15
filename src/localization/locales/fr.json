@@ -263,12 +263,15 @@
       "deleteTitle": "Supprimer le portefeuille",
       "deleteMessage": "Êtes-vous sûr de vouloir supprimer « {{name}} » ? Cette action est irréversible.",
       "deleteFailed": "Échec de la suppression du portefeuille",
+      "updateFailed": "Échec de la mise à jour du portefeuille",
       "error": "Erreur",
       "hasTransactionsTitle": "Portefeuille avec transactions",
       "hasTransactionsMessage": "Ce portefeuille contient des transactions. La suppression n'affectera pas les transactions passées mais elles ne seront plus liées à un portefeuille. Continuer ?",
       "deleteAnyway": "Supprimer quand même",
       "deleteBlockedByRulesTitle": "Portefeuille utilisé",
-      "deleteBlockedByRulesMessage": "{{count}} règle(s) récurrente(s) utilisent encore ce portefeuille. Réaffectez ces règles à un autre portefeuille, ou supprimez-les, puis supprimez ce portefeuille."
+      "deleteBlockedByRulesMessage": "{{count}} règle(s) récurrente(s) utilisent encore ce portefeuille. Réaffectez ces règles à un autre portefeuille, ou supprimez-les, puis supprimez ce portefeuille.",
+      "deleteBlockedLastWalletTitle": "Dernier portefeuille",
+      "deleteBlockedLastWalletMessage": "C'est votre seul portefeuille, et une transaction doit appartenir à un portefeuille. Créez d'abord un autre portefeuille, puis supprimez celui-ci."
     },
     "category": {
       "newTitle": "Nouvelle catégorie",
@@ -546,7 +549,8 @@
     "segmentYearly": "Annuel",
     "selectWallet": "Choisir un portefeuille",
     "noWallets": "Aucun portefeuille disponible",
-    "noCategories": "Aucune catégorie disponible"
+    "noCategories": "Aucune catégorie disponible",
+    "deleteFailed": "Échec de la suppression de la règle"
   },
   "export": {
     "title": "Exporter les données",
@@ -607,7 +611,10 @@
     "walletType": "Type de portefeuille",
     "allSet": "Vous êtes prêt !",
     "allSetDescription": "Commencez à suivre vos finances avec Valto.",
-    "goToDashboard": "Aller au tableau de bord"
+    "goToDashboard": "Aller au tableau de bord",
+    "currencySelectFailed": "Impossible d'enregistrer votre devise. Veuillez réessayer.",
+    "walletCreateFailed": "Impossible de créer votre portefeuille. Veuillez réessayer.",
+    "completeFailed": "Impossible de terminer la configuration. Veuillez réessayer."
   },
   "empty": {
     "transactions": {

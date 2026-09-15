@@ -64,9 +64,12 @@ export function useCategories(): UseCategoriesResult {
 
             return category;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Failed to create category';
-            setError(msg);
-            throw new Error(msg);
+            setError(err instanceof Error ? err.message : 'Failed to create category');
+            // Rethrow the ORIGINAL error. A hook never constructs an Error from
+            // an Error it caught: doing so destroys `instanceof` before the UI
+            // can branch on it. See useCategories.test.ts
+            // 'createCategory preserves the typed error class'.
+            throw err;
         }
     }, [categoryRepo, loadCategories]);
 
@@ -82,9 +85,9 @@ export function useCategories(): UseCategoriesResult {
 
             return category;
         } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Failed to update category';
-            setError(msg);
-            throw new Error(msg);
+            setError(err instanceof Error ? err.message : 'Failed to update category');
+            // Rethrow the ORIGINAL error - see createCategory above.
+            throw err;
         }
     }, [categoryRepo, loadCategories]);
 
@@ -92,16 +95,16 @@ export function useCategories(): UseCategoriesResult {
      * Delete a category (delegates to use case for reference check)
      */
     const deleteCategory = useCallback(async (id: string): Promise<void> => {
-        try {
-            const deps = getUseCaseDeps();
-            await deleteCategoryUC(deps, id);
+        // No catch. The only thing the catch here used to do was rebuild the
+        // error as a bare `new Error(msg)`, which destroyed the class before
+        // CategoriesScreen could branch on it. Letting the use case's error
+        // propagate untouched is what a rethrow-only catch would achieve, without
+        // the catch. See useCategories.test.ts
+        // 'deleteCategory preserves the typed error class'.
+        const deps = getUseCaseDeps();
+        await deleteCategoryUC(deps, id);
 
-            await loadCategories();
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Failed to delete category';
-            // Propagate the specific error message (e.g. usage check)
-            throw new Error(msg);
-        }
+        await loadCategories();
     }, [loadCategories]);
 
     /**

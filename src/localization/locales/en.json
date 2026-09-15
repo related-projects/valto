@@ -263,12 +263,15 @@
       "deleteTitle": "Delete Wallet",
       "deleteMessage": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
       "deleteFailed": "Failed to delete wallet",
+      "updateFailed": "Failed to update wallet",
       "error": "Error",
       "hasTransactionsTitle": "Wallet Has Transactions",
       "hasTransactionsMessage": "This wallet has transactions. Deleting will not affect past transactions but they will no longer be linked to a wallet. Continue?",
       "deleteAnyway": "Delete Anyway",
       "deleteBlockedByRulesTitle": "Wallet In Use",
-      "deleteBlockedByRulesMessage": "{{count}} recurring rule(s) still use this wallet. Point those rules at another wallet, or delete them, then delete this wallet."
+      "deleteBlockedByRulesMessage": "{{count}} recurring rule(s) still use this wallet. Point those rules at another wallet, or delete them, then delete this wallet.",
+      "deleteBlockedLastWalletTitle": "Last Wallet",
+      "deleteBlockedLastWalletMessage": "This is your only wallet, and a transaction has to belong to one. Create another wallet first, then delete this one."
     },
     "category": {
       "newTitle": "New Category",
@@ -546,7 +549,8 @@
     "segmentYearly": "Yearly",
     "selectWallet": "Select wallet",
     "noWallets": "No wallets available",
-    "noCategories": "No categories available"
+    "noCategories": "No categories available",
+    "deleteFailed": "Failed to delete rule"
   },
   "export": {
     "title": "Export Data",
@@ -607,7 +611,10 @@
     "walletType": "Wallet Type",
     "allSet": "You're all set!",
     "allSetDescription": "Start tracking your finances with Valto.",
-    "goToDashboard": "Go to Dashboard"
+    "goToDashboard": "Go to Dashboard",
+    "currencySelectFailed": "Could not save your currency. Please try again.",
+    "walletCreateFailed": "Could not create your wallet. Please try again.",
+    "completeFailed": "Could not finish setting up. Please try again."
   },
   "empty": {
     "transactions": {

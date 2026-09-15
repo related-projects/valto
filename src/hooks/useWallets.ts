@@ -89,9 +89,12 @@ export function useWallets(): UseWalletsResult {
             await loadWallets();
             return wallet;
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to create wallet';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+            setError(err instanceof Error ? err.message : 'Failed to create wallet');
+            // Rethrow the ORIGINAL error. A hook never constructs an Error from
+            // an Error it caught: doing so destroys `instanceof` before the UI
+            // can branch on it. See useWallets.test.ts
+            // 'createWallet preserves the typed error class'.
+            throw err;
         }
     }, [loadWallets]);
 
@@ -100,16 +103,13 @@ export function useWallets(): UseWalletsResult {
      */
     const updateWallet = useCallback(async (dto: UpdateWalletDTO): Promise<Wallet> => {
         try {
-            // Validate name if provided
-            if (dto.name !== undefined && dto.name.trim().length === 0) {
-                throw new Error('Wallet name cannot be empty');
-            }
-
-            // Validate balance if provided
-            if (dto.balance !== undefined && dto.balance < 0) {
-                throw new Error('Balance cannot be negative');
-            }
-
+            // No validation here. The empty-name rule is validateWallet
+            // (src/domain/validators/WalletValidator.ts), and the negative-balance
+            // rule is validateWalletBalance (src/domain/entities/Wallet.ts), which
+            // permits overdraft on bank and savings wallets. Both run inside
+            // walletRepo.updateFromDTO. A copy in this hook could only disagree
+            // with them, and the copy that used to sit here did: it refused a
+            // negative balance for every wallet type.
             const wallet = await walletRepo.updateFromDTO(dto);
             await loadWallets();
 
@@ -118,9 +118,9 @@ export function useWallets(): UseWalletsResult {
 
             return wallet;
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to update wallet';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+            setError(err instanceof Error ? err.message : 'Failed to update wallet');
+            // Rethrow the ORIGINAL error - see createWallet above.
+            throw err;
         }
     }, [walletRepo, loadWallets]);
 

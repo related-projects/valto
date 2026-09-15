@@ -95,12 +95,10 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
       resetForm();
       onSuccess?.();
       onClose();
-    } catch (error) {
+    } catch {
       Alert.alert(
         t("modals.addWallet.error"),
-        error instanceof Error
-          ? error.message
-          : t("modals.addWallet.createFailed"),
+        t("modals.addWallet.createFailed"),
       );
     } finally {
       setSaving(false);

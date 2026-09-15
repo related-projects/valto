@@ -263,12 +263,15 @@
       "deleteTitle": "Eliminar cartera",
       "deleteMessage": "¿Seguro que deseas eliminar «{{name}}»? Esto no se puede deshacer.",
       "deleteFailed": "No se pudo eliminar la cartera",
+      "updateFailed": "No se pudo actualizar la cartera",
       "error": "Error",
       "hasTransactionsTitle": "La cartera tiene transacciones",
       "hasTransactionsMessage": "Esta cartera tiene transacciones. Al eliminarla no se afectarán las transacciones pasadas, pero ya no estarán vinculadas a una cartera. ¿Continuar?",
       "deleteAnyway": "Eliminar de todos modos",
       "deleteBlockedByRulesTitle": "Cartera en uso",
-      "deleteBlockedByRulesMessage": "{{count}} regla(s) recurrente(s) todavía usan esta cartera. Asigna esas reglas a otra cartera, o elimínalas, y luego elimina esta cartera."
+      "deleteBlockedByRulesMessage": "{{count}} regla(s) recurrente(s) todavía usan esta cartera. Asigna esas reglas a otra cartera, o elimínalas, y luego elimina esta cartera.",
+      "deleteBlockedLastWalletTitle": "Última cartera",
+      "deleteBlockedLastWalletMessage": "Esta es tu única cartera, y toda transacción debe pertenecer a una. Crea otra cartera primero y luego elimina esta."
     },
     "category": {
       "newTitle": "Nueva categoría",
@@ -546,7 +549,8 @@
     "segmentYearly": "Anual",
     "selectWallet": "Seleccionar cartera",
     "noWallets": "No hay carteras disponibles",
-    "noCategories": "No hay categorías disponibles"
+    "noCategories": "No hay categorías disponibles",
+    "deleteFailed": "No se pudo eliminar la regla"
   },
   "export": {
     "title": "Exportar datos",
@@ -607,7 +611,10 @@
     "walletType": "Tipo de cartera",
     "allSet": "¡Todo listo!",
     "allSetDescription": "Empieza a controlar tus finanzas con Valto.",
-    "goToDashboard": "Ir al panel"
+    "goToDashboard": "Ir al panel",
+    "currencySelectFailed": "No se pudo guardar tu moneda. Inténtalo de nuevo.",
+    "walletCreateFailed": "No se pudo crear tu cartera. Inténtalo de nuevo.",
+    "completeFailed": "No se pudo completar la configuración. Inténtalo de nuevo."
   },
   "empty": {
     "transactions": {

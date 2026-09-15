@@ -10,10 +10,12 @@ import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
+import { RepositoryError } from '../../data/repositories/IRepository';
 import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
-import { CategoryType, TransactionType, WalletType } from '../../domain/entities';
+import { CategoryType, RecurrenceFrequency, TransactionType, WalletType } from '../../domain/entities';
+import { CategoryHasRecurringRulesError } from '../../domain/useCases';
 
 // Shared state - mock-prefixed for jest.mock() hoisting
 let mockDb: SqlDatabase;
@@ -171,12 +173,116 @@ describe('useCategories', () => {
         expect(result.current.categories[0].name).toBe('Kept');
     });
 
-    it('throws when deleting category with references', async () => {
+    it('deleteCategory hands back the exact error instance it caught', async () => {
         const cat = await mockCategoryRepo.create({
             name: 'Food',
             type: CategoryType.EXPENSE,
             icon: '🍔',
             color: '#FF5722',
+        });
+
+        // A sentinel the test holds a reference to, thrown from below the hook.
+        // Identity is the whole point: the re-wrap this pass removed produced a
+        // NEW Error carrying the same message, which a message assertion cannot
+        // tell apart from the original but `toBe` can. Asserting identity rather
+        // than a stack string also keeps the test independent of the transform -
+        // a stack describes how the code was compiled, not how it behaves.
+        //
+        // getByCategoryId is the first call deleteCategory (the use case) makes,
+        // so the sentinel leaves the use case and passes through the hook, which
+        // no longer has a catch at all.
+        const sentinel = new Error('category reference lookup exploded');
+        mockTransactionRepo.getByCategoryId = jest.fn().mockRejectedValue(sentinel);
+
+        const { result } = renderHook(() => useCategories());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let caught: unknown;
+        await act(async () => {
+            try {
+                await result.current.deleteCategory(cat.id);
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBe(sentinel);
+        expect((caught as Error).message).toBe('category reference lookup exploded');
+    });
+
+    // --- V-29: the hook must not flatten a typed error ------------------
+    //
+    // All three operations below used to end in `throw new Error(msg)`, which
+    // produced a bare Error and made `instanceof` useless at the call site.
+    // CategoriesScreen had to re-query the recurring repository to recover a
+    // count the error already carried; that workaround is gone.
+
+    it('createCategory preserves the typed error class', async () => {
+        const { result } = renderHook(() => useCategories());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let caught: unknown;
+        await act(async () => {
+            try {
+                // An empty name fails CategoryRepository's own validate, which
+                // raises a RepositoryError.
+                await result.current.createCategory({
+                    name: '',
+                    type: CategoryType.EXPENSE,
+                    icon: 'food',
+                    color: '#FF5722',
+                });
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBeInstanceOf(RepositoryError);
+    });
+
+    it('updateCategory preserves the typed error class', async () => {
+        const { result } = renderHook(() => useCategories());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let caught: unknown;
+        await act(async () => {
+            try {
+                // No such category: updateFromDTO raises RepositoryError NOT_FOUND.
+                await result.current.updateCategory({
+                    id: 'no-such-category',
+                    name: 'Renamed',
+                });
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBeInstanceOf(RepositoryError);
+    });
+
+    it('deleteCategory preserves the typed error class and its rule count', async () => {
+        const cat = await mockCategoryRepo.create({
+            name: 'Subscriptions',
+            type: CategoryType.EXPENSE,
+            icon: 'tv',
+            color: '#3F51B5',
+        });
+        // A second category, so the use case's "at least one category" floor is
+        // not what refuses the delete.
+        await mockCategoryRepo.create({
+            name: 'Kept',
+            type: CategoryType.EXPENSE,
+            icon: 'cart',
+            color: '#00FF00',
         });
 
         const wallet = await mockWalletRepo.create({
@@ -185,12 +291,14 @@ describe('useCategories', () => {
             type: WalletType.CASH,
         });
 
-        await mockTransactionRepo.create({
+        await mockRecurringRepo.create({
             type: TransactionType.EXPENSE,
-            amount: 5000,
-            categoryId: cat.id,
+            amount: 1200,
             walletId: wallet.id,
-            date: new Date(),
+            categoryId: cat.id,
+            startDate: new Date(2026, 0, 1),
+            frequency: RecurrenceFrequency.MONTHLY,
+            interval: 1,
         });
 
         const { result } = renderHook(() => useCategories());
@@ -199,11 +307,19 @@ describe('useCategories', () => {
             expect(result.current.loading).toBe(false);
         });
 
-        await expect(
-            act(async () => {
+        let caught: unknown;
+        await act(async () => {
+            try {
                 await result.current.deleteCategory(cat.id);
-            })
-        ).rejects.toThrow('Cannot delete category');
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBeInstanceOf(CategoryHasRecurringRulesError);
+        // The count travels on the error. This is the field CategoriesScreen
+        // used to re-read from the repository because the class did not survive.
+        expect((caught as CategoryHasRecurringRulesError).ruleCount).toBe(1);
     });
 
     it('handles empty categories list', async () => {

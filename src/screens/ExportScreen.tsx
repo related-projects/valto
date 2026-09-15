@@ -40,16 +40,16 @@ export const ExportScreen: React.FC = () => {
     const handleExportCSV = useCallback(async () => {
         try {
             await exportCSV();
-        } catch (error) {
-            Alert.alert(t('export.exportFailed'), error instanceof Error ? error.message : t('export.exportFailedMessage'));
+        } catch {
+            Alert.alert(t('export.exportFailed'), t('export.exportFailedMessage'));
         }
     }, [exportCSV, t]);
 
     const handleExportPDF = useCallback(async () => {
         try {
             await exportMonthlyPDF(selectedYear, selectedMonth);
-        } catch (error) {
-            Alert.alert(t('export.exportFailed'), error instanceof Error ? error.message : t('export.exportFailedMessage'));
+        } catch {
+            Alert.alert(t('export.exportFailed'), t('export.exportFailedMessage'));
         }
     }, [exportMonthlyPDF, selectedYear, selectedMonth, t]);
 

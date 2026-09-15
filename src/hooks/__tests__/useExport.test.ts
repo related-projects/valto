@@ -1,11 +1,16 @@
 /**
  * useExport Hook Tests
  *
- * Tests CSV/PDF export functionality, loading states,
- * error handling, and date range calculation.
+ * Tests CSV/PDF export functionality, loading states and date range
+ * calculation.
+ *
+ * The hook holds no `error` state, so nothing here asserts one. The four tests
+ * that did were removed with the field. Note what that leaves uncovered: no
+ * test in this file exercises a failing export at all. ExportScreen is what
+ * presents the failure, and ExportScreen has no test.
  */
 
-import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 // Mock the container and services
 const mockGetAll = jest.fn();
@@ -43,11 +48,10 @@ describe('useExport', () => {
         mockShareMonthlyPDF.mockResolvedValue(undefined);
     });
 
-    it('starts with loading false and no error', () => {
+    it('starts with loading false', () => {
         const { result } = renderHook(() => useExport());
 
         expect(result.current.loading).toBe(false);
-        expect(result.current.error).toBeNull();
     });
 
     it('exportCSV sets loading during execution', async () => {
@@ -80,41 +84,6 @@ describe('useExport', () => {
         });
 
         expect(mockShareCSV).toHaveBeenCalledTimes(1);
-        expect(result.current.error).toBeNull();
-    });
-
-    it('exportCSV sets error message on failure', async () => {
-        mockShareCSV.mockRejectedValue(new Error('Share not available'));
-
-        const { result } = renderHook(() => useExport());
-
-        // The hook throws, so we catch it ourselves
-        await act(async () => {
-            try {
-                await result.current.exportCSV();
-            } catch {
-                // Expected - hook re-throws
-            }
-        });
-
-        expect(result.current.error).toBe('Share not available');
-        expect(result.current.loading).toBe(false);
-    });
-
-    it('exportCSV uses generic error for non-Error throws', async () => {
-        mockShareCSV.mockRejectedValue('string error');
-
-        const { result } = renderHook(() => useExport());
-
-        await act(async () => {
-            try {
-                await result.current.exportCSV();
-            } catch {
-                // Expected
-            }
-        });
-
-        expect(result.current.error).toBe('CSV export failed');
     });
 
     it('exportMonthlyPDF calls shareMonthlyPDF', async () => {
@@ -147,46 +116,4 @@ describe('useExport', () => {
         );
     });
 
-    it('exportMonthlyPDF sets error on failure', async () => {
-        mockShareMonthlyPDF.mockRejectedValue(new Error('PDF generation failed'));
-
-        const { result } = renderHook(() => useExport());
-
-        await act(async () => {
-            try {
-                await result.current.exportMonthlyPDF(2026, 3);
-            } catch {
-                // Expected
-            }
-        });
-
-        expect(result.current.error).toBe('PDF generation failed');
-        expect(result.current.loading).toBe(false);
-    });
-
-    it('clears previous error on new export attempt', async () => {
-        // First call fails
-        mockShareCSV.mockRejectedValueOnce(new Error('fail'));
-
-        const { result } = renderHook(() => useExport());
-
-        await act(async () => {
-            try {
-                await result.current.exportCSV();
-            } catch {
-                // Expected
-            }
-        });
-
-        expect(result.current.error).toBe('fail');
-
-        // Second call succeeds
-        mockShareCSV.mockResolvedValueOnce(undefined);
-
-        await act(async () => {
-            await result.current.exportCSV();
-        });
-
-        expect(result.current.error).toBeNull();
-    });
 });

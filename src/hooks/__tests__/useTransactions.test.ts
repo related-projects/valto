@@ -9,9 +9,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
+import { RepositoryError } from '../../data/repositories/IRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { TransactionType, WalletType } from '../../domain/entities';
+import { TransferDeletionNotSupportedError } from '../../domain/useCases';
 
 // Shared state - mock-prefixed for jest.mock() hoisting
 let mockDb: SqlDatabase;
@@ -167,5 +169,80 @@ describe('useTransactions', () => {
         // Wallet balance should be reverted to original
         const updatedWallet = await mockWalletRepo.getById(wallet.id);
         expect(updatedWallet!.balance).toBe(100000);
+    });
+
+    // --- V-29: the hook must not flatten a typed error ------------------
+    //
+    // Both operations below used to end in `throw new Error(errorMessage)`,
+    // which produced a bare Error and made `instanceof` useless at the call
+    // site.
+
+    it('createTransaction preserves the typed error class', async () => {
+        const wallet = await mockWalletRepo.create({
+            name: 'Cash',
+            balance: 100000,
+            type: WalletType.CASH,
+        });
+
+        const { result } = renderHook(() => useTransactions());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let caught: unknown;
+        await act(async () => {
+            try {
+                // An empty categoryId fails validateTransaction inside
+                // TransactionRepository.save, which raises a RepositoryError.
+                await result.current.createTransaction({
+                    type: TransactionType.EXPENSE,
+                    amount: 5000,
+                    categoryId: '',
+                    walletId: wallet.id,
+                    date: new Date(),
+                });
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBeInstanceOf(RepositoryError);
+    });
+
+    it('deleteTransaction preserves the typed error class', async () => {
+        const wallet = await mockWalletRepo.create({
+            name: 'Cash',
+            balance: 100000,
+            type: WalletType.CASH,
+        });
+
+        // A transfer leg: deleteTransaction refuses it with a typed error before
+        // anything is written. This is the case the re-wrap flattened, and the
+        // reason no caller could tell a refusal from a storage failure.
+        const leg = await mockTransactionRepo.create({
+            type: TransactionType.TRANSFER,
+            amount: 5000,
+            categoryId: 'transfer-category',
+            walletId: wallet.id,
+            date: new Date(),
+        });
+
+        const { result } = renderHook(() => useTransactions());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let caught: unknown;
+        await act(async () => {
+            try {
+                await result.current.deleteTransaction(leg.id);
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBeInstanceOf(TransferDeletionNotSupportedError);
     });
 });

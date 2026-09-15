@@ -210,7 +210,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 if (error instanceof InsufficientFundsError) {
                     Alert.alert(t('modals.addTransaction.insufficientBalance'), t('modals.addTransaction.insufficientBalanceMessage', { amount: formatAmount(selectedWallet?.balance ?? 0) }));
                 } else {
-                    Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.transferFailed'));
+                    Alert.alert(t('modals.addTransaction.error'), t('modals.addTransaction.transferFailed'));
                 }
             } finally {
                 setSaving(false);
@@ -239,8 +239,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
             setDate(new Date());
             onSuccess?.();
             onClose();
-        } catch (error) {
-            Alert.alert(t('modals.addTransaction.error'), error instanceof Error ? error.message : t('modals.addTransaction.saveFailed'));
+        } catch {
+            Alert.alert(t('modals.addTransaction.error'), t('modals.addTransaction.saveFailed'));
         } finally {
             setSaving(false);
         }
