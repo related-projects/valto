@@ -52,11 +52,13 @@ export interface CreateWalletDTO {
 /**
  * Data Transfer Object for updating an existing wallet
  * All fields are optional except id
+ *
+ * No balance: a wallet balance moves only through the ledger, never through an
+ * update. See src/data/__tests__/walletEditGuard.test.ts.
  */
 export interface UpdateWalletDTO {
     id: string;
     name?: string;
-    balance?: number;
     type?: WalletType;
     color?: string;
 }

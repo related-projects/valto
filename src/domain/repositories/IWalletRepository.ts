@@ -21,7 +21,12 @@ export interface IWalletRepository extends IRepository<Wallet> {
     /** Create a wallet from a DTO (generates id, sets opening balance). */
     create(dto: CreateWalletDTO): Promise<Wallet>;
 
-    /** Update an existing wallet from a partial DTO. */
+    /**
+     * Update an existing wallet's name, type or color from a partial DTO.
+     * Never changes the balance, which moves only through updateBalance inside
+     * the ledger transaction; a forced balance change is refused.
+     * See src/data/__tests__/walletEditGuard.test.ts.
+     */
     updateFromDTO(dto: UpdateWalletDTO): Promise<Wallet>;
 
     /** Atomically add `amount` (signed) to the stored balance. */
