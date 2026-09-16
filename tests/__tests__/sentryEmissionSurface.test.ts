@@ -157,7 +157,7 @@ const DECLARED_SITES: Site[] = [
         branch: 'unconditional',
         gate: 'ungated',
     },
-    // Recurring rules that failed to generate: counts and rule ids only.
+    // Recurring rules that failed to generate: counts only.
     {
         file: 'app/_layout.tsx',
         enclosing: 'bootstrap',
