@@ -156,16 +156,19 @@ function RootLayout() {
       // on. Discarding the result made that failure invisible to us as well -
       // the only trace was a console.error nobody reads in a release build.
       //
-      // Rule ids and counts only. The engine's error strings can carry whatever
-      // a repository or driver put in them, and this app logs balances, so the
-      // messages themselves are deliberately not sent.
+      // Counts only in what is sent. The engine's error strings can carry
+      // whatever a repository or driver put in them, and this app logs
+      // balances, so the messages themselves are deliberately not sent. Rule
+      // ids are not sent either: they are persisted UUIDs, so the same ids
+      // would go out on every boot for as long as a rule keeps failing
+      // (REGISTRE V-72). The console line keeps them: console output stays
+      // local and dropConsoleBreadcrumbs keeps it out of breadcrumbs.
       const failedRuleIds = recurringResult?.errors?.map((e) => e.ruleId) ?? [];
       if (failedRuleIds.length > 0) {
         const msg =
           `[RecurringEngine] ${failedRuleIds.length} of ` +
-          `${recurringResult.rulesEvaluated} rule(s) failed to generate: ` +
-          failedRuleIds.join(", ");
-        console.warn(msg);
+          `${recurringResult.rulesEvaluated} rule(s) failed to generate`;
+        console.warn(`${msg}: ${failedRuleIds.join(", ")}`);
         if (!__DEV__) {
           Sentry.captureMessage(msg, "warning");
         }

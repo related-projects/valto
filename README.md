@@ -74,7 +74,7 @@ Versioned, idempotent migrations run at boot: `v4` creates the relational schema
 
 Your financial data never leaves the device: there is no backend, no account, and no data sync. The app does make limited network calls for crash reporting (Sentry) and over-the-air update checks (expo-updates); neither transmits your financial data. This is deliberately stated precisely - "your data stays on device" is true; "the app makes zero network calls" would not be.
 
-Crash reports are not the only thing sent. When scheduled recurring entries fail to run, the app reports how many rules failed and their internal ids - no amounts, no names, no notes.
+Crash reports are not the only thing sent. When scheduled recurring entries fail to run, the app reports how many rules failed, out of how many were checked - no ids, no amounts, no names, no notes.
 
 What a report contains, and what it does not, is set out in full in the [privacy policy](https://github.com/related-projects/valto-legal). That is the single versioned source for it.
 
