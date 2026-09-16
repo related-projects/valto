@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../components/dashboard/BalanceCard';
 import { BudgetProgress } from '../components/dashboard/BudgetProgress';
@@ -16,6 +17,7 @@ import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useSecurity } from '../core/security/SecurityContext';
+import type { Budget } from '../domain/entities';
 import { SavingsLevel, evaluateRecurringHealth } from '../domain/insights';
 import { useBudgets } from '../hooks/useBudgets';
 import { useDashboard } from '../hooks/useDashboard';
@@ -44,6 +46,8 @@ export const DashboardScreen = () => {
     const [modalType, setModalType] = useState<'expense' | 'income'>('expense');
     const [transferModalVisible, setTransferModalVisible] = useState(false);
     const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+    // Budget open in the sheet for editing; null while creating.
+    const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
 
     // Hooks for real data
     const { transactions, refreshTransactions } = useTransactions();
@@ -63,9 +67,40 @@ export const DashboardScreen = () => {
         totalBudgetSpent,
         hasBudgets,
         createBudget,
+        updateBudget,
+        deleteBudget,
         refreshBudgets,
         budgetedCategoryIds,
     } = useBudgets();
+
+    // The tab stays mounted: re-read the month (and budgets) whenever the
+    // Dashboard comes back into view.
+    useFocusEffect(
+        useCallback(() => {
+            refreshBudgets();
+        }, [refreshBudgets]),
+    );
+
+    const handleDeleteBudget = useCallback((budgetId: string) => {
+        Alert.alert(
+            t('components.budgetProgress.deleteTitle'),
+            t('components.budgetProgress.deleteMessage'),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('common.delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteBudget(budgetId);
+                        } catch {
+                            Alert.alert(t('alerts.error'), t('components.budgetProgress.deleteFailed'));
+                        }
+                    },
+                },
+            ],
+        );
+    }, [t, deleteBudget]);
 
     // Financial Insights
     const { savingsHealth, categoryRisk, budgetPace } = useFinancialInsights();
@@ -184,7 +219,15 @@ export const DashboardScreen = () => {
                     totalSpent={totalBudgetSpent}
                     totalLimit={totalBudgetLimit}
                     hasBudgets={hasBudgets}
-                    onCreateBudget={() => setBudgetModalVisible(true)}
+                    onCreateBudget={() => {
+                        setEditingBudget(null);
+                        setBudgetModalVisible(true);
+                    }}
+                    onEditBudget={(budget) => {
+                        setEditingBudget(budget);
+                        setBudgetModalVisible(true);
+                    }}
+                    onDeleteBudget={handleDeleteBudget}
                     ctaEmphasis={isFirstExpensePending ? 'secondary' : 'primary'}
                 />
             </View>
@@ -265,9 +308,16 @@ export const DashboardScreen = () => {
 
             <AddBudgetModal
                 visible={budgetModalVisible}
-                onClose={() => setBudgetModalVisible(false)}
+                onClose={() => {
+                    setBudgetModalVisible(false);
+                    setEditingBudget(null);
+                }}
                 onCreateBudget={async (dto) => {
                     await createBudget(dto);
+                }}
+                initialBudget={editingBudget}
+                onUpdateBudget={async (dto) => {
+                    await updateBudget(dto);
                 }}
                 budgetedCategoryIds={budgetedCategoryIds}
             />
