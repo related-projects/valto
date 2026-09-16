@@ -5,7 +5,13 @@
  * Use cases receive their dependencies via injection - no React, no singletons.
  */
 
-import type { ICategoryRepository, ITransactionRepository, IWalletRepository } from '../repositories';
+import type {
+    IBudgetRepository,
+    ICategoryRepository,
+    IRecurringTransactionRepository,
+    ITransactionRepository,
+    IWalletRepository,
+} from '../repositories';
 
 /** Event emitter interface - matches DataEventEmitter shape without importing it */
 export interface EventBus {
@@ -26,6 +32,8 @@ export interface UseCaseDeps {
     transactionRepo: ITransactionRepository;
     walletRepo: IWalletRepository;
     categoryRepo: ICategoryRepository;
+    budgetRepo: IBudgetRepository;
+    recurringRepo: IRecurringTransactionRepository;
     eventBus: EventBus;
     runInTransaction: RunInTransaction;
 }

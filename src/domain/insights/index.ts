@@ -8,5 +8,6 @@
 export { evaluateBudgetPace, type BudgetPaceResult } from './budgetPace';
 export { evaluateCategoryRisk, type CategoryRiskLevel, type CategoryRiskResult } from './categoryRisk';
 export { compareMonthlySpending, type MonthlySpendingData, type MonthlySpendingTrendResult, type SpendingDirection } from './monthlySpendingTrend';
+export { evaluateRecurringHealth, type RecurringHealthResult } from './recurringHealth';
 export { evaluateSavingsHealth, type SavingsHealthResult, type SavingsLevel } from './savingsHealth';
 

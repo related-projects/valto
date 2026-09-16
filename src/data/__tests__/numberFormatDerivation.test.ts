@@ -16,24 +16,17 @@ jest.mock('@react-native-async-storage/async-storage', () =>
     require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
-// Mutable so a test can change the device locale between launches. The getter
-// means every read of NativeModules picks up the current value rather than a
-// value captured when the module was first imported.
-const mockDeviceLocale = { value: 'en_US' };
+// Mutable so a test can change the device platform or locale between launches.
+// The helper reads this ref on every call rather than capturing it, so a change
+// here is visible to the next getDeviceLocale() without re-mocking the module.
+const mockDeviceLocale: { os: 'ios' | 'android'; value: string | null } = {
+    os: 'ios',
+    value: 'en_US',
+};
 
-jest.mock('react-native', () => ({
-    Platform: { OS: 'ios' },
-    NativeModules: {
-        SettingsManager: {
-            get settings() {
-                return {
-                    AppleLocale: mockDeviceLocale.value,
-                    AppleLanguages: [mockDeviceLocale.value],
-                };
-            },
-        },
-    },
-}));
+jest.mock('react-native', () =>
+    require('@/tests/helpers/deviceLocaleMock').createDeviceLocaleMock(() => mockDeviceLocale)
+);
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -49,6 +42,7 @@ const SETTINGS_KEY = '@valto:settings';
 
 beforeEach(async () => {
     await AsyncStorage.clear();
+    mockDeviceLocale.os = 'ios';
     mockDeviceLocale.value = 'en_US';
     jest.clearAllMocks();
 });
@@ -103,6 +97,24 @@ describe('getDeviceLocale', () => {
         mockDeviceLocale.value = 'fr_CI';
         expect(getDeviceLocale()).toBe('fr_CI');
     });
+
+    // Android goes through I18nManager.getConstants(), not a property read off
+    // NativeModules. The two branches are separate code paths and only the iOS
+    // one was covered, so a regression on Android - the only platform this app
+    // ships to - would not have failed anything.
+    it('reads the Android locale through the I18nManager constants', () => {
+        mockDeviceLocale.os = 'android';
+        mockDeviceLocale.value = 'fr_CI';
+        expect(getDeviceLocale()).toBe('fr_CI');
+    });
+
+    it('returns null when the platform gives no locale up', () => {
+        mockDeviceLocale.value = null;
+        expect(getDeviceLocale()).toBeNull();
+
+        mockDeviceLocale.os = 'android';
+        expect(getDeviceLocale()).toBeNull();
+    });
 });
 
 // ─── First launch only ────────────────────────────────────────────────
@@ -131,10 +143,20 @@ describe('first-launch profile derivation', () => {
 
     it('getInitialSettings is the only entry point that reads the device', () => {
         mockDeviceLocale.value = 'fr_FR';
-        // getDefaultSettings stays static, so nothing that merges over defaults
-        // can accidentally pull the device locale in.
-        expect(getDefaultSettings().decimalSeparator).toBe('dot');
-        expect(getInitialSettings().decimalSeparator).toBe('space');
+
+        // getDefaultSettings must stay static in EVERY field, not just this one.
+        // It is the merge base for every subsequent load and the catch-path
+        // return, so any device read placed there runs on paths that are not a
+        // first launch. `language` used to derive here, which made the name of
+        // this test false while it still passed: it only ever checked the
+        // number-format profile.
+        const defaults = getDefaultSettings();
+        expect(defaults.decimalSeparator).toBe('dot');
+        expect(defaults.language).toBe('en');
+
+        const initial = getInitialSettings();
+        expect(initial.decimalSeparator).toBe('space');
+        expect(initial.language).toBe('fr');
     });
 });
 
@@ -191,6 +213,29 @@ describe('a stored choice always wins over the device locale', () => {
         }));
 
         expect((await loadSettings()).decimalSeparator).toBe('dot');
+    });
+
+    // The same rule, for language, and it is the ONE case where moving the read
+    // out of getDefaultSettings is observable on an install that already exists:
+    // a stored blob with no `language` key at all. It used to inherit the device
+    // language through the merge base; it now takes the static default, exactly
+    // as decimalSeparator already did in the test above. Both fields now answer
+    // "storage exists but this key does not" the same way, which is the whole
+    // point of the boundary - the device speaks on first launch and nowhere else.
+    it('does not derive the language for an existing install whose blob has no language key', async () => {
+        mockDeviceLocale.value = 'fr_FR';
+        await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({
+            theme: 'system',
+            currency: 'XOF',
+            currencyLocked: true,
+            notificationsEnabled: false,
+            dateFormat: 'DD/MM/YYYY',
+            firstDayOfWeek: 'monday',
+            decimalSeparator: 'space',
+            onboardingCompleted: true,
+        }));
+
+        expect((await loadSettings()).language).toBe('en');
     });
 
     it('sanitises a corrupted profile to the static default, not to the device locale', async () => {

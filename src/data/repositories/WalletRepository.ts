@@ -22,10 +22,24 @@ import {
 import { ValidationError } from '../../domain/validators/ValidationError';
 import { validateWallet } from '../../domain/validators/WalletValidator';
 import type { BalanceAudit, IWalletRepository } from '../../domain/repositories';
-import { walletMapper, sqlDelete, sqlGetAll, sqlGetById, sqlExists, sqlUpdate } from '../storage/sql/mappers';
+import { walletMapper, sqlDelete, sqlGetAll, sqlGetById, sqlExists } from '../storage/sql/mappers';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
+
+/**
+ * A wallet update never changes the balance: the balance moves only through
+ * the ledger. A programming guard - no screen offers a balance edit - so the
+ * message is for developers and is never shown. Verified by
+ * src/data/__tests__/walletEditGuard.test.ts.
+ */
+function balanceEditRefused(): RepositoryError {
+    return new RepositoryError(
+        RepositoryErrorType.VALIDATION_ERROR,
+        "Cannot change a wallet's balance through an update: it would desync the " +
+            'wallet from its ledger. Record a transaction instead.',
+    );
+}
 
 // Re-exported for backward compatibility; the canonical type lives in the domain.
 export type { BalanceAudit } from '../../domain/repositories';
@@ -100,35 +114,63 @@ export class WalletRepository implements IWalletRepository {
 
     async update(wallet: Wallet): Promise<Wallet> {
         try {
-            try {
-                validateWallet(wallet);
-            } catch (error) {
-                if (error instanceof ValidationError) {
-                    console.error(`[WalletRepository] Validation failed: ${error.message}`);
-                    throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, error.message);
-                }
-                throw error;
-            }
+            this.validate(wallet);
 
-            if (!validateWalletBalance(wallet)) {
-                throw new RepositoryError(
-                    RepositoryErrorType.VALIDATION_ERROR,
-                    `${wallet.type} wallets cannot have negative balance`,
-                );
-            }
-
-            // sqlUpdate does not touch opening_balance (not in the mapper).
-            const affected = await sqlUpdate(this.db, walletMapper, wallet);
-            if (affected === 0) {
+            const { rows } = await this.db.execute(
+                `SELECT balance FROM wallets WHERE id = ? LIMIT 1`,
+                [wallet.id],
+            );
+            if (rows.length === 0) {
                 throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${wallet.id} not found`);
             }
+            if (wallet.balance !== Number(rows[0].balance)) {
+                throw balanceEditRefused();
+            }
 
-            return wallet;
+            return await this.writeEditableFields(wallet);
         } catch (error) {
             if (error instanceof RepositoryError) throw error;
             console.error('[WalletRepository] Unexpected update failure:', error);
             throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to update wallet', error as Error);
         }
+    }
+
+    private validate(wallet: Wallet): void {
+        try {
+            validateWallet(wallet);
+        } catch (error) {
+            if (error instanceof ValidationError) {
+                console.error(`[WalletRepository] Validation failed: ${error.message}`);
+                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, error.message);
+            }
+            throw error;
+        }
+
+        if (!validateWalletBalance(wallet)) {
+            throw new RepositoryError(
+                RepositoryErrorType.VALIDATION_ERROR,
+                `${wallet.type} wallets cannot have negative balance`,
+            );
+        }
+    }
+
+    /**
+     * Write the fields a wallet edit may change. `balance` is deliberately not
+     * among them: it moves only through updateBalance, inside the ledger
+     * transaction. Writing it here would put back a value read before a
+     * concurrent ledger movement, and would never move opening_balance, so the
+     * stored balance would disagree with recomputeBalanceFromLedger for good.
+     * Verified by src/data/__tests__/walletEditGuard.test.ts.
+     */
+    private async writeEditableFields(wallet: Wallet): Promise<Wallet> {
+        const { rowsAffected } = await this.db.execute(
+            `UPDATE wallets SET name = ?, type = ?, color = ? WHERE id = ?`,
+            [wallet.name, wallet.type, wallet.color ?? null, wallet.id],
+        );
+        if (rowsAffected === 0) {
+            throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${wallet.id} not found`);
+        }
+        return wallet;
     }
 
     async delete(id: string): Promise<void> {
@@ -161,15 +203,31 @@ export class WalletRepository implements IWalletRepository {
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Wallet with id ${dto.id} not found`);
         }
 
+        // UpdateWalletDTO has no balance. This refuses a caller that forces one
+        // past the type (a cast, or plain JS). Verified by walletEditGuard.test.ts.
+        const forcedBalance = (dto as { balance?: unknown }).balance;
+        if (forcedBalance !== undefined && forcedBalance !== existing.balance) {
+            throw balanceEditRefused();
+        }
+
         const updated: Wallet = {
             ...existing,
             name: dto.name ?? existing.name,
-            balance: dto.balance ?? existing.balance,
             type: dto.type ?? existing.type,
             color: dto.color !== undefined ? dto.color : existing.color,
         };
 
-        return this.update(updated);
+        // Not this.update: its balance comparison would refuse a name-only edit
+        // whenever a ledger movement lands after the read above. The balance is
+        // not written, so that read cannot overwrite the movement.
+        try {
+            this.validate(updated);
+            return await this.writeEditableFields(updated);
+        } catch (error) {
+            if (error instanceof RepositoryError) throw error;
+            console.error('[WalletRepository] Unexpected update failure:', error);
+            throw new RepositoryError(RepositoryErrorType.STORAGE_ERROR, 'Failed to update wallet', error as Error);
+        }
     }
 
     // ─── Domain-specific methods ────────────────────────────────────────

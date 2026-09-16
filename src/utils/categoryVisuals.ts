@@ -15,6 +15,8 @@
 
 import { Ionicons } from '@expo/vector-icons';
 
+import { isTransferCategoryId } from '../domain/ledger/transferCategories';
+
 export type IoniconName = keyof typeof Ionicons.glyphMap;
 
 /** Shape needed to resolve a visual - a subset of the Category entity. */
@@ -107,17 +109,18 @@ export function resolveCategoryVisual(
 /**
  * The two legs of a transfer carry pseudo category ids: no Category row exists
  * for them, so they never resolve through the ladder above and every call site
- * used to invent its own treatment. They are handled here instead, once.
+ * used to invent its own treatment.
+ *
+ * The ids themselves are defined once, in the domain
+ * (src/domain/ledger/transferCategories.ts), because the ledger rule, the
+ * transfer writer and the backup validator all ask the same question. This
+ * module used to keep a private second copy of the list; it is re-exported here
+ * so the render-side call sites keep their existing import.
  */
-const TRANSFER_CATEGORY_IDS = ['transfer-in', 'transfer-out'] as const;
+export { isTransferCategoryId };
 
 /** The one glyph that means "transfer" anywhere in the app. */
 export const TRANSFER_ICON: IoniconName = 'swap-horizontal-outline';
-
-/** True when the category id is one of the transfer pseudo-ids. */
-export function isTransferCategoryId(categoryId: string): boolean {
-    return (TRANSFER_CATEGORY_IDS as readonly string[]).includes(categoryId);
-}
 
 /** Shape needed to look a category up by id - a subset of the Category entity. */
 export interface IdentifiedCategoryVisualSource extends CategoryVisualSource {

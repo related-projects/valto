@@ -102,6 +102,12 @@ jest.mock('../../hooks/useFinancialInsights', () => ({
     }),
 }));
 
+// The dashboard reads the per-rule statuses to decide whether any standing
+// order is not running. This install has no rules, so no banner.
+jest.mock('../../hooks/useRecurringRules', () => ({
+    useRecurringRules: () => ({ rules: [], statuses: {}, loading: false }),
+}));
+
 jest.mock('../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         formatAmount: (v: number) => String(v),

@@ -69,7 +69,8 @@
     "spendingStable": "Spending is roughly the same as last month.",
     "spendingIncreased": "Spending increased by {{percent}}% compared to last month.",
     "spendingDecreased": "Spending decreased by {{percent}}% compared to last month.",
-    "categoryRisk": "{{category}} accounts for {{percent}}% of your spending."
+    "categoryRisk": "{{category}} accounts for {{percent}}% of your spending.",
+    "recurringRulesNotRunning": "Some recurring rules are not running. Open Recurring Transactions to see why."
   },
   "reports": {
     "subtitle": "Monthly overview",
@@ -81,14 +82,16 @@
       "totalIncome": "Total Income",
       "totalExpense": "Total Expense",
       "netBalance": "Net Balance",
-      "savingsRate": "Savings Rate"
+      "savingsRate": "Savings Rate",
+      "noActivity": "No transactions this month"
     },
     "ytdSummary": {
-      "title": "Year-to-Date ({{year}})",
+      "title": "Annual Total ({{year}})",
       "income": "Income",
       "expenses": "Expenses",
       "net": "Net",
-      "savingsRate": "Savings Rate"
+      "savingsRate": "Savings Rate",
+      "noActivity": "No transactions in this period"
     },
     "overBudget": "Over budget!",
     "ofBudget": "{{spent}} of {{limit}}"
@@ -155,7 +158,9 @@
     "deleteTitle": "Delete Category",
     "deleteMessage": "Are you sure you want to delete \"{{name}}\"?",
     "delete": "Delete",
-    "deleteFailed": "Failed to delete category"
+    "deleteFailed": "Failed to delete category",
+    "deleteBlockedByRulesTitle": "Category In Use",
+    "deleteBlockedByRulesMessage": "{{count}} recurring rule(s) still use this category. Point those rules at another category, or delete them, then delete this category."
   },
   "modals": {
     "addTransaction": {
@@ -183,16 +188,16 @@
       "notesPlaceholder": "Add a note...",
       "invalidAmount": "Invalid Amount",
       "invalidAmountMessage": "Please enter a valid amount greater than 0",
-      "noWalletSelected": "No Wallet Selected",
-      "noWalletSelectedMessage": "Please select a wallet",
+      "noWalletSelected": "No Wallet Yet",
+      "noWalletSelectedMessage": "You have no wallet yet, and a transaction needs one. Open the Wallets tab to create one, then come back.",
       "noDestWallet": "No Destination Wallet",
       "noDestWalletMessage": "Please select a destination wallet",
       "invalidTransfer": "Invalid Transfer",
       "invalidTransferMessage": "Source and destination wallets must be different",
       "insufficientBalance": "Insufficient Balance",
       "insufficientBalanceMessage": "Source wallet only has {{amount}}",
-      "noCategorySelected": "No Category Selected",
-      "noCategorySelectedMessage": "Please select a category",
+      "noCategorySelected": "No Category Yet",
+      "noCategorySelectedMessage": "You have no category yet, and a transaction needs one. Open Settings, then Categories, to create one and come back.",
       "error": "Error",
       "transferFailed": "Failed to complete transfer",
       "saveFailed": "Failed to save transaction"
@@ -258,10 +263,15 @@
       "deleteTitle": "Delete Wallet",
       "deleteMessage": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
       "deleteFailed": "Failed to delete wallet",
+      "updateFailed": "Failed to update wallet",
       "error": "Error",
       "hasTransactionsTitle": "Wallet Has Transactions",
       "hasTransactionsMessage": "This wallet has transactions. Deleting will not affect past transactions but they will no longer be linked to a wallet. Continue?",
-      "deleteAnyway": "Delete Anyway"
+      "deleteAnyway": "Delete Anyway",
+      "deleteBlockedByRulesTitle": "Wallet In Use",
+      "deleteBlockedByRulesMessage": "{{count}} recurring rule(s) still use this wallet. Point those rules at another wallet, or delete them, then delete this wallet.",
+      "deleteBlockedLastWalletTitle": "Last Wallet",
+      "deleteBlockedLastWalletMessage": "This is your only wallet, and a transaction has to belong to one. Create another wallet first, then delete this one."
     },
     "category": {
       "newTitle": "New Category",
@@ -327,12 +337,12 @@
       {
         "id": "backup-data",
         "question": "How do I back up my data?",
-        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, and settings. You can share or save this file to your device or cloud storage."
+        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, recurring rules, and settings. You can share or save this file to your device or cloud storage."
       },
       {
         "id": "restore-data",
         "question": "How do I restore from a backup?",
-        "answer": "Go to Settings > Restore Data. Pick your backup file using the file picker. The app will validate the backup and replace all current data. This action cannot be undone, consider backing up first."
+        "answer": "Go to Settings > Restore Data. Pick your backup file using the file picker. The app will validate the backup and replace all current data. Backups made by this version also replace your recurring rules; older backup files do not carry them, so your current rules are kept. This action cannot be undone, consider backing up first."
       },
       {
         "id": "change-currency",
@@ -423,12 +433,15 @@
     "restoreData": "Restore Data",
     "restoreDataMessage": "This will replace ALL your current data with the backup. This cannot be undone.",
     "restoreConfirm": "Are you absolutely sure?",
-    "restoreConfirmMessage": "All current wallets, transactions, categories, and budgets will be permanently replaced.",
+    "restoreConfirmMessage": "All current wallets, transactions, categories and budgets will be permanently replaced. Recurring rules are replaced too if the backup carries them.",
     "restoreNow": "Restore Now",
     "restoreFailed": "Restore Failed",
     "restoreFailedMessage": "Could not restore from backup. The file may be invalid.",
+    "restoreMissingCurrencyMessage": "This backup does not record which currency its amounts are in, so restoring it could misread every amount.",
     "restoreSuccess": "Success",
     "restoreSuccessMessage": "Your data has been restored successfully.",
+    "restoreSuccessWithRulesMessage": "Your data has been restored successfully. {{generated}} transaction(s) generated to catch up, {{unprocessed}} recurring rule(s) could not be processed.",
+    "restoreSuccessRulesFailedMessage": "Your data has been restored successfully, but your recurring rules could not be processed. They will be checked again the next time you open the app.",
     "resetAllData": "Delete Financial Data",
     "resetAllDataMessage": "This will permanently delete ALL your wallets, transactions, categories, budgets and recurring rules.",
     "resetIrreversible": "This is irreversible",
@@ -497,6 +510,9 @@
     "ruleUpdatedMessage": "Recurring rule updated successfully.",
     "statusActive": "Active",
     "statusPaused": "Paused",
+    "statusExpired": "Ended",
+    "statusMissingReference": "Missing wallet or category",
+    "statusInsufficientFunds": "Not enough funds",
     "defaultDescription": "Recurring Transaction",
     "frequencyEvery": "Every {{base}}",
     "frequencyEveryN": "Every {{interval}} {{base}}s",
@@ -530,7 +546,11 @@
     "segmentDaily": "Daily",
     "segmentWeekly": "Weekly",
     "segmentMonthly": "Monthly",
-    "segmentYearly": "Yearly"
+    "segmentYearly": "Yearly",
+    "selectWallet": "Select wallet",
+    "noWallets": "No wallets available",
+    "noCategories": "No categories available",
+    "deleteFailed": "Failed to delete rule"
   },
   "export": {
     "title": "Export Data",
@@ -569,6 +589,9 @@
     "enableBiometricTitle": "Enable {{types}}?",
     "enableBiometricSubtitle": "Use biometric authentication as a quick alternative to your PIN."
   },
+  "languagePicker": {
+    "title": "Select Language"
+  },
   "currencyPicker": {
     "title": "Select Currency",
     "locked": "Currency cannot be changed once selected.",
@@ -588,7 +611,10 @@
     "walletType": "Wallet Type",
     "allSet": "You're all set!",
     "allSetDescription": "Start tracking your finances with Valto.",
-    "goToDashboard": "Go to Dashboard"
+    "goToDashboard": "Go to Dashboard",
+    "currencySelectFailed": "Could not save your currency. Please try again.",
+    "walletCreateFailed": "Could not create your wallet. Please try again.",
+    "completeFailed": "Could not finish setting up. Please try again."
   },
   "empty": {
     "transactions": {
@@ -602,10 +628,6 @@
     "budgets": {
       "title": "No budgets set",
       "description": "Create a budget to monitor your spending"
-    },
-    "recurring": {
-      "title": "No recurring transactions yet",
-      "description": "Automate your income and expenses"
     },
     "reports": {
       "title": "No data for this period",
@@ -626,6 +648,7 @@
     "deleteTransaction": "Delete transaction",
     "pauseRule": "Pause rule",
     "resumeRule": "Resume rule",
+    "ruleStatus": "Rule status: {{status}}",
     "searchTransactions": "Search transactions",
     "filterTransactions": "Filter by {{filter}}",
     "selectCurrency": "Select currency",

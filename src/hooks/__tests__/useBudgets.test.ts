@@ -10,6 +10,7 @@ import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { CategoryRepository } from '../../data/repositories/CategoryRepository';
+import { RepositoryError } from '../../data/repositories/IRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { CategoryType, TransactionType, WalletType, getCurrentMonth } from '../../domain/entities';
@@ -158,5 +159,55 @@ describe('useBudgets', () => {
         });
 
         expect(result.current.currentMonth).toMatch(/^\d{4}-\d{2}$/);
+    });
+
+    // --- V-29: the hook must not flatten a typed error ------------------
+    //
+    // Both operations below used to end in `throw new Error(msg)`, which
+    // produced a bare Error and made `instanceof` useless at the call site.
+
+    it('createBudget preserves the typed error class', async () => {
+        const { result } = renderHook(() => useBudgets());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let caught: unknown;
+        await act(async () => {
+            try {
+                // A malformed month is refused by BudgetRepository.create with a
+                // RepositoryError.
+                await result.current.createBudget({
+                    categoryId: 'cat-1',
+                    month: 'not-a-month',
+                    limitAmount: 50000,
+                });
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBeInstanceOf(RepositoryError);
+    });
+
+    it('deleteBudget preserves the typed error class', async () => {
+        const { result } = renderHook(() => useBudgets());
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let caught: unknown;
+        await act(async () => {
+            try {
+                // No such budget: delete raises RepositoryError NOT_FOUND.
+                await result.current.deleteBudget('no-such-budget');
+            } catch (err) {
+                caught = err;
+            }
+        });
+
+        expect(caught).toBeInstanceOf(RepositoryError);
     });
 });

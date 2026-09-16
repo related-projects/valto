@@ -2,7 +2,7 @@
  * FinancialSummary Component
  *
  * Displays monthly financial overview: income, expense, net balance, and savings rate.
- * Handles zero-income safely by showing "—" for savings rate.
+ * Handles zero-income safely by showing EMPTY_VALUE_PLACEHOLDER for savings rate.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
+import { EMPTY_VALUE_PLACEHOLDER } from '../../utils/placeholders';
 import { Card } from '../ui/Card';
 
 interface FinancialSummaryProps {
@@ -19,6 +20,12 @@ interface FinancialSummaryProps {
     netBalance: number;
     /** null when income is zero */
     savingsRate: number | null;
+    /**
+     * Whether the month holds any transaction at all. False renders an empty
+     * state: with no rows behind them, four zeros would claim a measurement that
+     * was never taken.
+     */
+    hasActivity: boolean;
 }
 
 export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
@@ -26,10 +33,33 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
     totalExpense,
     netBalance,
     savingsRate,
+    hasActivity,
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
     const { formatAmount } = useFormatting();
+
+    if (!hasActivity) {
+        return (
+            <Card>
+                <Text
+                    style={{
+                        color: colors.foreground,
+                        fontWeight: typography.weights.semibold,
+                        fontSize: typography.sizes.sm,
+                        marginBottom: spacing.md,
+                    }}
+                >
+                    {t('reports.financialSummary.title')}
+                </Text>
+                <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
+                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
+                        {t('reports.financialSummary.noActivity')}
+                    </Text>
+                </View>
+            </Card>
+        );
+    }
 
     const rows: {
         label: string;
@@ -61,7 +91,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
             },
             {
                 label: t('reports.financialSummary.savingsRate'),
-                value: savingsRate !== null ? `${savingsRate.toFixed(1)}%` : '—',
+                value: savingsRate !== null ? `${savingsRate.toFixed(1)}%` : EMPTY_VALUE_PLACEHOLDER,
                 color: savingsRate !== null && savingsRate > 0 ? colors.successText : colors.mutedForeground,
                 icon: 'trending-up-outline',
                 bgColor: savingsRate !== null && savingsRate > 0 ? colors.successBackground : colors.muted,

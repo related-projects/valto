@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/theme';
+import { getButtonA11y } from '../../utils/accessibility';
 
 interface ListItemProps {
     title: string;
@@ -12,6 +13,12 @@ interface ListItemProps {
     style?: ViewStyle;
     showChevron?: boolean;
     testID?: string;
+    /**
+     * Translated label for assistive technology, when the row's action needs
+     * naming more precisely than its visible title does. Optional: without it
+     * the row is announced by its own text, which is right for most rows.
+     */
+    accessibilityLabel?: string;
 }
 
 export const ListItem: React.FC<ListItemProps> = ({
@@ -23,6 +30,7 @@ export const ListItem: React.FC<ListItemProps> = ({
     style,
     showChevron = true,
     testID,
+    accessibilityLabel,
 }) => {
     const { colors, typography, spacing, radius } = useTheme();
 
@@ -31,6 +39,7 @@ export const ListItem: React.FC<ListItemProps> = ({
             testID={testID}
             onPress={onPress}
             disabled={!onPress}
+            {...(accessibilityLabel ? getButtonA11y(accessibilityLabel) : {})}
             style={[
                 styles.container,
                 {

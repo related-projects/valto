@@ -56,6 +56,7 @@ const snapshotWithNotifications = (notificationsEnabled: boolean): BackupSnapsho
         transactions: [],
         categories: [],
         budgets: [],
+        recurringRules: [],
         settings: { ...getDefaultSettings(), notificationsEnabled },
     },
 });

@@ -48,13 +48,19 @@ export interface UseReportsResult {
     // Category Breakdown
     categoryBreakdown: CategoryBreakdownItem[];
 
-    /** Year-to-date financial summary */
+    /** Annual financial summary for the year of the selected month */
     ytdSummary: YearToDateSummary;
-    /** Year for YTD summary */
+    /** Year the annual summary covers - the year of the selected month */
     ytdYear: number;
 
     /** Whether there is any expense data for the selected month */
     hasExpenseData: boolean;
+    /**
+     * Whether the selected month holds any transaction at all, transfers included.
+     * Distinct from hasExpenseData: a month of pure income has no expense data but
+     * is not empty, and neither is a month holding only a transfer.
+     */
+    hasMonthActivity: boolean;
     /** Loading state */
     loading: boolean;
 }
@@ -125,12 +131,17 @@ export function useReports(): UseReportsResult {
     const aggregated = useMemo(() => {
         let totalIncome = 0;
         let totalExpense = 0;
+        let transactionCount = 0;
 
         const categoryTotals = new Map<string, number>();
 
         transactions.forEach(t => {
             const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
             if (txMonth !== selectedMonth) return;
+
+            // Counted above the type branch, so a transfer keeps the month from
+            // reading as empty. See the same rule in ytdSummary.
+            transactionCount += 1;
 
             if (t.type === TransactionType.INCOME) {
                 totalIncome += t.amount;
@@ -175,11 +186,15 @@ export function useReports(): UseReportsResult {
             netBalance,
             savingsRate,
             categoryBreakdown: breakdown,
+            transactionCount,
         };
     }, [transactions, categories, budgets, selectedMonth]);
 
-    // ── YTD Summary ─────────────────────────────────────────────────────
-    const ytdYear = useMemo(() => new Date().getUTCFullYear(), []);
+    // ── Annual Summary ──────────────────────────────────────────────────
+    // Derived from the selection, not from the wall clock: the annual card is a
+    // consumer of the same filter as every other element on the screen, so
+    // navigating into a past year must move it too.
+    const ytdYear = useMemo(() => Number(selectedMonth.split('-')[0]), [selectedMonth]);
     const ytdSummary = useMemo(
         () => calculateYearToDateSummary(transactions, ytdYear),
         [transactions, ytdYear],
@@ -194,6 +209,7 @@ export function useReports(): UseReportsResult {
         ytdSummary,
         ytdYear,
         hasExpenseData: aggregated.categoryBreakdown.length > 0,
+        hasMonthActivity: aggregated.transactionCount > 0,
         loading,
     };
 }

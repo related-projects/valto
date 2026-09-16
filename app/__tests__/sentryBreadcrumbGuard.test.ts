@@ -20,9 +20,19 @@
  *  - The guards are actually INSTALLED in the app's Sentry.init - asserted on
  *    the options object handed to Sentry.init, not by calling them in
  *    isolation. A guard that is never installed is the same as no guard.
+ *
+ * DoD - the option key set:
+ *  - The EXACT set of keys passed to Sentry.init is pinned. The assertions
+ *    above hold each hook that IS configured; nothing held the set itself, so
+ *    an added option - tracesSampleRate, sendDefaultPii, attachStacktrace -
+ *    changed what the app sends and failed nothing. See the notice it prints.
  */
 
 import type { Breadcrumb, Event } from '@sentry/react-native';
+
+// Shared with tests/__tests__/sentryEmissionSurface.test.ts: both guards send
+// the reader to the same three artefacts, so they read from one copy.
+import { EMISSION_SURFACE_NOTICE } from '@/tests/helpers/emissionSurfaceNotice';
 
 // jest hoists jest.mock above imports; only vars prefixed `mock` may be
 // referenced inside the factories.
@@ -417,5 +427,47 @@ describe('the identifier guards are installed in the app Sentry.init', () => {
         // an unset option silently re-enables sessions keyed on the identifier
         // beforeSend now strips.
         expect(initOptions.enableAutoSessionTracking).toBe(false);
+    });
+});
+
+describe('the init option key set is pinned', () => {
+    /**
+     * The exact keys, sorted. Not a subset check and not a shape check: the
+     * assertions above each hold one option that IS configured, which is why an
+     * option nobody configured could be added without failing anything.
+     *
+     * Every key here changes what leaves the device. tracesSampleRate would
+     * start sending performance transactions; sendDefaultPii would put back the
+     * identifiers beforeSend exists to remove; enableAutoSessionTracking is
+     * present precisely because its default is ON. So the set is the thing to
+     * pin, and a key arriving OR leaving has to be argued for in the diff.
+     */
+    const DECLARED_INIT_OPTION_KEYS = [
+        'beforeBreadcrumb',
+        'beforeSend',
+        'debug',
+        'dsn',
+        'enableAutoSessionTracking',
+        'integrations',
+    ];
+
+    it('passes exactly the declared option keys, no more and no fewer', () => {
+        const actual = Object.keys(initOptions).sort();
+
+        if (actual.join(',') !== DECLARED_INIT_OPTION_KEYS.join(',')) {
+            const added = actual.filter(key => !DECLARED_INIT_OPTION_KEYS.includes(key));
+            const removed = DECLARED_INIT_OPTION_KEYS.filter(key => !actual.includes(key));
+
+            throw new Error(
+                [
+                    EMISSION_SURFACE_NOTICE,
+                    '',
+                    ...(added.length > 0 ? [`Passed to Sentry.init, not declared here: ${added.join(', ')}`] : []),
+                    ...(removed.length > 0 ? [`Declared here, no longer passed to Sentry.init: ${removed.join(', ')}`] : []),
+                ].join('\n'),
+            );
+        }
+
+        expect(actual).toEqual(DECLARED_INIT_OPTION_KEYS);
     });
 });

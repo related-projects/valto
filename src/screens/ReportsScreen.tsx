@@ -33,6 +33,7 @@ export const ReportsScreen = () => {
         savingsRate,
         categoryBreakdown,
         hasExpenseData,
+        hasMonthActivity,
         ytdSummary,
         ytdYear,
     } = useReports();
@@ -88,6 +89,7 @@ export const ReportsScreen = () => {
                     totalExpense={totalExpense}
                     netBalance={netBalance}
                     savingsRate={savingsRate}
+                    hasActivity={hasMonthActivity}
                 />
             </View>
 
@@ -112,6 +114,7 @@ export const ReportsScreen = () => {
                     net={ytdSummary.net}
                     savingsRate={ytdSummary.savingsRate}
                     year={ytdYear}
+                    hasActivity={ytdSummary.transactionCount > 0}
                 />
             </View>
         </ScrollView>

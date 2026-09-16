@@ -8,21 +8,52 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
+import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
+import { TransactionRepository } from '../../data/repositories/TransactionRepository';
+import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { TransactionType, RecurrenceFrequency } from '../../domain/entities';
 
 let mockDb: SqlDatabase;
 let mockRecurringRepo: RecurringTransactionRepository;
+let mockWalletRepo: WalletRepository;
+let mockCategoryRepo: CategoryRepository;
+let mockTransactionRepo: TransactionRepository;
 
 const mockEmit = jest.fn((event: string) => {});
 const mockSubscribe = jest.fn((event: string, callback: any) => jest.fn());
 
+// The hook derives a per-rule status, so it now composes useWallets and
+// useCategories rather than running its own wallet/category query. Those hooks
+// resolve their repositories through the same container module, so the mock has
+// to answer for them too.
 jest.mock('../../core/di/container', () => ({
     container: {
         get recurringTransactionRepository() {
             return mockRecurringRepo;
         },
+        get walletRepository() {
+            return mockWalletRepo;
+        },
+        get categoryRepository() {
+            return mockCategoryRepo;
+        },
+        get transactionRepository() {
+            return mockTransactionRepo;
+        },
     },
+    getRecurringTransactionRepository: () => mockRecurringRepo,
+    getWalletRepository: () => mockWalletRepo,
+    getCategoryRepository: () => mockCategoryRepo,
+    getTransactionRepository: () => mockTransactionRepo,
+    getBudgetRepository: () => undefined,
+    getUseCaseDeps: () => ({
+        runInTransaction: (work: any) => mockDb.runInTransaction(work),
+        transactionRepo: mockTransactionRepo,
+        walletRepo: mockWalletRepo,
+        categoryRepo: mockCategoryRepo,
+        eventBus: { emit: jest.fn(), emitMultiple: jest.fn() },
+    }),
 }));
 
 jest.mock('../../core/events/dataEvents', () => ({
@@ -41,6 +72,9 @@ describe('useRecurringRules', () => {
     beforeEach(async () => {
         mockDb = await createTestDb();
         mockRecurringRepo = new RecurringTransactionRepository(mockDb);
+        mockWalletRepo = new WalletRepository(mockDb);
+        mockCategoryRepo = new CategoryRepository(mockDb);
+        mockTransactionRepo = new TransactionRepository(mockDb);
         mockEmit.mockClear();
         mockSubscribe.mockClear();
         mockSubscribe.mockReturnValue(jest.fn());

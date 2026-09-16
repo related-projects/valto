@@ -9,6 +9,7 @@ import { IconBadge } from '../components/ui/IconBadge';
 import { ListItem } from '../components/ui/ListItem';
 import { Segment, SegmentControl } from '../components/ui/SegmentControl';
 import { Category, CategoryType } from '../domain/entities';
+import { CategoryHasRecurringRulesError } from '../domain/useCases';
 import { useCategories } from '../hooks/useCategories';
 import { useTheme } from '../theme/theme';
 
@@ -57,6 +58,16 @@ export const CategoriesScreen = () => {
                         try {
                             await deleteCategory(category.id);
                         } catch (error) {
+                            if (error instanceof CategoryHasRecurringRulesError) {
+                                Alert.alert(
+                                    t('categories.deleteBlockedByRulesTitle'),
+                                    t('categories.deleteBlockedByRulesMessage', {
+                                        count: error.ruleCount,
+                                    }),
+                                );
+                                return;
+                            }
+
                             Alert.alert(t('alerts.error'), t('categories.deleteFailed'));
                         }
                     }

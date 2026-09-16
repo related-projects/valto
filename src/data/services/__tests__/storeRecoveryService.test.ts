@@ -39,16 +39,18 @@ jest.mock('../../storage', () => {
     const realRemove = mem.remove.bind(mem);
     mem.remove = jest.fn((key: string) => realRemove(key));
     (global as any).__recoveryKv = mem;
+    const actualKeys = jest.requireActual('../../storage/StorageKeys');
     return {
         asyncStorageAdapter: mem,
-        StorageKeys: jest.requireActual('../../storage/StorageKeys').StorageKeys,
+        StorageKeys: actualKeys.StorageKeys,
+        LEGACY_KV_FINANCIAL_KEYS: actualKeys.LEGACY_KV_FINANCIAL_KEYS,
     };
 });
 
 import { File } from 'expo-file-system';
 
 import { deleteDatabaseFiles, resetCorruptedStore } from '../storeRecoveryService';
-import { asyncStorageAdapter, StorageKeys } from '../../storage';
+import { asyncStorageAdapter, LEGACY_KV_FINANCIAL_KEYS, StorageKeys } from '../../storage';
 
 const FileMock = File as unknown as jest.Mock;
 const remove = asyncStorageAdapter.remove as jest.Mock;
@@ -168,6 +170,25 @@ describe('resetCorruptedStore', () => {
         expect(await kv.get(StorageKeys.CATEGORIES)).toBeNull();
         expect(await kv.get(StorageKeys.BUDGETS)).toBeNull();
         expect(await kv.get(StorageKeys.RECURRING_RULES)).toBeNull();
+    });
+
+    // Driven by the shared constant rather than a literal list, so a key added
+    // to LEGACY_KV_FINANCIAL_KEYS is demanded of this path automatically - the
+    // same list migration v6 purges. See legacyKvKeyBinding.test.ts.
+    it('removes every key in the shared legacy list', async () => {
+        expect(LEGACY_KV_FINANCIAL_KEYS).toHaveLength(5);
+
+        for (const key of LEGACY_KV_FINANCIAL_KEYS) {
+            await kv.set(key, [{ id: 'seeded' }]);
+        }
+
+        await resetCorruptedStore();
+
+        const survivors = [];
+        for (const key of LEGACY_KV_FINANCIAL_KEYS) {
+            if ((await kv.get(key)) !== null) survivors.push(key);
+        }
+        expect(survivors).toEqual([]);
     });
 
     it('clears the rebuild pointers and keeps the user keys, as state', async () => {

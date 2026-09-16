@@ -45,6 +45,9 @@ app-example
 # coverage
 coverage/
 
+# per-file jest timings, written by the CI test step and uploaded as an artifact
+jest-timings.json
+
 # Environment
 .env
 

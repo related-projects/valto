@@ -45,7 +45,7 @@ describe('calculateYearToDateSummary', () => {
         expect(result.savingsRate).toBeCloseTo(0.65);
     });
 
-    it('returns zero savings rate when income is zero', () => {
+    it('returns a null savings rate when income is zero', () => {
         const transactions = [
             makeTx({ type: TransactionType.EXPENSE, amount: 100_000, date: new Date('2026-03-01T00:00:00Z') }),
         ];
@@ -55,7 +55,9 @@ describe('calculateYearToDateSummary', () => {
         expect(result.totalIncome).toBe(0);
         expect(result.totalExpenses).toBe(100_000);
         expect(result.net).toBe(-100_000);
-        expect(result.savingsRate).toBe(0);
+        // There is no rate to state, not a rate of zero: nothing was earned to
+        // save a proportion of. A real 0 is covered by 'handles breakeven' below.
+        expect(result.savingsRate).toBeNull();
     });
 
     it('handles negative net value correctly', () => {
@@ -103,7 +105,8 @@ describe('calculateYearToDateSummary', () => {
         expect(result.totalIncome).toBe(0);
         expect(result.totalExpenses).toBe(0);
         expect(result.net).toBe(0);
-        expect(result.savingsRate).toBe(0);
+        expect(result.savingsRate).toBeNull();
+        expect(result.transactionCount).toBe(0);
     });
 
     it('handles breakeven (income equals expenses)', () => {
@@ -115,6 +118,34 @@ describe('calculateYearToDateSummary', () => {
         const result = calculateYearToDateSummary(transactions, 2026);
 
         expect(result.net).toBe(0);
+        // A genuine zero: income existed and exactly matched spending. This is the
+        // case the null above must stay distinguishable from.
         expect(result.savingsRate).toBe(0);
+    });
+
+    it('counts transactions in the target year', () => {
+        const transactions = [
+            makeTx({ type: TransactionType.INCOME, amount: 500_000, date: new Date('2026-02-15T00:00:00Z') }),
+            makeTx({ type: TransactionType.EXPENSE, amount: 100_000, date: new Date('2026-02-20T00:00:00Z') }),
+            makeTx({ type: TransactionType.EXPENSE, amount: 100_000, date: new Date('2025-02-20T00:00:00Z') }),
+        ];
+
+        expect(calculateYearToDateSummary(transactions, 2026).transactionCount).toBe(2);
+        expect(calculateYearToDateSummary(transactions, 2025).transactionCount).toBe(1);
+    });
+
+    it('counts transfers, which no figure includes', () => {
+        const transactions = [
+            makeTx({ type: TransactionType.TRANSFER, amount: 300_000, date: new Date('2026-04-10T00:00:00Z') }),
+        ];
+
+        const result = calculateYearToDateSummary(transactions, 2026);
+
+        // The year is empty of income and expense, but it is not empty. Money moved.
+        // The counter therefore sits above the type branch, not inside it - a caller
+        // asking "was there anything here?" must not be told no.
+        expect(result.totalIncome).toBe(0);
+        expect(result.totalExpenses).toBe(0);
+        expect(result.transactionCount).toBe(1);
     });
 });

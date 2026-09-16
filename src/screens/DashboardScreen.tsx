@@ -16,10 +16,11 @@ import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useSecurity } from '../core/security/SecurityContext';
-import { SavingsLevel } from '../domain/insights';
+import { SavingsLevel, evaluateRecurringHealth } from '../domain/insights';
 import { useBudgets } from '../hooks/useBudgets';
 import { useDashboard } from '../hooks/useDashboard';
 import { useFinancialInsights } from '../hooks/useFinancialInsights';
+import { useRecurringRules } from '../hooks/useRecurringRules';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
@@ -68,6 +69,16 @@ export const DashboardScreen = () => {
 
     // Financial Insights
     const { savingsHealth, categoryRisk, budgetPace } = useFinancialInsights();
+
+    // Standing orders that are meant to be running and are not. Faults only:
+    // a paused rule is the user's own intent and an expired one reached the end
+    // it was given, and neither belongs behind a warning. Recomputed like every
+    // other banner on this screen; nothing about it is stored.
+    const { statuses: recurringStatuses } = useRecurringRules();
+    const recurringHealth = useMemo(
+        () => evaluateRecurringHealth(Object.values(recurringStatuses)),
+        [recurringStatuses],
+    );
 
     // Security
     const { isSecurityEnabled, isUnlocked, unlockWithPin, unlockWithBiometrics, securityConfig, biometrics } = useSecurity();
@@ -184,6 +195,16 @@ export const DashboardScreen = () => {
                         message={t(budgetPace.messageKey, budgetPace.messageParams)}
                         variant={budgetPace.overBudgetPace ? 'warning' : 'success'}
                         icon="speedometer-outline"
+                    />
+                </View>
+            )}
+
+            {recurringHealth && (
+                <View style={{ paddingInline: spacing.md, marginBlockEnd: spacing.sm }}>
+                    <InsightBanner
+                        message={t(recurringHealth.messageKey, recurringHealth.messageParams)}
+                        variant="warning"
+                        icon="repeat-outline"
                     />
                 </View>
             )}

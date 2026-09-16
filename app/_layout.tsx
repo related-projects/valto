@@ -17,6 +17,7 @@ import {
 import { processRecurringRules } from "@/src/data/services/RecurringTransactionEngine";
 import { loadSettings } from "@/src/data/services/settingsService";
 import { resetCorruptedStore } from "@/src/data/services/storeRecoveryService";
+import { ensureUsableState } from "@/src/data/services/usableStateService";
 import { assertStoreReadable } from "@/src/data/storage/sql/database";
 import { verifyFinancialIntegrity } from "@/src/domain/useCases";
 import { OnboardingScreen } from "@/src/features/onboarding/screens/OnboardingScreen";
@@ -141,13 +142,34 @@ function RootLayout() {
       await assertStoreReadable();
 
       // Process recurring transaction rules (idempotent)
-      await processRecurringRules({
+      const recurringResult = await processRecurringRules({
         recurringRepo: container.recurringTransactionRepository,
         transactionRepo: container.transactionRepository,
         walletRepo: container.walletRepository,
+        categoryRepo: container.categoryRepository,
         eventBus: dataEvents,
         runInTransaction: getUseCaseDeps().runInTransaction,
       });
+
+      // A rule that fails here is a standing order that did not execute, and
+      // the user is told nothing: the engine catches per rule and boot carries
+      // on. Discarding the result made that failure invisible to us as well -
+      // the only trace was a console.error nobody reads in a release build.
+      //
+      // Rule ids and counts only. The engine's error strings can carry whatever
+      // a repository or driver put in them, and this app logs balances, so the
+      // messages themselves are deliberately not sent.
+      const failedRuleIds = recurringResult?.errors?.map((e) => e.ruleId) ?? [];
+      if (failedRuleIds.length > 0) {
+        const msg =
+          `[RecurringEngine] ${failedRuleIds.length} of ` +
+          `${recurringResult.rulesEvaluated} rule(s) failed to generate: ` +
+          failedRuleIds.join(", ");
+        console.warn(msg);
+        if (!__DEV__) {
+          Sentry.captureMessage(msg, "warning");
+        }
+      }
 
       // Sync i18n with persisted language preference
       const settings = await loadSettings();
@@ -157,6 +179,20 @@ function RootLayout() {
 
       // Check if onboarding is needed
       setNeedsOnboarding(!settings.onboardingCompleted);
+
+      // Boot repair. An install that has onboarded and has no wallet, or no
+      // category, cannot record a transaction and has no way back in place:
+      // onboarding is the only flow that creates them unprompted and it never
+      // runs again. Installs already in that state exist in production - three
+      // paths could reach it - and nothing short of a boot check reaches them.
+      //
+      // Gated on onboardingCompleted so a first launch is untouched: seeding a
+      // wallet before onboarding has asked for one would hand the user a wallet
+      // they did not name, and skip the step that locks the currency.
+      // Idempotent, so it costs two counts on every other boot.
+      if (settings.onboardingCompleted) {
+        await ensureUsableState();
+      }
 
       // (Re)assert the daily reminder. Must run AFTER the i18n sync above so the
       // notification copy resolves in the user's language, and inside its own

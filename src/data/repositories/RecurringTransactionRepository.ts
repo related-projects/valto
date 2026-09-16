@@ -15,7 +15,7 @@ import {
     UpdateRecurringTransactionDTO,
 } from '../../domain/entities/RecurringTransaction';
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
-import { addMonthsClamped } from '../../domain/calculations/recurrenceDates';
+import { addMonthsClamped, startOfDay } from '../../domain/calculations/recurrenceDates';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import {
     recurringMapper,
@@ -27,10 +27,12 @@ import {
     sqlUpdate,
 } from '../storage/sql/mappers';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
+import type { IRecurringTransactionRepository } from '../../domain/repositories';
 import type { IRepository } from './IRepository';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
 
-export class RecurringTransactionRepository implements IRepository<RecurringTransaction> {
+export class RecurringTransactionRepository
+    implements IRepository<RecurringTransaction>, IRecurringTransactionRepository {
     constructor(private db: SqlDatabase) { }
 
     async getAll(): Promise<RecurringTransaction[]> {
@@ -45,10 +47,77 @@ export class RecurringTransactionRepository implements IRepository<RecurringTran
         return sqlGetById(this.db, recurringMapper, id);
     }
 
+    /**
+     * The rules the engine may execute now.
+     *
+     * A rule is active THROUGH the end of its endDate day. The comparison is on
+     * whole days, not on the instant: `endDate > new Date()` measured the stored
+     * midnight against wall-clock time, so a rule ending today stopped being
+     * active at 00:00 and lost its final occurrence. Every other date decision
+     * in this path - computeDueDates and its endDate fence included - already
+     * runs on startOfDay, and the occurrence the engine would have generated is
+     * on or before endDate by construction, so the day-level comparison is the
+     * one that matches.
+     */
     async getActiveRules(): Promise<RecurringTransaction[]> {
         const rules = await this.getAll();
-        const now = new Date();
-        return rules.filter((r) => !r.isPaused && (!r.endDate || r.endDate > now));
+        const today = startOfDay(new Date()).getTime();
+        return rules.filter(
+            (r) => !r.isPaused && (!r.endDate || startOfDay(r.endDate).getTime() >= today),
+        );
+    }
+
+    /**
+     * Every rule drawing on a given wallet, paused and expired ones included.
+     *
+     * Built on getAll, NOT on getActiveRules: this answers "does anything still
+     * point here", which is a different question from "what executes now". A
+     * paused rule is still a standing order - see IRecurringTransactionRepository.
+     */
+    async getByWalletId(walletId: string): Promise<RecurringTransaction[]> {
+        const rules = await this.getAll();
+        return rules.filter((r) => r.walletId === walletId);
+    }
+
+    /** Every rule filing against a given category, paused and expired included. */
+    async getByCategoryId(categoryId: string): Promise<RecurringTransaction[]> {
+        const rules = await this.getAll();
+        return rules.filter((r) => r.categoryId === categoryId);
+    }
+
+    /**
+     * Every rule whose wallet or category no longer exists.
+     *
+     * The two queries above ask "what still points HERE" and are what the
+     * deletion guards need. This asks the same question of the whole table at
+     * once, which is what a restore needs: the deletion guards can only refuse a
+     * delete the user is making now, and a restore replaces the wallet and
+     * category tables wholesale without going near them.
+     *
+     * Neither reference has a FOREIGN KEY behind it, so this is the only way to
+     * learn a rule has been orphaned. Distinct from the engine's per-rule
+     * pre-flight, which sees a rule only once something is due for it: a rule
+     * whose next occurrence is months away is just as broken and says nothing.
+     *
+     * Paused and expired rules are included, for the reason set out on
+     * IRecurringTransactionRepository: `is_paused` records when a rule runs, not
+     * whether it exists.
+     */
+    async findWithMissingReferences(): Promise<RecurringTransaction[]> {
+        try {
+            const { rows } = await this.db.execute(
+                `SELECT r.* FROM recurring_rules r
+                 WHERE NOT EXISTS (SELECT 1 FROM wallets w    WHERE w.id = r.wallet_id)
+                    OR NOT EXISTS (SELECT 1 FROM categories c WHERE c.id = r.category_id)`,
+            );
+            return rows.map(recurringMapper.fromRow);
+        } catch (error) {
+            throw new RepositoryError(
+                RepositoryErrorType.STORAGE_ERROR,
+                'Failed to check recurring rule references',
+                error as Error,
+            );
+        }
     }
 
     async save(rule: RecurringTransaction): Promise<RecurringTransaction> {

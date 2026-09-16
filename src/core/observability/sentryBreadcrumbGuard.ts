@@ -21,15 +21,34 @@
  *
  * WHY THIS EXISTS - do not delete it as redundant, and do not narrow it.
  *
- * This app prints financial and user data to the console in several places:
- *   - src/data/migrations/v5_import_from_asyncstorage.ts:110 - per-wallet
- *     stored balance, ledger balance and drift, with the wallet id
- *   - src/data/services/RecurringTransactionEngine.ts:111 - instalment and
- *     rule detail; the surrounding error logs carry rule ids
- *   - src/data/seed/seedService.ts:78 - a category name
- *   - src/data/repositories/WalletRepository.ts:58 and
- *     src/data/repositories/RecurringTransactionRepository.ts:60 - the
- *     ValidationError message, which embeds the value that was rejected
+ * This app prints financial and user data to the console in several places.
+ * Each bullet gives the file and the grep that lands on the line, never a line
+ * number: this list carried three stale pointers until somebody checked them,
+ * and a number is repaired by editing the number, which proves nothing. A grep
+ * that returns no hit is itself the signal that the line moved or went away.
+ *   - src/data/migrations/v5_import_from_asyncstorage.ts - per-wallet stored
+ *     balance, ledger balance and drift, with the wallet id.
+ *     `grep -n 'Balance drift after v5 import' src/data/migrations/v5_import_from_asyncstorage.ts`
+ *   - src/data/services/RecurringTransactionEngine.ts - the amount a skipped
+ *     rule needed and the balance actually available, with the rule id; the
+ *     surrounding error logs carry rule ids.
+ *     `grep -n 'skipped.availableBalance' src/data/services/RecurringTransactionEngine.ts`
+ *   - src/data/seed/seedService.ts - a category name.
+ *     `grep -n 'Failed to create default category' src/data/seed/seedService.ts`
+ *   - src/data/repositories/WalletRepository.ts,
+ *     src/data/repositories/RecurringTransactionRepository.ts and
+ *     src/data/repositories/TransactionRepository.ts - the entity and the field
+ *     that failed validation.
+ *     `grep -rn 'Validation failed: ' src/data/repositories`
+ *     NOT the rejected value: an earlier version of this comment said it was,
+ *     and that was wrong. ValidationError takes `value` and `message` as
+ *     separate constructor parameters and hands only `message` to super
+ *     (src/domain/validators/ValidationError.ts), and every construction site
+ *     passes a literal or interpolates a module constant list.
+ *     `grep -rn 'new ValidationError(' src` is the check; this sentence is not.
+ *     The bullet stays because the line is still console traffic the guard
+ *     covers, and because it is the example of why per-line judgement about
+ *     which log "carries money" is not worth relying on.
  * Roughly 60 further console calls in src/ and app/ are unguarded, and nothing
  * stops the next one from being added.
  *

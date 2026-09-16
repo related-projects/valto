@@ -165,8 +165,8 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                 };
                 await onSubmit(dto);
             }
-        } catch (error) {
-            Alert.alert(t('common.error'), error instanceof Error ? error.message : t('recurring.saveFailed'));
+        } catch {
+            Alert.alert(t('common.error'), t('recurring.saveFailed'));
         } finally {
             setSubmitting(false);
         }
@@ -308,6 +308,8 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         items={walletItems}
                         selectedId={walletId}
                         onSelect={setWalletId}
+                        placeholder={t('recurring.selectWallet')}
+                        emptyText={t('recurring.noWallets')}
                     />
                 </View>
 
@@ -319,6 +321,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         selectedId={categoryId}
                         onSelect={setCategoryId}
                         placeholder={t('recurring.selectCategory')}
+                        emptyText={t('recurring.noCategories')}
                     />
                 </View>
 

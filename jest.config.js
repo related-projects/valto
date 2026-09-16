@@ -3,6 +3,19 @@ module.exports = {
     preset: 'jest-expo',
     setupFiles: ['./tests/setup/testSetup.ts'],
     setupFilesAfterEnv: ['./tests/setup/testEnv.ts'],
+    // One global allowance, raised from the 5000ms default. This does NOT cover
+    // the expensive part of a component suite: the transform-and-require cost of
+    // the React Native module graph is paid while the test file is being loaded,
+    // before any hook is entered, and jest does not time that at all. What it
+    // covers is the first test in a component file, which pays a cold render on
+    // top of its own assertions: measured at 1.6-2.3s when that suite runs alone,
+    // but 6.2-8.9s in a cold full run, where 7 workers realise the module graph
+    // at the same time. The headroom over that worst case is under 2x, and the CI
+    // runner is slower than the machine it was measured on. It is deliberately a
+    // single value: a per-file timeout argument is a private allowance nobody
+    // else can see, and tests/__tests__/noPerFileTimeouts.test.ts fails if one
+    // is introduced.
+    testTimeout: 15000,
     moduleNameMapper: {
         // Redirect expo winter runtime to empty mock to prevent lazy polyfill crashes
         '^expo/src/winter$': '<rootDir>/tests/mocks/expoWinter.js',

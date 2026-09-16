@@ -115,22 +115,6 @@ function lastAlertButton(style: 'cancel' | 'destructive'): AlertButton | undefin
     return lastAlertButtons().find((button) => button.style === style);
 }
 
-/**
- * Pay the one-time cost of realising this tree ONCE, before any test runs.
- *
- * The first render in this file resolves React Native's lazily-required modules
- * (ScrollView, TouchableOpacity) and the Ionicons glyphmap. With a cold jest cache
- * that is over a second locally and several times that on the CI runner - enough to
- * blow the 5s default timeout of whichever test happens to render first. Paying it
- * here removes the order dependence: no arbitrary test carries the allowance, and
- * reordering or adding a test cannot silently move the failure. The 30s allowance is
- * sized against the CI runner, not against local timings.
- */
-beforeAll(() => {
-    const view = render(<TransactionDetailsModal />);
-    view.unmount();
-}, 30_000);
-
 beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);

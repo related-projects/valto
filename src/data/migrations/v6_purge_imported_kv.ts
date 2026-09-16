@@ -21,22 +21,17 @@
  * The flag itself is kept: it is what keeps v5 a no-op on later boots. SETTINGS,
  * SECURITY_CONFIG, SEED_INITIALIZED and SCHEMA_VERSION are untouched - they are
  * live keys, not import residue.
+ *
+ * The purged list is LEGACY_KV_FINANCIAL_KEYS, shared with resetCorruptedStore
+ * rather than copied: the two paths must remove the same keys, and a local
+ * literal here is exactly how they would silently drift apart.
  */
 
-import { StorageKeys } from '../storage/StorageKeys';
+import { LEGACY_KV_FINANCIAL_KEYS } from '../storage/StorageKeys';
 import type { Migration } from './migrationRunner';
 
 /** Must match the flag v5 writes at the end of a successful import. */
 const IMPORT_FLAG = '@valto:sqlite_imported';
-
-/** The legacy KV copies v5 read. Every one of them is now owned by SQLite. */
-const IMPORTED_KEYS = [
-    StorageKeys.WALLETS,
-    StorageKeys.TRANSACTIONS,
-    StorageKeys.CATEGORIES,
-    StorageKeys.BUDGETS,
-    StorageKeys.RECURRING_RULES,
-] as const;
 
 export const v6_purge_imported_kv: Migration = {
     version: 6,
@@ -50,10 +45,12 @@ export const v6_purge_imported_kv: Migration = {
             return;
         }
 
-        for (const key of IMPORTED_KEYS) {
+        for (const key of LEGACY_KV_FINANCIAL_KEYS) {
             await storage.remove(key);
         }
 
-        console.log(`[Migration v6] Purged ${IMPORTED_KEYS.length} imported key-value copies`);
+        console.log(
+            `[Migration v6] Purged ${LEGACY_KV_FINANCIAL_KEYS.length} imported key-value copies`,
+        );
     },
 };

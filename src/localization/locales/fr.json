@@ -69,7 +69,8 @@
     "spendingStable": "Les dépenses sont à peu près les mêmes que le mois dernier.",
     "spendingIncreased": "Les dépenses ont augmenté de {{percent}}% par rapport au mois dernier.",
     "spendingDecreased": "Les dépenses ont diminué de {{percent}}% par rapport au mois dernier.",
-    "categoryRisk": "{{category}} représente {{percent}}% de vos dépenses."
+    "categoryRisk": "{{category}} représente {{percent}}% de vos dépenses.",
+    "recurringRulesNotRunning": "Certaines règles récurrentes ne s'exécutent pas. Ouvrez Transactions récurrentes pour en connaître la raison."
   },
   "reports": {
     "subtitle": "Aperçu mensuel",
@@ -81,14 +82,16 @@
       "totalIncome": "Revenu total",
       "totalExpense": "Dépense totale",
       "netBalance": "Solde net",
-      "savingsRate": "Taux d'épargne"
+      "savingsRate": "Taux d'épargne",
+      "noActivity": "Aucune transaction ce mois"
     },
     "ytdSummary": {
       "title": "Cumul annuel ({{year}})",
       "income": "Revenus",
       "expenses": "Dépenses",
       "net": "Net",
-      "savingsRate": "Taux d'épargne"
+      "savingsRate": "Taux d'épargne",
+      "noActivity": "Aucune transaction sur cette période"
     },
     "overBudget": "Budget dépassé !",
     "ofBudget": "{{spent}} sur {{limit}}"
@@ -155,7 +158,9 @@
     "deleteTitle": "Supprimer la catégorie",
     "deleteMessage": "Êtes-vous sûr de vouloir supprimer « {{name}} » ?",
     "delete": "Supprimer",
-    "deleteFailed": "Échec de la suppression de la catégorie"
+    "deleteFailed": "Échec de la suppression de la catégorie",
+    "deleteBlockedByRulesTitle": "Catégorie utilisée",
+    "deleteBlockedByRulesMessage": "{{count}} règle(s) récurrente(s) utilisent encore cette catégorie. Réaffectez ces règles à une autre catégorie, ou supprimez-les, puis supprimez cette catégorie."
   },
   "modals": {
     "addTransaction": {
@@ -183,16 +188,16 @@
       "notesPlaceholder": "Ajouter une note...",
       "invalidAmount": "Montant invalide",
       "invalidAmountMessage": "Veuillez entrer un montant supérieur à 0",
-      "noWalletSelected": "Aucun portefeuille sélectionné",
-      "noWalletSelectedMessage": "Veuillez sélectionner un portefeuille",
+      "noWalletSelected": "Aucun portefeuille",
+      "noWalletSelectedMessage": "Vous n'avez encore aucun portefeuille, et une transaction en exige un. Ouvrez l'onglet Portefeuilles pour en créer un, puis revenez.",
       "noDestWallet": "Aucun portefeuille de destination",
       "noDestWalletMessage": "Veuillez sélectionner un portefeuille de destination",
       "invalidTransfer": "Transfert invalide",
       "invalidTransferMessage": "Les portefeuilles source et destination doivent être différents",
       "insufficientBalance": "Solde insuffisant",
       "insufficientBalanceMessage": "Le portefeuille source n'a que {{amount}}",
-      "noCategorySelected": "Aucune catégorie sélectionnée",
-      "noCategorySelectedMessage": "Veuillez sélectionner une catégorie",
+      "noCategorySelected": "Aucune catégorie",
+      "noCategorySelectedMessage": "Vous n'avez encore aucune catégorie, et une transaction en exige une. Ouvrez Paramètres, puis Catégories, pour en créer une et revenez.",
       "error": "Erreur",
       "transferFailed": "Échec du transfert",
       "saveFailed": "Échec de l'enregistrement"
@@ -258,10 +263,15 @@
       "deleteTitle": "Supprimer le portefeuille",
       "deleteMessage": "Êtes-vous sûr de vouloir supprimer « {{name}} » ? Cette action est irréversible.",
       "deleteFailed": "Échec de la suppression du portefeuille",
+      "updateFailed": "Échec de la mise à jour du portefeuille",
       "error": "Erreur",
       "hasTransactionsTitle": "Portefeuille avec transactions",
       "hasTransactionsMessage": "Ce portefeuille contient des transactions. La suppression n'affectera pas les transactions passées mais elles ne seront plus liées à un portefeuille. Continuer ?",
-      "deleteAnyway": "Supprimer quand même"
+      "deleteAnyway": "Supprimer quand même",
+      "deleteBlockedByRulesTitle": "Portefeuille utilisé",
+      "deleteBlockedByRulesMessage": "{{count}} règle(s) récurrente(s) utilisent encore ce portefeuille. Réaffectez ces règles à un autre portefeuille, ou supprimez-les, puis supprimez ce portefeuille.",
+      "deleteBlockedLastWalletTitle": "Dernier portefeuille",
+      "deleteBlockedLastWalletMessage": "C'est votre seul portefeuille, et une transaction doit appartenir à un portefeuille. Créez d'abord un autre portefeuille, puis supprimez celui-ci."
     },
     "category": {
       "newTitle": "Nouvelle catégorie",
@@ -327,12 +337,12 @@
       {
         "id": "backup-data",
         "question": "Comment sauvegarder mes données ?",
-        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
+        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets, règles récurrentes et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
       },
       {
         "id": "restore-data",
         "question": "Comment restaurer depuis une sauvegarde ?",
-        "answer": "Allez dans Paramètres > Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Cette action est irréversible, pensez à sauvegarder d'abord."
+        "answer": "Allez dans Paramètres > Restaurer les données. Choisissez votre fichier de sauvegarde via le sélecteur de fichiers. L'application validera la sauvegarde et remplacera toutes les données actuelles. Les sauvegardes créées par cette version remplacent aussi vos règles récurrentes ; les fichiers plus anciens n'en contiennent pas, vos règles actuelles sont donc conservées. Cette action est irréversible, pensez à sauvegarder d'abord."
       },
       {
         "id": "change-currency",
@@ -423,12 +433,15 @@
     "restoreData": "Restaurer les données",
     "restoreDataMessage": "Cela remplacera TOUTES vos données actuelles par la sauvegarde. Cette action est irréversible.",
     "restoreConfirm": "Êtes-vous absolument sûr ?",
-    "restoreConfirmMessage": "Tous les portefeuilles, transactions, catégories et budgets actuels seront remplacés définitivement.",
+    "restoreConfirmMessage": "Tous les portefeuilles, transactions, catégories et budgets actuels seront remplacés définitivement. Les règles récurrentes sont également remplacées si la sauvegarde en contient.",
     "restoreNow": "Restaurer maintenant",
     "restoreFailed": "Échec de la restauration",
     "restoreFailedMessage": "Impossible de restaurer à partir de la sauvegarde. Le fichier est peut-être invalide.",
+    "restoreMissingCurrencyMessage": "Cette sauvegarde n'indique pas la devise de ses montants ; la restaurer risquerait de fausser la lecture de tous les montants.",
     "restoreSuccess": "Succès",
     "restoreSuccessMessage": "Vos données ont été restaurées avec succès.",
+    "restoreSuccessWithRulesMessage": "Vos données ont été restaurées avec succès. {{generated}} transaction(s) générée(s) pour rattraper le retard, {{unprocessed}} règle(s) récurrente(s) n'ont pas pu être traitées.",
+    "restoreSuccessRulesFailedMessage": "Vos données ont été restaurées avec succès, mais vos règles récurrentes n'ont pas pu être traitées. Elles seront vérifiées à la prochaine ouverture de l'application.",
     "resetAllData": "Supprimer les données financières",
     "resetAllDataMessage": "Cela supprimera définitivement TOUS vos portefeuilles, transactions, catégories, budgets et règles récurrentes.",
     "resetIrreversible": "Action irréversible",
@@ -497,6 +510,9 @@
     "ruleUpdatedMessage": "Règle récurrente mise à jour avec succès.",
     "statusActive": "Actif",
     "statusPaused": "En pause",
+    "statusExpired": "Terminée",
+    "statusMissingReference": "Portefeuille ou catégorie manquant",
+    "statusInsufficientFunds": "Fonds insuffisants",
     "defaultDescription": "Transaction récurrente",
     "frequencyEvery": "Chaque {{base}}",
     "frequencyEveryN": "Tous les {{interval}} {{base}}s",
@@ -530,7 +546,11 @@
     "segmentDaily": "Quotidien",
     "segmentWeekly": "Hebdomadaire",
     "segmentMonthly": "Mensuel",
-    "segmentYearly": "Annuel"
+    "segmentYearly": "Annuel",
+    "selectWallet": "Choisir un portefeuille",
+    "noWallets": "Aucun portefeuille disponible",
+    "noCategories": "Aucune catégorie disponible",
+    "deleteFailed": "Échec de la suppression de la règle"
   },
   "export": {
     "title": "Exporter les données",
@@ -569,6 +589,9 @@
     "enableBiometricTitle": "Activer {{types}} ?",
     "enableBiometricSubtitle": "Utilisez l'authentification biométrique comme alternative rapide à votre PIN."
   },
+  "languagePicker": {
+    "title": "Sélectionner la langue"
+  },
   "currencyPicker": {
     "title": "Sélectionner la devise",
     "locked": "La devise ne peut pas être modifiée une fois sélectionnée.",
@@ -588,7 +611,10 @@
     "walletType": "Type de portefeuille",
     "allSet": "Vous êtes prêt !",
     "allSetDescription": "Commencez à suivre vos finances avec Valto.",
-    "goToDashboard": "Aller au tableau de bord"
+    "goToDashboard": "Aller au tableau de bord",
+    "currencySelectFailed": "Impossible d'enregistrer votre devise. Veuillez réessayer.",
+    "walletCreateFailed": "Impossible de créer votre portefeuille. Veuillez réessayer.",
+    "completeFailed": "Impossible de terminer la configuration. Veuillez réessayer."
   },
   "empty": {
     "transactions": {
@@ -602,10 +628,6 @@
     "budgets": {
       "title": "Aucun budget défini",
       "description": "Créez un budget pour surveiller vos dépenses"
-    },
-    "recurring": {
-      "title": "Aucune transaction récurrente",
-      "description": "Automatisez vos revenus et dépenses"
     },
     "reports": {
       "title": "Aucune donnée pour cette période",
@@ -626,6 +648,7 @@
     "deleteTransaction": "Supprimer la transaction",
     "pauseRule": "Mettre en pause la règle",
     "resumeRule": "Reprendre la règle",
+    "ruleStatus": "État de la règle : {{status}}",
     "searchTransactions": "Rechercher des transactions",
     "filterTransactions": "Filtrer par {{filter}}",
     "selectCurrency": "Sélectionner la devise",

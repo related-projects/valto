@@ -8,7 +8,11 @@
  *   Step 3 - All Set (completion)
  *
  * Uses useOnboarding hook for state management.
- * All text is fully localized via i18n.
+ *
+ * Every string this screen renders is localized, the error line included: the
+ * hook hands over a translation KEY (`errorKey`), never a message, so nothing
+ * here can put a developer-facing English string on screen. See
+ * OnboardingScreen.test.tsx 'renders the translated key, never the raw error'.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -33,11 +37,13 @@ import { useOnboarding } from '../hooks/useOnboarding';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Module-level, so t() is not in scope here: the entries carry the key and the
+// component translates it at render. Same keys the wallet screens already use.
 const WALLET_TYPES = [
-    { label: 'Cash', value: WalletType.CASH, icon: 'wallet-outline' as keyof typeof Ionicons.glyphMap },
-    { label: 'Bank', value: WalletType.BANK, icon: 'card-outline' as keyof typeof Ionicons.glyphMap },
-    { label: 'Mobile', value: WalletType.MOBILE, icon: 'phone-portrait-outline' as keyof typeof Ionicons.glyphMap },
-    { label: 'Savings', value: WalletType.SAVINGS, icon: 'cash-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.cash', value: WalletType.CASH, icon: 'wallet-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.bank', value: WalletType.BANK, icon: 'card-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.mobile', value: WalletType.MOBILE, icon: 'phone-portrait-outline' as keyof typeof Ionicons.glyphMap },
+    { labelKey: 'wallets.type.savings', value: WalletType.SAVINGS, icon: 'cash-outline' as keyof typeof Ionicons.glyphMap },
 ];
 
 interface OnboardingScreenProps {
@@ -57,7 +63,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         createWallet,
         complete,
         loading,
-        error,
+        errorKey,
     } = useOnboarding();
 
     // Currency search
@@ -105,8 +111,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
     // Every step that can fail renders this: an error must always be visible to
     // the user, never left sitting in state that nothing shows.
+    //
+    // `errorKey` is a translation key, so this line is localized like every
+    // other. It can never carry a repository or storage message: the hook does
+    // not put one there.
     const renderError = (testID: string) => (
-        error ? (
+        errorKey ? (
             <Text
                 testID={testID}
                 style={{
@@ -116,7 +126,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     textAlign: 'center',
                 }}
             >
-                {error}
+                {t(errorKey)}
             </Text>
         ) : null
     );
@@ -302,7 +312,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                             borderRadius: radius.md,
                             ...shadows.card,
                         }}
-                        {...getButtonA11y(wt.label)}
+                        {...getButtonA11y(t(wt.labelKey))}
                     >
                         <Ionicons
                             name={wt.icon}
@@ -315,7 +325,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                             marginTop: 4,
                             fontWeight: '600',
                         }}>
-                            {wt.label}
+                            {t(wt.labelKey)}
                         </Text>
                     </TouchableOpacity>
                 ))}

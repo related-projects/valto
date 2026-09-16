@@ -43,8 +43,13 @@ import { loadSettings, selectAndLockCurrency, updateSetting } from '../services/
 import { defaultCategories } from '../seed/seedData';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
-// The seed creates no wallets - onboarding is the single source of the first wallet.
-const DEFAULT_WALLET_COUNT = 0;
+// The seed still creates no wallets, but the reset no longer stops at the seed:
+// both reset paths now converge on ensureUsableState, which leaves the one empty
+// wallet an already-onboarded user needs to record anything again. This used to
+// be 0 - onboarding is the only other source of a first wallet, and it never runs
+// again after a currency change, so the old terminal state was an install where
+// no transaction could be entered.
+const DEFAULT_WALLET_COUNT = 1;
 // Derived from the seed itself rather than hand-copied: the invariant under test
 // is "the reset re-seeds the whole default set", not any particular count.
 const DEFAULT_CATEGORY_COUNT = defaultCategories.length;
@@ -116,6 +121,28 @@ describe('resetFinancialDataForCurrencyReset', () => {
         expect(await countRows(db, 'transactions')).toBe(0);
         expect(await countRows(db, 'budgets')).toBe(0);
         expect(await countRows(db, 'recurring_rules')).toBe(0);
+    });
+
+    /**
+     * The terminal state, asserted as an invariant rather than as a count: a
+     * currency change runs on an install that has already onboarded, so nothing
+     * else will ever create a wallet for it. This is the assertion that fails if
+     * the currency reset stops calling the shared helper and drifts away from
+     * resetAppData again.
+     */
+    it('leaves an install that can still record a transaction', async () => {
+        const db = (global as any).__testDb as SqlDatabase;
+        await selectAndLockCurrency('USD');
+        await seedFinancialData(db);
+
+        await resetFinancialDataForCurrencyReset('XOF');
+
+        const wallets = await new WalletRepository(db).getAll();
+        expect(wallets.length).toBeGreaterThanOrEqual(1);
+        expect(wallets[0].balance).toBe(0);
+
+        const categories = await new CategoryRepository(db).getAll();
+        expect(categories.length).toBeGreaterThan(0);
     });
 
     it('preserves language, theme, onboarding flag and security config (DoD 2)', async () => {
