@@ -7,7 +7,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -80,7 +80,15 @@ export const DropdownPicker: React.FC<DropdownPickerProps> = ({
             <TouchableOpacity
                 testID={testID}
                 style={[styles.trigger, { backgroundColor: colors.background, borderColor: colors.border }]}
-                onPress={() => setOpen(!open)}
+                // The sheets host this picker in a ScrollView with
+                // keyboardShouldPersistTaps="handled", so the tap reaches here with the
+                // keyboard still up, over the list that opens below. Dismiss it in the
+                // same tap (F-25). Pinned by
+                // modals/__tests__/AddTransactionModal.keyboard.test.tsx.
+                onPress={() => {
+                    Keyboard.dismiss();
+                    setOpen(!open);
+                }}
             >
                 <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                     {triggerIcon && <View style={{ marginRight: sp.sm }}>{triggerIcon}</View>}
