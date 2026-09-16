@@ -13,6 +13,7 @@
  */
 
 import { Transaction, TransactionType } from '../entities/Transaction';
+import { TRANSFER_OUT_CATEGORY_ID } from './transferCategories';
 
 /** Signed cents a transaction contributes to its wallet's balance. */
 export function ledgerEffect(
@@ -25,7 +26,7 @@ export function ledgerEffect(
             return tx.amount;
         case TransactionType.TRANSFER:
             // Double-entry: the outgoing leg debits, the incoming leg credits.
-            return tx.categoryId === 'transfer-out' ? -tx.amount : tx.amount;
+            return tx.categoryId === TRANSFER_OUT_CATEGORY_ID ? -tx.amount : tx.amount;
         default:
             return 0;
     }

@@ -28,6 +28,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Category, Transaction } from '../../domain/entities';
 import { Wallet } from '../../domain/entities/Wallet';
+import { TRANSFER_IN_CATEGORY_ID } from '../../domain/ledger/transferCategories';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
 import { typography } from '../../theme/typography';
@@ -75,9 +76,16 @@ export function resolveWalletLabel(walletId: string, wallets: Wallet[], t: Trans
     return wallet?.name || t('components.transactionList.unknown');
 }
 
-/** True when the transaction credits its wallet (income, or the incoming leg). */
+/**
+ * True when the transaction credits its wallet (income, or the incoming leg).
+ *
+ * Deliberately NOT isTransferCategoryId: this asks which DIRECTION a row moves
+ * money, not whether the id designates a transfer leg. The two reserved ids
+ * answer this question with opposite signs, so merging them here would paint
+ * the outgoing leg as a credit.
+ */
 function isCredit(transaction: Pick<Transaction, 'type' | 'categoryId'>): boolean {
-    return transaction.type === 'income' || transaction.categoryId === 'transfer-in';
+    return transaction.type === 'income' || transaction.categoryId === TRANSFER_IN_CATEGORY_ID;
 }
 
 // ─── Variant metrics ──────────────────────────────────────────────────
