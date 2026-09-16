@@ -22,6 +22,9 @@
       "onTrack": "En bonne voie",
       "of": "sur {{amount}}",
       "overAmount": "{{amount}} au-dessus du budget",
+      "deleteTitle": "Supprimer le budget",
+      "deleteMessage": "\u00cates-vous s\u00fbr de vouloir supprimer ce budget ? Vos transactions ne sont pas modifi\u00e9es.",
+      "deleteFailed": "\u00c9chec de la suppression du budget",
       "overCategory": "{{amount}} dépassé"
     },
     "quickActions": {
@@ -238,6 +241,9 @@
       "invalidAmount": "Montant invalide",
       "invalidAmountMessage": "Veuillez entrer une limite de budget supérieure à 0",
       "error": "Erreur",
+      "editTitle": "Modifier le budget",
+      "updateFailed": "\u00c9chec de la mise \u00e0 jour du budget",
+      "monthClosed": "Ce budget concerne un mois pass\u00e9 et ne peut plus \u00eatre modifi\u00e9.",
       "createFailed": "Échec de la création du budget"
     },
     "addWallet": {
@@ -645,6 +651,8 @@
     "editWallet": "Modifier le portefeuille {{name}}",
     "editRule": "Modifier la règle",
     "deleteRule": "Supprimer la règle",
+    "editBudget": "Modifier le budget {{category}}",
+    "deleteBudget": "Supprimer le budget {{category}}",
     "deleteTransaction": "Supprimer la transaction",
     "pauseRule": "Mettre en pause la règle",
     "resumeRule": "Reprendre la règle",

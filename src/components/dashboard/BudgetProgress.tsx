@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { Budget } from '../../domain/entities';
 import { BudgetSummary } from '../../hooks/useBudgets';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useTheme } from '../../theme/theme';
@@ -20,6 +21,8 @@ interface BudgetProgressProps {
     onCreateBudget?: () => void;
     /** Callback when a budget item's delete button is tapped */
     onDeleteBudget?: (budgetId: string) => void;
+    /** Callback when a budget item is tapped to edit it */
+    onEditBudget?: (budget: Budget) => void;
     /**
      * Visual weight of the empty-state call to action.
      *
@@ -38,6 +41,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
     hasBudgets = false,
     onCreateBudget,
     onDeleteBudget,
+    onEditBudget,
     ctaEmphasis = 'primary',
 }) => {
     const { t } = useTranslation();
@@ -196,7 +200,14 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                         return (
                             <View key={summary.budget.id} style={{ marginBottom: spacing.md }}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xxs }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <TouchableOpacity
+                                        testID={`budget_edit_${summary.budget.id}`}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={t('a11y.editBudget', { category: summary.categoryName })}
+                                        disabled={!onEditBudget}
+                                        onPress={() => onEditBudget?.(summary.budget)}
+                                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                                    >
                                         <View
                                             style={{
                                                 width: 8,
@@ -217,10 +228,22 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                                         >
                                             {summary.categoryName}
                                         </Text>
-                                    </View>
+                                    </TouchableOpacity>
                                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
                                         {formatAmount(summary.spentAmount)} / {formatAmount(summary.budget.limitAmount)}
                                     </Text>
+                                    {onDeleteBudget && (
+                                        <TouchableOpacity
+                                            testID={`budget_delete_${summary.budget.id}`}
+                                            accessibilityRole="button"
+                                            accessibilityLabel={t('a11y.deleteBudget', { category: summary.categoryName })}
+                                            onPress={() => onDeleteBudget(summary.budget.id)}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            style={{ marginLeft: spacing.sm }}
+                                        >
+                                            <Ionicons name="trash-outline" size={16} color={colors.mutedForeground} />
+                                        </TouchableOpacity>
+                                    )}
                                 </View>
 
                                 {/* Category progress bar */}

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -16,10 +16,13 @@ import {
   View,
 } from "react-native";
 import {
+  Budget,
   Category,
   CreateBudgetDTO,
   getCurrentMonth,
+  UpdateBudgetDTO,
 } from "../../domain/entities";
+import { BudgetMonthClosedError } from "../../domain/useCases/errors";
 import { useCategories } from "../../hooks/useCategories";
 import { useFormatting } from "../../hooks/useFormatting";
 import { radius } from "../../theme/radius";
@@ -33,6 +36,13 @@ interface AddBudgetModalProps {
   onCreateBudget: (dto: CreateBudgetDTO) => Promise<void>;
   /** Category IDs that already have a budget for the current month */
   budgetedCategoryIds: string[];
+  /**
+   * Budget being edited. When set (with onUpdateBudget) the sheet opens
+   * pre-filled, the category and month stay as they are, and Save updates
+   * the limit instead of creating a budget.
+   */
+  initialBudget?: Budget | null;
+  onUpdateBudget?: (dto: UpdateBudgetDTO) => Promise<void>;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -43,11 +53,13 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
   onClose,
   onCreateBudget,
   budgetedCategoryIds,
+  initialBudget,
+  onUpdateBudget,
 }) => {
   const { colors, spacing, typography, radius } = useTheme();
   const { t } = useTranslation();
   const { expenseCategories } = useCategories();
-  const { parseAmountToCents, decimals } = useFormatting();
+  const { parseAmountToCents, centsToMajor, decimals } = useFormatting();
 
   // Form state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -56,10 +68,21 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
   const [limitAmount, setLimitAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Filter out categories that already have a budget this month
-  const availableCategories = expenseCategories.filter(
-    (cat) => !budgetedCategoryIds.includes(cat.id),
-  );
+  const editingBudget = initialBudget && onUpdateBudget ? initialBudget : null;
+
+  // Edit: pre-fill from the budget each time the sheet opens.
+  useEffect(() => {
+    if (visible && editingBudget) {
+      setSelectedCategoryId(editingBudget.categoryId);
+      setLimitAmount(String(centsToMajor(editingBudget.limitAmount)));
+    }
+  }, [visible, editingBudget, centsToMajor]);
+
+  // Edit: only the budget's own category, locked. Create: filter out
+  // categories that already have a budget this month.
+  const availableCategories = editingBudget
+    ? expenseCategories.filter((cat) => cat.id === editingBudget.categoryId)
+    : expenseCategories.filter((cat) => !budgetedCategoryIds.includes(cat.id));
 
   const selectedCategory = availableCategories.find(
     (c) => c.id === selectedCategoryId,
@@ -87,6 +110,26 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
         t("modals.addBudget.invalidAmount"),
         t("modals.addBudget.invalidAmountMessage"),
       );
+      return;
+    }
+
+    if (editingBudget && onUpdateBudget) {
+      try {
+        setSaving(true);
+        // Limit only: category and month are not editable here.
+        await onUpdateBudget({ id: editingBudget.id, limitAmount: amountNum });
+        resetForm();
+        onClose();
+      } catch (err) {
+        Alert.alert(
+          t("modals.addBudget.error"),
+          err instanceof BudgetMonthClosedError
+            ? t("modals.addBudget.monthClosed")
+            : t("modals.addBudget.updateFailed"),
+        );
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -127,6 +170,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
             borderRadius: radius.md,
           },
         ]}
+        disabled={!!editingBudget}
         onPress={() => setSelectedCategoryId(category.id)}
       >
         {category.color && (
@@ -186,9 +230,12 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                 fontWeight: typography.weights.bold,
               }}
             >
-              {t("modals.addBudget.title")}
+              {editingBudget
+                ? t("modals.addBudget.editTitle")
+                : t("modals.addBudget.title")}
             </Text>
             <TouchableOpacity
+              testID="add_budget_save"
               onPress={handleSave}
               style={styles.headerButton}
               disabled={saving}

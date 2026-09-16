@@ -22,6 +22,9 @@
             "onTrack": "No caminho certo",
             "of": "de {{amount}}",
             "overAmount": "{{amount}} acima do orçamento",
+            "deleteTitle": "Excluir or\u00e7amento",
+            "deleteMessage": "Tem certeza de que deseja excluir este or\u00e7amento? Suas transa\u00e7\u00f5es n\u00e3o s\u00e3o afetadas.",
+            "deleteFailed": "Falha ao excluir o or\u00e7amento",
             "overCategory": "{{amount}} a mais"
         },
         "quickActions": {
@@ -238,6 +241,9 @@
             "invalidAmount": "Valor inválido",
             "invalidAmountMessage": "Insira um limite de orçamento válido maior que 0",
             "error": "Erro",
+            "editTitle": "Editar or\u00e7amento",
+            "updateFailed": "Falha ao atualizar o or\u00e7amento",
+            "monthClosed": "Este or\u00e7amento pertence a um m\u00eas passado e n\u00e3o pode mais ser editado.",
             "createFailed": "Falha ao criar o orçamento"
         },
         "addWallet": {
@@ -645,6 +651,8 @@
         "editWallet": "Editar carteira {{name}}",
         "editRule": "Editar regra",
         "deleteRule": "Excluir regra",
+        "editBudget": "Editar or\u00e7amento {{category}}",
+        "deleteBudget": "Excluir or\u00e7amento {{category}}",
         "deleteTransaction": "Excluir transação",
         "pauseRule": "Pausar regra",
         "resumeRule": "Retomar regra",
