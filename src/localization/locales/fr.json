@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "dashboard": "Tableau de bord",
+    "dashboard": "Accueil",
     "transactions": "Transactions",
     "wallets": "Portefeuilles",
     "reports": "Rapports",
@@ -549,10 +549,10 @@
     "saveFailed": "Échec de l'enregistrement de la règle",
     "segmentExpense": "Dépense",
     "segmentIncome": "Revenu",
-    "segmentDaily": "Quotidien",
-    "segmentWeekly": "Hebdomadaire",
-    "segmentMonthly": "Mensuel",
-    "segmentYearly": "Annuel",
+    "segmentDaily": "Jour",
+    "segmentWeekly": "Semaine",
+    "segmentMonthly": "Mois",
+    "segmentYearly": "An",
     "selectWallet": "Choisir un portefeuille",
     "noWallets": "Aucun portefeuille disponible",
     "noCategories": "Aucune catégorie disponible",
