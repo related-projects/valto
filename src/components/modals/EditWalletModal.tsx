@@ -17,7 +17,6 @@ import {
 } from "react-native";
 import { Wallet, WalletType } from "../../domain/entities";
 import { LastWalletError, WalletHasRecurringRulesError } from "../../domain/useCases";
-import { useFormatting } from "../../hooks/useFormatting";
 import { useWallets } from "../../hooks/useWallets";
 import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
@@ -46,11 +45,9 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
 
   // Hooks
   const { updateWallet, deleteWallet, hasTransactions } = useWallets();
-  const { parseAmount, normalizeAmount, centsToMajor, decimals } = useFormatting();
 
   // Form state
   const [name, setName] = useState("");
-  const [balance, setBalance] = useState("");
   const [walletType, setWalletType] = useState<WalletType>(WalletType.CASH);
   const [selectedColor, setSelectedColor] = useState(WALLET_COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -60,12 +57,10 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
   useEffect(() => {
     if (wallet) {
       setName(wallet.name);
-      // Display balance in major units for user editing (per-currency exponent)
-      setBalance(centsToMajor(wallet.balance).toString());
       setWalletType(wallet.type);
       setSelectedColor(wallet.color || WALLET_COLORS[0]);
     }
-  }, [wallet, centsToMajor]);
+  }, [wallet]);
 
   const handleSave = async () => {
     if (!wallet) return;
@@ -79,26 +74,15 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
       return;
     }
 
-    const balanceNum = balance ? parseAmount(balance) : 0;
-
-    if (balanceNum === null || balanceNum < 0) {
-      Alert.alert(
-        t("modals.addWallet.invalidBalance"),
-        t("modals.addWallet.invalidBalanceMessage"),
-      );
-      return;
-    }
-
-    // Single input->storage conversion point (major units -> integer minor units).
-    const balanceMinor = normalizeAmount(balanceNum);
-
     try {
       setSaving(true);
 
+      // No balance: it moves only through the ledger, and the repository
+      // refuses a change here. See EditWalletModal.balance.test.tsx and
+      // src/data/__tests__/walletEditGuard.test.ts.
       await updateWallet({
         id: wallet.id,
         name: name.trim(),
-        balance: balanceMinor,
         type: walletType,
         color: selectedColor,
       });
@@ -293,37 +277,6 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
                     value={name}
                     onChangeText={setName}
                     autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              {/* Balance */}
-              <View style={{ marginBottom: spacing.lg }}>
-                <Text
-                  style={{
-                    color: colors.mutedForeground,
-                    fontSize: typography.sizes.sm,
-                    marginBottom: spacing.xs,
-                  }}
-                >
-                  {t("modals.addWallet.initialBalance")}
-                </Text>
-                <View
-                  style={[
-                    styles.inputContainer,
-                    {
-                      backgroundColor: colors.background,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <TextInput
-                    style={[styles.input, { color: colors.foreground }]}
-                    placeholder="0.00"
-                    placeholderTextColor={colors.mutedForeground}
-                    keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
-                    value={balance}
-                    onChangeText={setBalance}
                   />
                 </View>
               </View>

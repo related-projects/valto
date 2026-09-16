@@ -74,15 +74,18 @@ describe('WalletRepository', () => {
             type: WalletType.CASH,
         });
 
+        // A balance change through update is refused (walletEditGuard.test.ts);
+        // the editable fields are name, type and color.
         const updated = await repo.update({
             ...created,
-            balance: 75000,
+            name: 'Pocket',
         });
 
-        expect(updated.balance).toBe(75000);
+        expect(updated.name).toBe('Pocket');
 
         const fetched = await repo.getById(created.id);
-        expect(fetched!.balance).toBe(75000);
+        expect(fetched!.name).toBe('Pocket');
+        expect(fetched!.balance).toBe(50000);
     });
 
     it('delete removes wallet', async () => {

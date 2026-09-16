@@ -227,11 +227,13 @@ describe('useWallets', () => {
     // The rule the hook used to enforce itself, and got wrong: it refused a
     // negative balance for EVERY wallet type, while validateWalletBalance
     // (src/domain/entities/Wallet.ts) permits overdraft on bank and savings.
-    // The domain owns this now, so a bank wallet may go negative.
-    it('updateWallet allows a negative balance on a bank wallet', async () => {
+    // The domain owns this now. An update no longer carries a balance
+    // (walletEditGuard.test.ts), so the rule is reached through the stored
+    // balance: an overdrawn bank wallet can still be edited.
+    it('updateWallet allows editing an overdrawn bank wallet', async () => {
         const bank = await mockWalletRepo.create({
             name: 'Bank',
-            balance: 10000,
+            balance: -5000,
             type: WalletType.BANK,
         });
 
@@ -242,20 +244,21 @@ describe('useWallets', () => {
         });
 
         await act(async () => {
-            await result.current.updateWallet({ id: bank.id, balance: -5000 });
+            await result.current.updateWallet({ id: bank.id, name: 'Current account' });
         });
 
         const stored = await mockWalletRepo.getById(bank.id);
+        expect(stored!.name).toBe('Current account');
         expect(stored!.balance).toBe(-5000);
     });
 
     // The counterpart: the domain rule that DOES still refuse, so the test
     // above cannot be read as "negative balances are now unchecked".
-    it('updateWallet still refuses a negative balance on a cash wallet', async () => {
-        const cash = await mockWalletRepo.create({
-            name: 'Cash',
-            balance: 10000,
-            type: WalletType.CASH,
+    it('updateWallet still refuses turning an overdrawn wallet into a cash wallet', async () => {
+        const bank = await mockWalletRepo.create({
+            name: 'Bank',
+            balance: -5000,
+            type: WalletType.BANK,
         });
 
         const { result } = renderHook(() => useWallets());
@@ -267,7 +270,7 @@ describe('useWallets', () => {
         let caught: unknown;
         await act(async () => {
             try {
-                await result.current.updateWallet({ id: cash.id, balance: -5000 });
+                await result.current.updateWallet({ id: bank.id, type: WalletType.CASH });
             } catch (err) {
                 caught = err;
             }
