@@ -73,11 +73,15 @@ const snapshot = (): BackupSnapshot => ({
             { id: 't-tout', type: TransactionType.TRANSFER, amount: 25000, categoryId: 'transfer-out', walletId: 'w-cash', date: ISO, createdAt: ISO },
             { id: 't-tin', type: TransactionType.TRANSFER, amount: 25000, categoryId: 'transfer-in', walletId: 'w-bank', date: ISO, createdAt: ISO },
         ],
+        // Exactly the categories a real backup carries. The two transfer legs
+        // above deliberately have NO row here: their ids are reserved
+        // pseudo-categories the app never materializes, so a file that listed
+        // them would be a file the app cannot write. This fixture used to invent
+        // them, which is what hid the restore refusing every real backup that
+        // contained a transfer.
         categories: [
             { id: 'food', name: 'Food', type: 'expense' as never, icon: 'cart', color: '#FF5722' },
             { id: 'salary', name: 'Salary', type: 'income' as never },
-            { id: 'transfer-out', name: 'Transfer Out', type: 'expense' as never },
-            { id: 'transfer-in', name: 'Transfer In', type: 'income' as never },
         ],
         budgets: [
             { id: 'b-food', categoryId: 'food', month: '2026-01', limitAmount: 50000, createdAt: ISO, updatedAt: ISO },
@@ -180,7 +184,7 @@ describe('restoreFromSnapshot writes the ledger to SQLite', () => {
         expect(expense.note).toBe('lunch');
 
         const categories = await new CategoryRepository(db).getAll();
-        expect(categories.map((c) => c.id).sort()).toEqual(['food', 'salary', 'transfer-in', 'transfer-out']);
+        expect(categories.map((c) => c.id).sort()).toEqual(['food', 'salary']);
 
         const budgets = await new BudgetRepository(db).getAll();
         expect(budgets).toHaveLength(1);

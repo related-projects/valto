@@ -6,6 +6,7 @@
  */
 
 import { TransactionType } from '../entities';
+import { TRANSFER_IN_CATEGORY_ID, TRANSFER_OUT_CATEGORY_ID } from '../ledger/transferCategories';
 import { InsufficientFundsError } from './errors';
 import type { UseCaseDeps } from './types';
 
@@ -73,7 +74,7 @@ export async function transferFunds(
             type: TransactionType.TRANSFER,
             amount,
             walletId: fromWalletId,
-            categoryId: 'transfer-out',
+            categoryId: TRANSFER_OUT_CATEGORY_ID,
             date: now,
             note: `Transfer to ${destWallet.name}`,
         });
@@ -82,7 +83,7 @@ export async function transferFunds(
             type: TransactionType.TRANSFER,
             amount,
             walletId: toWalletId,
-            categoryId: 'transfer-in',
+            categoryId: TRANSFER_IN_CATEGORY_ID,
             date: now,
             note: `Transfer from ${sourceWallet.name}`,
         });

@@ -23,6 +23,7 @@ import {
     SerializableRecurringTransaction,
     SerializableTransaction,
     SerializableWallet,
+    TransactionType,
     deserializeBudget,
     deserializeCategory,
     deserializeRecurringTransaction,
@@ -36,6 +37,7 @@ import {
 } from '../../domain/entities';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
+import { isTransferCategoryId } from '../../domain/ledger/transferCategories';
 import {
     ValidationError,
     validateRecurringTransaction,
@@ -292,7 +294,23 @@ export function validateSnapshot(data: unknown): ValidationResult {
         if (!walletIds.has(tx.walletId)) {
             errors.push(`Transaction ${tx.id} references non-existent wallet ${tx.walletId}`);
         }
-        if (!categoryIds.has(tx.categoryId)) {
+        // A transfer's two legs carry reserved pseudo-category ids that no
+        // Category row backs, on purpose: transferFunds writes them onto the
+        // ledger and the app creates no category for them, so they can never
+        // appear in the file's `categories` array. Requiring them to resolve
+        // refused every backup taken from an install that had ever moved money
+        // between two wallets - the file was right and this reader was wrong.
+        //
+        // Narrow on purpose: admitted BECAUSE the row is a transfer, not because
+        // of how the id is spelled. A reserved id on an expense, or an unknown
+        // id on a transfer, is a file the app could not have written and stays
+        // refused. Verified by backupTransferRoundTrip.test.ts - "still refuses
+        // a reserved id on a transaction that is not a transfer" and "still
+        // refuses an unknown category id on a transfer".
+        const carriesTransferLegId =
+            tx.type === TransactionType.TRANSFER && isTransferCategoryId(tx.categoryId);
+
+        if (!carriesTransferLegId && !categoryIds.has(tx.categoryId)) {
             errors.push(`Transaction ${tx.id} references non-existent category ${tx.categoryId}`);
         }
     }
