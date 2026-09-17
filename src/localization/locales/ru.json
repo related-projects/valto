@@ -568,6 +568,12 @@
         "generatePdf": "Создать и поделиться PDF",
         "exportFailed": "Экспорт не удался",
         "exportFailedMessage": "Не удалось экспортировать данные",
+        "report": {
+            "title": "Ежемесячный отчёт - {{period}}",
+            "generatedBy": "Создано в Valto",
+            "footer": "Финансовый отчёт Valto - {{period}}",
+            "description": "Описание"
+        },
         "months": {
             "january": "Январь",
             "february": "Февраль",

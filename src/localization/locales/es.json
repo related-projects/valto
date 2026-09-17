@@ -568,6 +568,12 @@
     "generatePdf": "Generar y compartir PDF",
     "exportFailed": "Error al exportar",
     "exportFailedMessage": "No se pudieron exportar los datos",
+    "report": {
+      "title": "Informe mensual - {{period}}",
+      "generatedBy": "Generado por Valto",
+      "footer": "Informe financiero de Valto - {{period}}",
+      "description": "Descripción"
+    },
     "months": {
       "january": "Enero",
       "february": "Febrero",
