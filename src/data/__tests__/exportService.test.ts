@@ -11,7 +11,10 @@ import { TransactionType, type Transaction } from '../../domain/entities/Transac
 import { WalletType, type Wallet } from '../../domain/entities/Wallet';
 import { CategoryType, type Category } from '../../domain/entities/Category';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
+import i18n from '../../localization/i18n';
 import { generateCSV, generateReportHTML } from '../services/export/TransactionExportService';
+
+const en = i18n.getFixedT('en');
 
 // ─── Fixtures ─────────────────────────────────────────────────────────
 
@@ -154,7 +157,7 @@ describe('generateCSV — currency-aware machine-readable amounts', () => {
         const tx = makeTx({ amount: 200050, type: TransactionType.INCOME }); // 2000.50
 
         // Human-facing PDF honours the comma preference...
-        const html = generateReportHTML(2026, 2, [tx], wallets, categories, usd, 'comma');
+        const html = generateReportHTML(2026, 2, [tx], wallets, categories, usd, 'comma', 'YYYY-MM-DD', en);
         expect(html).toContain('2.000,50');
 
         // ...but the machine-readable CSV stays dot-separated and import-safe.
@@ -172,7 +175,7 @@ describe('generateReportHTML — currency-aware amounts', () => {
     it('renders amounts with the currency symbol and decimals (USD)', () => {
         const income = makeTx({ id: 'i-1', amount: 1250, type: TransactionType.INCOME, walletId: 'w-2', categoryId: 'cat-2' });
         const expense = makeTx({ id: 'e-1', amount: 500, type: TransactionType.EXPENSE });
-        const html = generateReportHTML(2026, 2, [income, expense], wallets, categories, usd, 'dot');
+        const html = generateReportHTML(2026, 2, [income, expense], wallets, categories, usd, 'dot', 'YYYY-MM-DD', en);
 
         expect(html).toContain(`+${usd.symbol}12.50`); // income line & income total
         expect(html).toContain(`-${usd.symbol}5.00`);  // expense line & expense total
@@ -182,7 +185,7 @@ describe('generateReportHTML — currency-aware amounts', () => {
         const html = generateReportHTML(
             2026, 2,
             [makeTx({ amount: 1500, type: TransactionType.INCOME })],
-            wallets, categories, kwd, 'dot',
+            wallets, categories, kwd, 'dot', 'YYYY-MM-DD', en,
         );
         expect(html).toContain(`${kwd.symbol}1.500`);
     });
@@ -191,7 +194,7 @@ describe('generateReportHTML — currency-aware amounts', () => {
         const html = generateReportHTML(
             2026, 2,
             [makeTx({ amount: 200050, type: TransactionType.INCOME })],
-            wallets, categories, usd, 'comma',
+            wallets, categories, usd, 'comma', 'YYYY-MM-DD', en,
         );
         // The comma profile suffixes the symbol behind a U+00A0 gap.
         expect(html).toContain(`2.000,50\u00A0${usd.symbol}`);
@@ -201,7 +204,7 @@ describe('generateReportHTML — currency-aware amounts', () => {
         const html = generateReportHTML(
             2026, 2,
             [makeTx({ amount: 200050, type: TransactionType.INCOME })],
-            wallets, categories, usd, 'space',
+            wallets, categories, usd, 'space', 'YYYY-MM-DD', en,
         );
         expect(html).toContain(`2\u00A0000,50\u00A0${usd.symbol}`);
     });
@@ -214,7 +217,7 @@ describe('generateReportHTML — currency-aware amounts', () => {
                 makeTx({ id: 'i-1', amount: 1250, type: TransactionType.INCOME, walletId: 'w-2', categoryId: 'cat-2' }),
                 makeTx({ id: 'e-1', amount: 500, type: TransactionType.EXPENSE }),
             ],
-            wallets, categories, usd, 'dot',
+            wallets, categories, usd, 'dot', 'YYYY-MM-DD', en,
         );
         // Income total 1250 -> 12.50, Expense total 500 -> 5.00, Net 750 -> 7.50 - all 2-decimal.
         expect(html).toContain(`+${usd.symbol}12.50`);
