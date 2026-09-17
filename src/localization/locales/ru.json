@@ -572,7 +572,9 @@
             "title": "Ежемесячный отчёт - {{period}}",
             "generatedBy": "Создано в Valto",
             "footer": "Финансовый отчёт Valto - {{period}}",
-            "description": "Описание"
+            "description": "Описание",
+            "transferIn": "Входящий перевод",
+            "transferOut": "Исходящий перевод"
         },
         "months": {
             "january": "Январь",

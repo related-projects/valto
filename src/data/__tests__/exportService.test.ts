@@ -39,7 +39,7 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
         amount: 5000, // integer minor units (= 50.00 at 2 decimals)
         walletId: 'w-1',
         categoryId: 'cat-1',
-        date: new Date('2026-02-15'),
+        date: new Date(2026, 1, 15, 12, 0), // local noon: the CSV prints the local day, the 15th in every zone
         createdAt: new Date('2026-02-15'),
         ...overrides,
     };

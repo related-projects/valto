@@ -572,7 +572,9 @@
             "title": "Relatório mensal - {{period}}",
             "generatedBy": "Gerado pelo Valto",
             "footer": "Relatório financeiro do Valto - {{period}}",
-            "description": "Descrição"
+            "description": "Descrição",
+            "transferIn": "Transferência de entrada",
+            "transferOut": "Transferência de saída"
         },
         "months": {
             "january": "Janeiro",
