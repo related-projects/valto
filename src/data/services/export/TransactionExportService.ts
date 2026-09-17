@@ -17,6 +17,8 @@ import { TransactionType, type Transaction } from '../../../domain/entities/Tran
 import type { Wallet } from '../../../domain/entities/Wallet';
 import type { Category } from '../../../domain/entities/Category';
 import { getCurrencyByCode, type CurrencyDefinition } from '../../../domain/constants/currencies';
+import { ledgerEffect } from '../../../domain/ledger/ledgerEffect';
+import { TRANSFER_IN_CATEGORY_ID, TRANSFER_OUT_CATEGORY_ID } from '../../../domain/ledger/transferCategories';
 import { loadSettings, type DateFormatPreference, type DecimalSeparator } from '../settingsService';
 import i18n from '../../../localization/i18n';
 import { formatAmount } from '../../../utils/formatAmount';
@@ -27,10 +29,11 @@ import { centsToMajor } from '../../../utils/normalizeAmount';
 
 /**
  * Escape a CSV field value.
- * Wraps in double-quotes if the value contains commas, quotes, or newlines.
+ * Wraps in double-quotes if the value contains commas, quotes, line feeds or
+ * carriage returns (a lone CR ends the record for some readers).
  */
 function escapeCSV(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
         return `"${value.replace(/"/g, '""')}"`;
     }
     return value;
@@ -58,10 +61,21 @@ function formatCsvAmount(amountMinor: number, decimals: number): string {
 }
 
 /**
+ * CSV dates, in the rows and in the file name: the device's local calendar day,
+ * whatever the app date format setting. Stored dates are UTC instants, and the
+ * UTC day of anything stored before 01:00 at UTC+1 (every recurring row) is the
+ * previous one.
+ */
+const CSV_DATE_FORMAT: DateFormatPreference = 'YYYY-MM-DD';
+
+/**
  * Generate a CSV string from transactions.
  * Resolves walletId/categoryId to human-readable names.
  * Amounts are emitted in `currency`'s minor-unit exponent (machine-readable),
  * with an ISO currency-code column so the amount's scale is self-describing.
+ * Dates follow CSV_DATE_FORMAT. Verified by
+ * src/data/__tests__/exportService.datesTransfersEscaping.test.ts (T1 local
+ * day, T2 carriage return).
  */
 export function generateCSV(
     transactions: Transaction[],
@@ -75,7 +89,7 @@ export function generateCSV(
     const header = 'date,type,amount,currency,wallet,category,description';
 
     const rows = transactions.map(tx => {
-        const date = tx.date.toISOString().split('T')[0]; // YYYY-MM-DD
+        const date = formatDate(tx.date, CSV_DATE_FORMAT);
         const amount = formatCsvAmount(tx.amount, currency.decimals);
         const wallet = escapeCSV(walletNames.get(tx.walletId) ?? tx.walletId);
         const category = escapeCSV(categoryNames.get(tx.categoryId) ?? tx.categoryId);
@@ -97,7 +111,7 @@ export async function shareCSV(
     const settings = await loadSettings();
     const currency = getCurrencyByCode(settings.currency);
     const csv = generateCSV(transactions, wallets, categories, currency);
-    const filename = `valto_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = `valto_transactions_${formatDate(new Date(), CSV_DATE_FORMAT)}.csv`;
     const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
     await FileSystem.writeAsStringAsync(fileUri, csv, {
@@ -131,6 +145,25 @@ const TYPE_KEYS: Record<TransactionType, string> = {
     [TransactionType.TRANSFER]: 'modals.addTransaction.transfer',
 };
 
+/** A transfer leg carries a reserved category id and no Category row, so it gets a label of its own. */
+const TRANSFER_LEG_KEYS = new Map<string, string>([
+    [TRANSFER_IN_CATEGORY_ID, 'export.report.transferIn'],
+    [TRANSFER_OUT_CATEGORY_ID, 'export.report.transferOut'],
+]);
+
+/**
+ * Escape user-entered text for HTML element content. `&` goes first so the
+ * entities the other replacements write are not escaped again.
+ */
+function escapeHTML(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /**
  * Generate an HTML string for a monthly PDF report.
  * Amounts render as the app displays them: `currency` symbol, the user's
@@ -143,6 +176,13 @@ const TYPE_KEYS: Record<TransactionType, string> = {
  * nothing here reads the device locale or prints a UTC day. Verified by
  * src/data/__tests__/exportService.language.test.ts (T1 fr, T2 zh fallback,
  * T3 UTC+1 day shift).
+ *
+ * A row's sign and colour follow ledgerEffect, so a transfer's incoming leg
+ * reads as a credit, and a transfer leg's category cell shows its own label.
+ * Every user-entered value, and an id standing in for a missing name, is
+ * HTML-escaped. Verified by
+ * src/data/__tests__/exportService.datesTransfersEscaping.test.ts (T3 transfer
+ * legs, T4 escaping).
  */
 export function generateReportHTML(
     year: number,
@@ -169,16 +209,19 @@ export function generateReportHTML(
             if (tx.type === 'income') totalIncome += tx.amount;
             else if (tx.type === 'expense') totalExpense += tx.amount;
 
-            const sign = tx.type === 'income' ? '+' : '-';
-            const color = tx.type === 'income' ? '#22c55e' : '#ef4444';
+            const credit = ledgerEffect(tx) > 0;
+            const sign = credit ? '+' : '-';
+            const color = credit ? '#22c55e' : '#ef4444';
+            const legKey = TRANSFER_LEG_KEYS.get(tx.categoryId);
+            const category = legKey ? t(legKey) : escapeHTML(categoryNames.get(tx.categoryId) ?? tx.categoryId);
             return `
                 <tr>
                     <td>${formatDate(tx.date, dateFormat)}</td>
                     <td>${t(TYPE_KEYS[tx.type])}</td>
                     <td style="color: ${color}; font-weight: 600;">${sign}${formatAmount(tx.amount, currency.symbol, separator, currency.decimals)}</td>
-                    <td>${walletNames.get(tx.walletId) ?? tx.walletId}</td>
-                    <td>${categoryNames.get(tx.categoryId) ?? tx.categoryId}</td>
-                    <td>${tx.note ?? ''}</td>
+                    <td>${escapeHTML(walletNames.get(tx.walletId) ?? tx.walletId)}</td>
+                    <td>${category}</td>
+                    <td>${escapeHTML(tx.note ?? '')}</td>
                 </tr>`;
         })
         .join('');
