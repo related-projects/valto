@@ -16,12 +16,14 @@ import { generateReportHTML } from '../services/export/TransactionExportService'
  * language. Expected localized strings are read from the bundles through
  * i18n.getFixedT, never restated here.
  *
- * The day-shift test pins TZ to Africa/Lagos (UTC+1, no DST) so a local 00:30
- * is 23:30 UTC the previous day on every machine.
+ * The day-shift test cannot set the process time zone: jest gives each test
+ * file a copied process.env (jest-util createProcessObject, createProcessEnv),
+ * so assigning TZ never reaches the real env setter that makes Node re-read the
+ * zone. It builds the instant with Date.UTC instead and gives that one Date the
+ * local getters of Africa/Lagos (UTC+1, no DST), read from the ICU tz database
+ * through Intl.DateTimeFormat with an explicit timeZone. Nothing depends on the
+ * machine zone, and toISOString / the UTC getters stay native.
  */
-
-const originalTZ = process.env.TZ;
-process.env.TZ = 'Africa/Lagos';
 
 const originalToLocaleString = Date.prototype.toLocaleString;
 const originalToLocaleDateString = Date.prototype.toLocaleDateString;
@@ -51,8 +53,43 @@ beforeAll(() => {
 
 afterAll(() => {
     jest.restoreAllMocks();
-    process.env.TZ = originalTZ;
 });
+
+/**
+ * A Date for the instant `utcMs` whose local getters report the wall clock of
+ * `timeZone`, independent of the zone the process runs in.
+ */
+function dateInZone(utcMs: number, timeZone: string): Date {
+    const date = new Date(utcMs);
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hourCycle: 'h23',
+    }).formatToParts(date);
+    const field = (type: Intl.DateTimeFormatPartTypes): number =>
+        Number(parts.find(part => part.type === type)?.value);
+
+    const year = field('year');
+    const monthIndex = field('month') - 1;
+    const day = field('day');
+    const hours = field('hour');
+    const minutes = field('minute');
+    const wallClockAsUtc = Date.UTC(year, monthIndex, day, hours, minutes, date.getUTCSeconds(), date.getUTCMilliseconds());
+    const offsetMinutes = -(wallClockAsUtc - utcMs) / 60000;
+
+    return Object.assign(date, {
+        getFullYear: () => year,
+        getMonth: () => monthIndex,
+        getDate: () => day,
+        getHours: () => hours,
+        getMinutes: () => minutes,
+        getTimezoneOffset: () => offsetMinutes,
+    });
+}
 
 // --- Fixtures ----------------------------------------------------------------
 
@@ -165,8 +202,11 @@ describe('generateReportHTML - app language, not device locale', () => {
 
     it('T3: a transaction at 00:30 local time in UTC+1 prints on its local day', () => {
         deviceLocale = 'en-US';
-        const date = new Date(2026, 1, 15, 0, 30);
+        const date = dateInZone(Date.UTC(2026, 1, 14, 23, 30), 'Africa/Lagos');
+        expect(date.toISOString()).toBe('2026-02-14T23:30:00.000Z');
         expect(date.getTimezoneOffset()).toBe(-60);
+        expect([date.getFullYear(), date.getMonth(), date.getDate()]).toEqual([2026, 1, 15]);
+        expect([date.getHours(), date.getMinutes()]).toEqual([0, 30]);
 
         const html = generateReportHTML(
             2026, 2, [makeTx({ date, createdAt: date })], wallets, categories, usd, 'dot', 'YYYY-MM-DD',
