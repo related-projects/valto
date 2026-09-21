@@ -25,7 +25,12 @@ export interface Transaction {
     /** Type of transaction (expense or income) */
     readonly type: TransactionType;
 
-    /** Transaction amount (always positive, type determines if it's added or subtracted) */
+    /**
+     * Transaction amount, in integer minor units of the install's currency -
+     * 10^decimals minor units per major unit (see CurrencyDefinition.decimals),
+     * NOT a fixed 100. Always positive; `type` determines whether it is added or
+     * subtracted.
+     */
     readonly amount: number;
 
     /** ID of the category this transaction belongs to */

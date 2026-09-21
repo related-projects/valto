@@ -155,9 +155,9 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
         if (startDate) filters.startDate = startDate;
         if (endDate) filters.endDate = endDate;
 
-        // The user types major units; transactions are stored in cents. Convert at this
-        // boundary so the filter compares cents to cents. Unparseable input is dropped
-        // silently, leaving that bound unapplied.
+        // The user types major units; transactions are stored in minor units. Convert at
+        // this boundary so the filter compares minor units to minor units. Unparseable
+        // input is dropped silently, leaving that bound unapplied.
         const parsedMin = parseAmountToCents(minAmount);
         const parsedMax = parseAmountToCents(maxAmount);
         if (parsedMin !== null) filters.minAmountCents = parsedMin;

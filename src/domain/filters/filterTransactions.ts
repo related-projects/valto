@@ -7,7 +7,7 @@
  * Design decisions:
  * - Arrays for types/categoryIds/walletIds enable multi-select (OR within group, AND across groups)
  * - Date comparisons are inclusive on both boundaries (normalised to day granularity)
- * - Amount bounds are integer minor units (cents), matching Transaction.amount, and
+ * - Amount bounds are integer minor units, matching Transaction.amount, and
  *   match on magnitude - the field names carry the unit so it cannot drift silently
  * - Invalid amount ranges (min > max) are auto-normalised by swapping
  * - Empty/undefined filter fields are treated as "no constraint"
@@ -34,15 +34,16 @@ export interface TransactionFilters {
     endDate?: Date;
 
     /**
-     * Inclusive lower bound for transaction amount, in integer minor units (cents) -
+     * Inclusive lower bound for transaction amount, in integer minor units -
      * the same unit Transaction.amount is stored in. Callers converting user input
      * must go through parseAmountToCents; passing major units silently under-filters
-     * by 100x. Compared against the stored magnitude, so it is sign-agnostic:
-     * a bound of 5000 matches a $50 expense and a $50 income alike.
+     * by the currency's 10^decimals (100x at 2 decimals). Compared against the stored
+     * magnitude, so it is sign-agnostic: at 2 decimals a bound of 5000 matches a $50
+     * expense and a $50 income alike.
      */
     minAmountCents?: number;
 
-    /** Inclusive upper bound for transaction amount, in integer minor units (cents). See minAmountCents. */
+    /** Inclusive upper bound for transaction amount, in integer minor units. See minAmountCents. */
     maxAmountCents?: number;
 }
 
@@ -138,7 +139,7 @@ export function filterTransactions(
             return false;
         }
 
-        // Amount range filter (inclusive, cents vs cents).
+        // Amount range filter (inclusive, minor units vs minor units).
         // tx.amount is always positive (type carries the sign), so this compares
         // magnitudes - an expense and an income of equal size match identically.
         if (normMin !== undefined && tx.amount < normMin) {

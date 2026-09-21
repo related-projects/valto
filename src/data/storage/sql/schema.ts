@@ -7,8 +7,9 @@
  *  - tests/helpers/createTestDb (creates the same schema in-memory).
  *
  * Conventions:
- *  - Monetary amounts are INTEGER cents (the domain already uses integer
- *    cents; e.g. balance 100000 == 1000.00).
+ *  - Monetary amounts are INTEGER minor units of the install's currency, at
+ *    10^decimals minor units per major unit, NOT a fixed 100 (the domain
+ *    already stores the same integers). At 2 decimals, balance 100000 == 1000.00.
  *  - Dates are stored as ISO-8601 TEXT (UTC, sortable lexicographically),
  *    mirroring the previous serialize / deserialize behaviour.
  *  - `wallets.opening_balance` is the ledger anchor:

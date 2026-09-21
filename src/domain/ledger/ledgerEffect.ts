@@ -1,7 +1,7 @@
 /**
  * Ledger Effect
  *
- * Pure rule mapping a transaction to its signed effect (in cents) on its
+ * Pure rule mapping a transaction to its signed effect (in minor units) on its
  * wallet balance. Single source of truth for "how a transaction moves money",
  * used by balance recomputation/auditing, by the import migration to derive
  * each wallet's opening balance anchor, and by deletion to reverse a
@@ -15,7 +15,7 @@
 import { Transaction, TransactionType } from '../entities/Transaction';
 import { TRANSFER_OUT_CATEGORY_ID } from './transferCategories';
 
-/** Signed cents a transaction contributes to its wallet's balance. */
+/** Signed minor units a transaction contributes to its wallet's balance. */
 export function ledgerEffect(
     tx: Pick<Transaction, 'type' | 'amount' | 'categoryId'>,
 ): number {
