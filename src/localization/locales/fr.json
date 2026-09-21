@@ -521,7 +521,7 @@
     "statusInsufficientFunds": "Fonds insuffisants",
     "defaultDescription": "Transaction récurrente",
     "frequencyEvery": "Chaque {{base}}",
-    "frequencyEveryN": "Tous les {{interval}} {{base}}s",
+    "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
     "freqDay": "jour",
     "freqWeek": "semaine",
     "freqMonth": "mois",

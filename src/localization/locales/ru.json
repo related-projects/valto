@@ -521,7 +521,7 @@
         "statusInsufficientFunds": "Недостаточно средств",
         "defaultDescription": "Повторяющаяся транзакция",
         "frequencyEvery": "Каждый {{base}}",
-        "frequencyEveryN": "Каждые {{interval}} {{base}}",
+        "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
         "freqDay": "день",
         "freqWeek": "неделя",
         "freqMonth": "месяц",
