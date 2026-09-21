@@ -7,10 +7,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AppState, type AppStateStatus } from 'react-native';
 import { getBudgetRepository } from '../core/di';
 import { dataEvents } from '../core/events';
 import { Budget, CreateBudgetDTO, TransactionType, UpdateBudgetDTO, getCurrentMonth } from '../domain/entities';
+import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
 
@@ -61,6 +63,7 @@ interface UseBudgetsResult {
  * Hook for managing monthly category budgets
  */
 export function useBudgets(): UseBudgetsResult {
+    const { t } = useTranslation();
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -140,7 +143,9 @@ export function useBudgets(): UseBudgetsResult {
 
             return {
                 budget,
-                categoryName: category?.name || 'Unknown',
+                // No merge here, unlike the report breakdowns: each budget owns
+                // its own limit, so two budgets cannot share one row (V-64, D3).
+                categoryName: category?.name || t(MISSING_CATEGORY_LABEL_KEY),
                 categoryColor: category?.color || '#90A4AE',
                 categoryIcon: category?.icon,
                 spentAmount,
@@ -149,7 +154,7 @@ export function useBudgets(): UseBudgetsResult {
                 isOverBudget: spentAmount > budget.limitAmount,
             };
         });
-    }, [budgets, categories, monthlySpendingByCategory]);
+    }, [budgets, categories, monthlySpendingByCategory, t]);
 
     /**
      * Aggregated totals

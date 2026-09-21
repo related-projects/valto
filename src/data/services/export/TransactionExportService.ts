@@ -18,11 +18,16 @@ import type { Wallet } from '../../../domain/entities/Wallet';
 import type { Category } from '../../../domain/entities/Category';
 import { getCurrencyByCode, type CurrencyDefinition } from '../../../domain/constants/currencies';
 import { ledgerEffect } from '../../../domain/ledger/ledgerEffect';
-import { TRANSFER_IN_CATEGORY_ID, TRANSFER_OUT_CATEGORY_ID } from '../../../domain/ledger/transferCategories';
+import {
+    TRANSFER_IN_CATEGORY_ID,
+    TRANSFER_OUT_CATEGORY_ID,
+    isTransferCategoryId,
+} from '../../../domain/ledger/transferCategories';
 import { loadSettings, type DateFormatPreference, type DecimalSeparator } from '../settingsService';
 import i18n from '../../../localization/i18n';
 import { formatAmount } from '../../../utils/formatAmount';
 import { formatDate } from '../../../utils/formatDate';
+import { MISSING_CATEGORY_LABEL_KEY } from '../../../utils/missingCategory';
 import { centsToMajor } from '../../../utils/normalizeAmount';
 
 // ─── CSV Export ───────────────────────────────────────────────────────
@@ -82,6 +87,7 @@ export function generateCSV(
     wallets: Wallet[],
     categories: Category[],
     currency: CurrencyDefinition,
+    t: TFunction,
 ): string {
     const walletNames = buildNameMap(wallets);
     const categoryNames = buildNameMap(categories);
@@ -92,7 +98,15 @@ export function generateCSV(
         const date = formatDate(tx.date, CSV_DATE_FORMAT);
         const amount = formatCsvAmount(tx.amount, currency.decimals);
         const wallet = escapeCSV(walletNames.get(tx.walletId) ?? tx.walletId);
-        const category = escapeCSV(categoryNames.get(tx.categoryId) ?? tx.categoryId);
+        // A transfer leg carries a reserved id with no Category row, so it is
+        // checked first: it is not a missing category and must not take that
+        // label. It keeps its raw id, as this column's neighbour `tx.type` keeps
+        // its raw enum - the CSV is the machine-readable export.
+        const category = escapeCSV(
+            isTransferCategoryId(tx.categoryId)
+                ? tx.categoryId
+                : categoryNames.get(tx.categoryId) ?? t(MISSING_CATEGORY_LABEL_KEY),
+        );
         const description = escapeCSV(tx.note ?? '');
         return `${date},${tx.type},${amount},${currency.code},${wallet},${category},${description}`;
     });
@@ -110,7 +124,10 @@ export async function shareCSV(
 ): Promise<void> {
     const settings = await loadSettings();
     const currency = getCurrencyByCode(settings.currency);
-    const csv = generateCSV(transactions, wallets, categories, currency);
+    // Fixed to the persisted language, for the reason given in shareMonthlyPDF:
+    // the export follows the app language, not the device locale.
+    const t = i18n.getFixedT(settings.language);
+    const csv = generateCSV(transactions, wallets, categories, currency, t);
     const filename = `valto_transactions_${formatDate(new Date(), CSV_DATE_FORMAT)}.csv`;
     const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
@@ -213,7 +230,9 @@ export function generateReportHTML(
             const sign = credit ? '+' : '-';
             const color = credit ? '#22c55e' : '#ef4444';
             const legKey = TRANSFER_LEG_KEYS.get(tx.categoryId);
-            const category = legKey ? t(legKey) : escapeHTML(categoryNames.get(tx.categoryId) ?? tx.categoryId);
+            const category = legKey
+                ? t(legKey)
+                : escapeHTML(categoryNames.get(tx.categoryId) ?? t(MISSING_CATEGORY_LABEL_KEY));
             return `
                 <tr>
                     <td>${formatDate(tx.date, dateFormat)}</td>

@@ -5,6 +5,7 @@ import { getCurrencyByCode } from '../../domain/constants/currencies';
 import { TRANSFER_IN_CATEGORY_ID, TRANSFER_OUT_CATEGORY_ID } from '../../domain/ledger/transferCategories';
 import i18n from '../../localization/i18n';
 import { formatAmount } from '../../utils/formatAmount';
+import { MISSING_CATEGORY_LABEL_KEY } from '../../utils/missingCategory';
 import { generateCSV, generateReportHTML } from '../services/export/TransactionExportService';
 
 /**
@@ -131,14 +132,14 @@ describe('generateCSV - local day and quoting', () => {
         expect([date.getFullYear(), date.getMonth(), date.getDate()]).toEqual([2026, 2, 1]);
         expect([date.getHours(), date.getMinutes()]).toEqual([0, 0]);
 
-        const csv = generateCSV([makeTx({ date, createdAt: date })], wallets, categories, usd);
+        const csv = generateCSV([makeTx({ date, createdAt: date })], wallets, categories, usd, i18n.getFixedT('en'));
         const dateField = csv.split('\n')[1].split(',')[0];
 
         expect(dateField).toBe('2026-03-01');
     });
 
     it('T2: a note holding a lone carriage return is quoted', () => {
-        const csv = generateCSV([makeTx({ note: 'line one\rline two' })], wallets, categories, usd);
+        const csv = generateCSV([makeTx({ note: 'line one\rline two' })], wallets, categories, usd, i18n.getFixedT('en'));
 
         expect(csv).toContain('"line one\rline two"');
     });
@@ -189,7 +190,10 @@ describe('generateReportHTML - transfer legs and escaped text', () => {
         ];
         const transactions = [
             makeTx({ id: 'e-1', note: '</td></tr></table><h1>X</h1>', date: new Date(Date.UTC(2026, 1, 10, 12, 0)) }),
-            // No wallet or category row for these ids: the cells fall back to the ids, escaped as well.
+            // No wallet row for this id: the wallet cell falls back to the id, escaped as well.
+            // The category cell no longer falls back to its id - since V-64 an
+            // unresolved category prints the translated label - so the id below
+            // is kept only to prove it is NOT echoed.
             makeTx({ id: 'e-2', walletId: 'w-<gone>', categoryId: `cat-"gone'`, date: new Date(Date.UTC(2026, 1, 11, 12, 0)) }),
         ];
 
@@ -201,7 +205,11 @@ describe('generateReportHTML - transfer legs and escaped text', () => {
         expect(html).toContain('<td>&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;h1&gt;X&lt;/h1&gt;</td>');
         expect(html).toContain('<td>Rock &#39;n&#39; &quot;Roll&quot;</td>');
         expect(html).toContain('<td>w-&lt;gone&gt;</td>');
-        expect(html).toContain('<td>cat-&quot;gone&#39;</td>');
+        // The unresolved category shows the label, and its id reaches the page
+        // in neither raw nor escaped form.
+        expect(html).toContain(`<td>${i18n.getFixedT('en')(MISSING_CATEGORY_LABEL_KEY)}</td>`);
+        expect(html).not.toContain('cat-&quot;gone&#39;');
+        expect(html).not.toContain(`cat-"gone'`);
         expect(html).not.toContain('<h1>X</h1>');
 
         // The given note closes a row without opening one, so both tags are counted.
