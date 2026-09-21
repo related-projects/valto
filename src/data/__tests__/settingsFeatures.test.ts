@@ -386,16 +386,20 @@ describe('Formatting Utilities', () => {
         expect(formatAmount(200050, '$', 'space')).toBe('2\u00A0000,50\u00A0$');
     });
 
+    // formatDate reads local getters, so the fixture is built with the local
+    // constructor. The bare literal new Date('2026-03-05') parses as UTC
+    // midnight, which is still 4 March west of UTC - the assertion would then
+    // depend on the machine time zone rather than on formatDate (V-91).
     it('formatDate DD/MM/YYYY', () => {
-        expect(formatDate(new Date('2026-03-05'), 'DD/MM/YYYY')).toBe('05/03/2026');
+        expect(formatDate(new Date(2026, 2, 5), 'DD/MM/YYYY')).toBe('05/03/2026');
     });
 
     it('formatDate MM/DD/YYYY', () => {
-        expect(formatDate(new Date('2026-03-05'), 'MM/DD/YYYY')).toBe('03/05/2026');
+        expect(formatDate(new Date(2026, 2, 5), 'MM/DD/YYYY')).toBe('03/05/2026');
     });
 
     it('formatDate YYYY-MM-DD', () => {
-        expect(formatDate(new Date('2026-03-05'), 'YYYY-MM-DD')).toBe('2026-03-05');
+        expect(formatDate(new Date(2026, 2, 5), 'YYYY-MM-DD')).toBe('2026-03-05');
     });
 });
 

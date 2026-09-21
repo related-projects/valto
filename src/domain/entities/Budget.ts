@@ -92,11 +92,22 @@ export function isValidBudgetMonth(month: string): boolean {
 }
 
 /**
- * Get current month in YYYY-MM format
+ * Get current month in YYYY-MM format.
+ *
+ * A Valto month is the DEVICE'S LOCAL month, so this reads the local calendar
+ * (V-91). Reading UTC instead put the device an hour or more into the wrong
+ * month around every month change: east of UTC the first hour of the 1st still
+ * read as the old month, and west of UTC the last hours of the last day already
+ * read as the next one.
+ *
+ * Two things follow this value and therefore follow the local month too: the
+ * month stored on a new budget (AddBudgetModal), and the "a past month is
+ * closed" gate in BudgetRepository.updateFromDTO. Values already stored are
+ * left exactly as they are - there is no migration.
  */
 export function getCurrentMonth(): string {
     const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
 }

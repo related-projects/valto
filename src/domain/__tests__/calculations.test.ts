@@ -5,7 +5,6 @@
  * Extracted and tested as pure functions to ensure correctness independently of React.
  */
 
-import { TransactionType } from '../../domain/entities/Transaction';
 import { WalletType } from '../../domain/entities/Wallet';
 
 import type { Wallet } from '../../domain/entities/Wallet';
@@ -48,23 +47,14 @@ function calculatePercentageChange(current: number, previous: number): number | 
     return ((current - previous) / Math.abs(previous)) * 100;
 }
 
-function calculateMonthlyAggregates(
-    transactions: SimpleTransaction[],
-    targetMonth: string
-): { income: number; expense: number; net: number } {
-    let income = 0;
-    let expense = 0;
-
-    transactions.forEach((t) => {
-        const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
-        if (txMonth !== targetMonth) return;
-
-        if (t.type === TransactionType.INCOME) income += t.amount;
-        else if (t.type === TransactionType.EXPENSE) expense += t.amount;
-    });
-
-    return { income, expense, net: income - expense };
-}
+// Monthly aggregation is deliberately NOT mirrored here. It used to be, as a
+// hand-written copy of the month-bucketing expression in useDashboard, which
+// meant the copy could be right while production was wrong - and it was, until
+// V-91: both read the UTC calendar instead of the device's local one, and only
+// production shipped. The real hook is exercised instead, by
+// src/hooks/__tests__/useDashboard.test.ts ('aggregates current month income
+// and expenses correctly', 'ignores transactions from other months') and by
+// src/hooks/__tests__/localMonthBuckets.test.ts for the month boundary.
 
 // ───────────────────────────────────────────────
 // Tests
@@ -165,29 +155,6 @@ describe('Financial Summary Aggregation', () => {
 
     it('returns 0 with no transactions', () => {
         expect(calculateNetFromTransactions([])).toBe(0);
-    });
-});
-
-describe('Monthly Aggregation', () => {
-    const transactions: SimpleTransaction[] = [
-        { type: 'income', amount: 200000, categoryId: 'salary', walletId: 'w1', date: new Date('2026-03-05T00:00:00Z') },
-        { type: 'expense', amount: 50000, categoryId: 'food', walletId: 'w1', date: new Date('2026-03-15T00:00:00Z') },
-        { type: 'expense', amount: 10000, categoryId: 'transport', walletId: 'w1', date: new Date('2026-02-10T00:00:00Z') },
-        { type: 'income', amount: 180000, categoryId: 'salary', walletId: 'w1', date: new Date('2026-02-05T00:00:00Z') },
-    ];
-
-    it('filters transactions to target month only', () => {
-        const march = calculateMonthlyAggregates(transactions, '2026-03');
-        expect(march.income).toBe(200000);
-        expect(march.expense).toBe(50000);
-        expect(march.net).toBe(150000);
-    });
-
-    it('calculates previous month correctly', () => {
-        const feb = calculateMonthlyAggregates(transactions, '2026-02');
-        expect(feb.income).toBe(180000);
-        expect(feb.expense).toBe(10000);
-        expect(feb.net).toBe(170000);
     });
 });
 

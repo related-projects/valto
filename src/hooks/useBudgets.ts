@@ -112,7 +112,9 @@ export function useBudgets(): UseBudgetsResult {
         transactions.forEach(t => {
             if (t.type !== TransactionType.EXPENSE) return;
 
-            const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match getCurrentMonth: a Valto month is the
+            // device's month (V-91).
+            const txMonth = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
             if (txMonth !== currentMonth) return;
 
             const current = spending.get(t.categoryId) || 0;

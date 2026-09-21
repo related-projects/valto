@@ -136,7 +136,9 @@ export function useReports(): UseReportsResult {
         const categoryTotals = new Map<string, number>();
 
         transactions.forEach(t => {
-            const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match getCurrentMonth: a Valto month is the
+            // device's month (V-91).
+            const txMonth = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
             if (txMonth !== selectedMonth) return;
 
             // Counted above the type branch, so a transfer keeps the month from
