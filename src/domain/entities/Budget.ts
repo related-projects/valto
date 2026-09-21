@@ -19,7 +19,11 @@ export interface Budget {
     /** Month in YYYY-MM format */
     readonly month: string;
 
-    /** Maximum spending limit for this category in this month */
+    /**
+     * Maximum spending limit for this category in this month, in integer minor
+     * units of the install's currency - 10^decimals minor units per major unit
+     * (see CurrencyDefinition.decimals), NOT a fixed 100.
+     */
     readonly limitAmount: number;
 
     /** Timestamp when this budget was created */
