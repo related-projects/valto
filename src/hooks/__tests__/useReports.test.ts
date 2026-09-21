@@ -201,12 +201,14 @@ describe('useReports', () => {
 
         const selectedYear = Number(result.current.selectedMonth.split('-')[0]);
 
-        expect(selectedYear).toBeLessThan(new Date().getUTCFullYear());
+        // Local year, to match getCurrentMonth: a Valto year is the device's
+        // year (V-91). Reading UTC here would disagree on New Year's Eve.
+        expect(selectedYear).toBeLessThan(new Date().getFullYear());
         expect(result.current.ytdYear).toBe(selectedYear);
     });
 
     it('ytdSummary aggregates the selected year, not the current one', async () => {
-        const lastYear = new Date().getUTCFullYear() - 1;
+        const lastYear = new Date().getFullYear() - 1;
 
         await mockTransactionRepo.create({
             type: TransactionType.INCOME,

@@ -56,8 +56,13 @@ jobs:
       # output; it changes nothing about what this step asserts or its exit code.
       # The runner is the only machine whose timings matter for testTimeout, and
       # until now it recorded none.
+      # TZ is stated rather than inherited: ubuntu-latest already runs in UTC, so
+      # this changes no output, but it makes this the UTC leg of the three-zone
+      # split below instead of a runner default nobody declared.
       - name: Test
         run: npx jest --ci --coverage --json --outputFile=jest-timings.json
+        env:
+          TZ: UTC
 
       # Uploaded on failure too - a run that blew the timeout is exactly the one
       # whose timings need reading.
@@ -68,3 +73,40 @@ jobs:
           name: jest-timings
           path: jest-timings.json
           if-no-files-found: warn
+
+  # A Valto month, and a Valto year, are the DEVICE'S local ones (V-91). A runner
+  # that only ever runs in UTC cannot see a bucket that reads the wrong calendar,
+  # and could not: six tests already failed west of UTC on develop while CI stayed
+  # green. These two runs are the guard.
+  #
+  # Only jest runs here. Lint, typecheck and expo-doctor are zone-independent and
+  # stay in `verify`, which also keeps sole ownership of --coverage and of the
+  # jest-timings artifact - a second upload under that name would collide with it,
+  # and per-file timings from a different zone would not be comparable anyway.
+  test-zones:
+    runs-on: ubuntu-latest
+    strategy:
+      # Both zones always report: a failure in one must not hide the other, since
+      # east-of-UTC and west-of-UTC fail in opposite directions.
+      fail-fast: false
+      matrix:
+        # Africa/Lagos is UTC+1 with no DST (the month starts before UTC does).
+        # America/New_York is UTC-5/-4 with DST (the month starts after UTC does).
+        tz: [Africa/Lagos, America/New_York]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test (${{ matrix.tz }})
+        run: npx jest --ci
+        env:
+          TZ: ${{ matrix.tz }}

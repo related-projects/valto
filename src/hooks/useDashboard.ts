@@ -77,7 +77,9 @@ export function useDashboard(): UseDashboardResult {
         const currentMonthCategoryTotals = new Map<string, number>();
 
         transactions.forEach(t => {
-            const txMonthStr = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match getCurrentMonth: a Valto month is the
+            // device's month (V-91).
+            const txMonthStr = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
 
             if (txMonthStr === currentMonth) {
                 if (t.type === TransactionType.INCOME) {

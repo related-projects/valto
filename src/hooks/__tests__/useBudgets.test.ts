@@ -7,6 +7,7 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { AppState, type AppStateStatus } from 'react-native';
+import { installZoneClock, restoreZoneClock } from '../../../tests/helpers/zoneClock';
 import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
@@ -218,17 +219,13 @@ describe('useBudgets', () => {
     // month boundary used to come back still showing last month's budgets.
 
     it('follows the month when the app returns to the foreground', async () => {
-        // Only Date is faked: the SQLite test driver and waitFor need real timers.
-        jest.useFakeTimers({
-            now: new Date('2026-05-31T12:00:00.000Z'),
-            doNotFake: [
-                'hrtime', 'nextTick', 'performance', 'queueMicrotask',
-                'requestAnimationFrame', 'cancelAnimationFrame',
-                'requestIdleCallback', 'cancelIdleCallback',
-                'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval',
-                'setTimeout', 'clearTimeout',
-            ],
-        });
+        // The month this asserts on is the DEVICE'S month (V-91), so the zone is
+        // pinned as well as the instant - otherwise 31 May 12:00 UTC is already
+        // 1 June on a device at UTC+14 and the first assertion reads June. UTC is
+        // the zone chosen here so the literals below mean what they say.
+        // installZoneClock fakes only Date: the SQLite test driver and waitFor
+        // need real timers.
+        installZoneClock('UTC', Date.parse('2026-05-31T12:00:00.000Z'));
         let onAppStateChange: ((state: AppStateStatus) => void) | undefined;
         const appStateSpy = jest
             .spyOn(AppState, 'addEventListener')
@@ -260,7 +257,7 @@ describe('useBudgets', () => {
             });
         } finally {
             appStateSpy.mockRestore();
-            jest.useRealTimers();
+            restoreZoneClock();
         }
     });
 });
