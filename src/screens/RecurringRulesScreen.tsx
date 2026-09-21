@@ -25,6 +25,7 @@ import { RecurrenceFrequency, type CreateRecurringTransactionDTO, type Recurring
 import { RecurringRuleStatus, isFaultStatus } from '../domain/recurring';
 import { useFormatting } from '../hooks/useFormatting';
 import { useRecurringRules } from '../hooks/useRecurringRules';
+import { RECURRENCE_UNITS } from '../localization/recurrenceForms';
 import { useTheme } from '../theme/theme';
 import { getA11y, getButtonA11y } from '../utils/accessibility';
 
@@ -144,7 +145,7 @@ const RuleCard: React.FC<{
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginTop: 2 }}>
                     {rule.interval === 1
                         ? t('recurring.frequencyEvery', { base: t(FREQ_KEYS[rule.frequency]) })
-                        : t('recurring.frequencyEveryN', { interval: rule.interval, base: t(FREQ_KEYS[rule.frequency]) })}
+                        : t('recurring.frequencyEveryN', { interval: rule.interval, unit: RECURRENCE_UNITS[rule.frequency] })}
                 </Text>
             </View>
 

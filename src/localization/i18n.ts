@@ -19,6 +19,7 @@ import pt from './locales/pt.json';
 import ru from './locales/ru.json';
 import ur from './locales/ur.json';
 import zh from './locales/zh.json';
+import { recurrenceFormat } from './recurrenceForms';
 
 const resources = {
     en: { translation: en },
@@ -39,6 +40,10 @@ i18n.use(initReactI18next).init({
     fallbackLng: 'en',
     interpolation: {
         escapeValue: false, // React already escapes
+        // Recurrence phrases inflect their unit and their leading word by hand,
+        // because Hermes ships no Intl.PluralRules for i18next to resolve them
+        // with. See recurrenceForms.ts.
+        format: recurrenceFormat,
     },
     compatibilityJSON: 'v4',
 });

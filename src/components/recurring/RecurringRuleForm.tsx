@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionType } from '../../domain/entities/Transaction';
 import { RecurrenceFrequency } from '../../domain/entities/RecurringTransaction';
 import { useFormatting } from '../../hooks/useFormatting';
+import { RECURRENCE_UNITS } from '../../localization/recurrenceForms';
 import { getButtonA11y } from '../../utils/accessibility';
 import type { CreateRecurringTransactionDTO, UpdateRecurringTransactionDTO } from '../../domain/entities/RecurringTransaction';
 import type { RecurringTransaction } from '../../domain/entities/RecurringTransaction';
@@ -176,10 +177,12 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
 
     const frequencyLabel = () => {
         const intVal = parseInt(interval, 10) || 1;
-        const base = t(FREQ_KEYS[frequency]);
+        // Above 1 the phrase has to agree with the number in both its unit and
+        // its leading word, which no single bundle string can do - so the unit
+        // goes across as an id and recurrenceForms.ts inflects it (V-70).
         return intVal === 1
-            ? t('recurring.frequencyEvery', { base })
-            : t('recurring.frequencyEveryN', { interval: intVal, base });
+            ? t('recurring.frequencyEvery', { base: t(FREQ_KEYS[frequency]) })
+            : t('recurring.frequencyEveryN', { interval: intVal, unit: RECURRENCE_UNITS[frequency] });
     };
 
     // ─── Date Picker Helper (platform-aware) ──────────────────────────
