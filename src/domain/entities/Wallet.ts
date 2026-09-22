@@ -26,7 +26,12 @@ export interface Wallet {
     /** Display name of the wallet */
     readonly name: string;
 
-    /** Current balance in the wallet (can be negative for bank accounts with overdraft) */
+    /**
+     * Current balance in the wallet, in integer minor units of the install's
+     * currency - 10^decimals minor units per major unit (see
+     * CurrencyDefinition.decimals), NOT a fixed 100. Can be negative for bank
+     * accounts with overdraft.
+     */
     readonly balance: number;
 
     /** Type of wallet */

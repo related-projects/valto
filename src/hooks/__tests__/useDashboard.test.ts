@@ -13,6 +13,8 @@ import { TransactionRepository } from '../../data/repositories/TransactionReposi
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { CategoryType, TransactionType, getCurrentMonth } from '../../domain/entities';
+import i18n from '../../localization/i18n';
+import { MISSING_CATEGORY_LABEL_KEY } from '../../utils/missingCategory';
 
 // Shared state
 let mockDb: SqlDatabase;
@@ -239,7 +241,12 @@ describe('useDashboard', () => {
             expect(result.current.spendingByCategory.length).toBe(1);
         });
 
-        expect(result.current.spendingByCategory[0].name).toBe('Unknown');
+        // Asserted through the key, not through the English word it happens to
+        // resolve to here. The label is a translation now (V-64), and this file
+        // runs under the default `en`, so a hardcoded 'Unknown' would keep
+        // passing even if the key were renamed or lost.
+        expect(result.current.spendingByCategory[0].name)
+            .toBe(i18n.t(MISSING_CATEGORY_LABEL_KEY));
         // Should use a default color from the palette
         expect(result.current.spendingByCategory[0].color).toBeTruthy();
     });
@@ -271,10 +278,17 @@ describe('useDashboard', () => {
     });
 
     it('calculates correct percentages per category', async () => {
+        // Both categories are created, so this test measures what its name says.
+        // It used to seed two ids that resolved to nothing, which since V-64
+        // merge into a single row - it was asserting the split, not the split's
+        // arithmetic.
+        const food = await mockCategoryRepo.create({ name: 'Food', type: CategoryType.EXPENSE });
+        const transport = await mockCategoryRepo.create({ name: 'Transport', type: CategoryType.EXPENSE });
+
         await mockTransactionRepo.create({
             type: TransactionType.EXPENSE,
             amount: 75000,
-            categoryId: 'cat-food',
+            categoryId: food.id,
             walletId: 'w-1',
             date: new Date(Date.UTC(year, month - 1, 5)),
         });
@@ -282,7 +296,7 @@ describe('useDashboard', () => {
         await mockTransactionRepo.create({
             type: TransactionType.EXPENSE,
             amount: 25000,
-            categoryId: 'cat-transport',
+            categoryId: transport.id,
             walletId: 'w-1',
             date: new Date(Date.UTC(year, month - 1, 10)),
         });

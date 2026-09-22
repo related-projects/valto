@@ -6,7 +6,9 @@
  */
 
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Category, TransactionType, getCurrentMonth } from '../domain/entities';
+import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
 
@@ -58,6 +60,7 @@ const getPreviousMonth = (currentMonthStr: string) => {
  * Hook for dashboard aggregated data
  */
 export function useDashboard(): UseDashboardResult {
+    const { t } = useTranslation();
     const { transactions, loading: transactionsLoading } = useTransactions();
     const { categories, loading: categoriesLoading } = useCategories();
 
@@ -77,7 +80,9 @@ export function useDashboard(): UseDashboardResult {
         const currentMonthCategoryTotals = new Map<string, number>();
 
         transactions.forEach(t => {
-            const txMonthStr = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match getCurrentMonth: a Valto month is the
+            // device's month (V-91).
+            const txMonthStr = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
 
             if (txMonthStr === currentMonth) {
                 if (t.type === TransactionType.INCOME) {
@@ -116,17 +121,37 @@ export function useDashboard(): UseDashboardResult {
         const items: SpendingByCategoryItem[] = [];
         let colorIndex = 0;
 
+        // Merged before the slice below, so the unresolved total competes for a
+        // top-5 place as one category rather than as N fragments (V-64).
+        let unresolvedValue = 0;
+
         currentMonthCategoryTotals.forEach((value, categoryId) => {
             const category = categoryMap.get(categoryId);
-            const name = category?.name || 'Unknown';
-            const color = category?.color || DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
+
+            if (!category) {
+                unresolvedValue += value;
+                return;
+            }
+
+            const color = category.color || DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length];
             // Increase index only for unknown colors, or just sequentially
-            if (!category?.color) colorIndex++;
+            if (!category.color) colorIndex++;
 
             const percentage = currentMonthExpense > 0 ? (value / currentMonthExpense) * 100 : 0;
 
-            items.push({ name, value, color, percentage });
+            items.push({ name: category.name, value, color, percentage });
         });
+
+        if (unresolvedValue > 0) {
+            items.push({
+                name: t(MISSING_CATEGORY_LABEL_KEY),
+                value: unresolvedValue,
+                color: DEFAULT_COLORS[colorIndex % DEFAULT_COLORS.length],
+                percentage: currentMonthExpense > 0
+                    ? (unresolvedValue / currentMonthExpense) * 100
+                    : 0,
+            });
+        }
 
         // Sort descending, take top 5
         const top5Categories = items
@@ -143,7 +168,7 @@ export function useDashboard(): UseDashboardResult {
             expenseChange,
             netBalanceChange,
         };
-    }, [transactions, categories]);
+    }, [transactions, categories, t]);
 
     const hasExpenseData = aggregatedData.spendingByCategory.length > 0;
 

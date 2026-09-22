@@ -40,22 +40,26 @@ export interface YearToDateSummary {
 /**
  * Calculate year-to-date financial summary from a list of transactions.
  *
+ * A year is read off the device's LOCAL calendar, like every other Valto
+ * bucket (V-91): a transaction entered just after local midnight on 1 January
+ * belongs to the new year, whatever its UTC date still says.
+ *
  * @param transactions Full list of transactions (will be filtered internally)
- * @param year The year to summarize. Defaults to current UTC year.
+ * @param year The year to summarize. Defaults to the current local year.
  * @returns YearToDateSummary
  */
 export function calculateYearToDateSummary(
     transactions: Transaction[],
     year?: number,
 ): YearToDateSummary {
-    const targetYear = year ?? new Date().getUTCFullYear();
+    const targetYear = year ?? new Date().getFullYear();
 
     let totalIncome = 0;
     let totalExpenses = 0;
     let transactionCount = 0;
 
     for (const t of transactions) {
-        if (t.date.getUTCFullYear() !== targetYear) continue;
+        if (t.date.getFullYear() !== targetYear) continue;
 
         transactionCount += 1;
 

@@ -6,6 +6,8 @@
  */
 
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
+import { installZoneClock, restoreZoneClock } from '../../../tests/helpers/zoneClock';
 import { createTestDb } from '../../../tests/helpers/createTestDb';
 import type { SqlDatabase } from '../../data/storage/sql/SqlDatabase';
 import { BudgetRepository } from '../../data/repositories/BudgetRepository';
@@ -209,5 +211,53 @@ describe('useBudgets', () => {
         });
 
         expect(caught).toBeInstanceOf(RepositoryError);
+    });
+
+    // --- F-09: the month must not stay frozen at mount -------------------
+    //
+    // The Dashboard tab stays mounted. An app left in the background across a
+    // month boundary used to come back still showing last month's budgets.
+
+    it('follows the month when the app returns to the foreground', async () => {
+        // The month this asserts on is the DEVICE'S month (V-91), so the zone is
+        // pinned as well as the instant - otherwise 31 May 12:00 UTC is already
+        // 1 June on a device at UTC+14 and the first assertion reads June. UTC is
+        // the zone chosen here so the literals below mean what they say.
+        // installZoneClock fakes only Date: the SQLite test driver and waitFor
+        // need real timers.
+        installZoneClock('UTC', Date.parse('2026-05-31T12:00:00.000Z'));
+        let onAppStateChange: ((state: AppStateStatus) => void) | undefined;
+        const appStateSpy = jest
+            .spyOn(AppState, 'addEventListener')
+            .mockImplementation((_type, handler) => {
+                onAppStateChange = handler as (state: AppStateStatus) => void;
+                return { remove: jest.fn() } as unknown as ReturnType<typeof AppState.addEventListener>;
+            });
+
+        try {
+            await mockBudgetRepo.create({ categoryId: 'cat-may', month: '2026-05', limitAmount: 10000 });
+            await mockBudgetRepo.create({ categoryId: 'cat-june', month: '2026-06', limitAmount: 20000 });
+
+            const { result } = renderHook(() => useBudgets());
+
+            await waitFor(() => {
+                expect(result.current.budgets.map((b) => b.categoryId)).toEqual(['cat-may']);
+            });
+            expect(result.current.currentMonth).toBe('2026-05');
+
+            jest.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
+            act(() => {
+                onAppStateChange?.('background');
+                onAppStateChange?.('active');
+            });
+
+            await waitFor(() => {
+                expect(result.current.currentMonth).toBe('2026-06');
+                expect(result.current.budgets.map((b) => b.categoryId)).toEqual(['cat-june']);
+            });
+        } finally {
+            appStateSpy.mockRestore();
+            restoreZoneClock();
+        }
     });
 });

@@ -22,6 +22,9 @@
       "onTrack": "En buen camino",
       "of": "de {{amount}}",
       "overAmount": "{{amount}} por encima del presupuesto",
+      "deleteTitle": "Eliminar presupuesto",
+      "deleteMessage": "\u00bfSeguro que quieres eliminar este presupuesto? Tus transacciones no se ven afectadas.",
+      "deleteFailed": "No se pudo eliminar el presupuesto",
       "overCategory": "{{amount}} de más"
     },
     "quickActions": {
@@ -238,6 +241,9 @@
       "invalidAmount": "Monto no válido",
       "invalidAmountMessage": "Ingresa un límite de presupuesto válido mayor que 0",
       "error": "Error",
+      "editTitle": "Editar presupuesto",
+      "updateFailed": "No se pudo actualizar el presupuesto",
+      "monthClosed": "Este presupuesto pertenece a un mes pasado y ya no se puede editar.",
       "createFailed": "No se pudo crear el presupuesto"
     },
     "addWallet": {
@@ -515,7 +521,7 @@
     "statusInsufficientFunds": "Fondos insuficientes",
     "defaultDescription": "Transacción recurrente",
     "frequencyEvery": "Cada {{base}}",
-    "frequencyEveryN": "Cada {{interval}} {{base}}s",
+    "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
     "freqDay": "día",
     "freqWeek": "semana",
     "freqMonth": "mes",
@@ -562,6 +568,14 @@
     "generatePdf": "Generar y compartir PDF",
     "exportFailed": "Error al exportar",
     "exportFailedMessage": "No se pudieron exportar los datos",
+    "report": {
+      "title": "Informe mensual - {{period}}",
+      "generatedBy": "Generado por Valto",
+      "footer": "Informe financiero de Valto - {{period}}",
+      "description": "Descripción",
+      "transferIn": "Transferencia entrante",
+      "transferOut": "Transferencia saliente"
+    },
     "months": {
       "january": "Enero",
       "february": "Febrero",
@@ -645,6 +659,8 @@
     "editWallet": "Editar cartera {{name}}",
     "editRule": "Editar regla",
     "deleteRule": "Eliminar regla",
+    "editBudget": "Editar presupuesto {{category}}",
+    "deleteBudget": "Eliminar presupuesto {{category}}",
     "deleteTransaction": "Eliminar transacción",
     "pauseRule": "Pausar regla",
     "resumeRule": "Reanudar regla",

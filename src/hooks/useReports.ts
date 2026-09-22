@@ -7,10 +7,12 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getBudgetRepository } from '../core/di';
 import { dataEvents } from '../core/events';
 import { calculateYearToDateSummary, YearToDateSummary } from '../domain/calculations/ytdSummary';
 import { Budget, getCurrentMonth, TransactionType } from '../domain/entities';
+import { MISSING_CATEGORY_LABEL_KEY, UNRESOLVED_CATEGORY_ID } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
 
@@ -89,6 +91,7 @@ function shiftMonth(monthStr: string, delta: number): string {
 // ─── Hook ──────────────────────────────────────────────────────────────
 
 export function useReports(): UseReportsResult {
+    const { t } = useTranslation();
     const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
     const [budgets, setBudgets] = useState<Budget[]>([]);
 
@@ -136,7 +139,9 @@ export function useReports(): UseReportsResult {
         const categoryTotals = new Map<string, number>();
 
         transactions.forEach(t => {
-            const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match getCurrentMonth: a Valto month is the
+            // device's month (V-91).
+            const txMonth = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
             if (txMonth !== selectedMonth) return;
 
             // Counted above the type branch, so a transfer keeps the month from
@@ -162,20 +167,47 @@ export function useReports(): UseReportsResult {
         const budgetMap = new Map(budgets.map(b => [b.categoryId, b]));
 
         const breakdown: CategoryBreakdownItem[] = [];
+
+        // Every id that no longer resolves collapses into ONE row (V-64). Left
+        // per-id, N deleted categories produced N rows carrying the same label
+        // and the same grey dot, which no user could tell apart and no screen
+        // could drill into - the id is dropped at the component boundary.
+        let unresolvedAmount = 0;
+
         categoryTotals.forEach((amount, categoryId) => {
             const cat = categoryMap.get(categoryId);
+
+            if (!cat) {
+                unresolvedAmount += amount;
+                return;
+            }
+
             const budget = budgetMap.get(categoryId);
 
             breakdown.push({
                 categoryId,
-                categoryName: cat?.name || 'Unknown',
-                categoryColor: cat?.color || '#90A4AE',
+                categoryName: cat.name,
+                categoryColor: cat.color || '#90A4AE',
                 amount,
                 percentage: totalExpense > 0 ? (amount / totalExpense) * 100 : 0,
                 budgetLimit: budget?.limitAmount,
                 isOverBudget: budget ? amount > budget.limitAmount : false,
             });
         });
+
+        if (unresolvedAmount > 0) {
+            // No budget is joined: the merged row stands for several ids, and a
+            // single row cannot carry several limits. A budget still pointing at
+            // a deleted category is an orphan in its own right.
+            breakdown.push({
+                categoryId: UNRESOLVED_CATEGORY_ID,
+                categoryName: t(MISSING_CATEGORY_LABEL_KEY),
+                categoryColor: '#90A4AE',
+                amount: unresolvedAmount,
+                percentage: totalExpense > 0 ? (unresolvedAmount / totalExpense) * 100 : 0,
+                isOverBudget: false,
+            });
+        }
 
         // Sort by amount descending
         breakdown.sort((a, b) => b.amount - a.amount);
@@ -188,7 +220,7 @@ export function useReports(): UseReportsResult {
             categoryBreakdown: breakdown,
             transactionCount,
         };
-    }, [transactions, categories, budgets, selectedMonth]);
+    }, [transactions, categories, budgets, selectedMonth, t]);
 
     // ── Annual Summary ──────────────────────────────────────────────────
     // Derived from the selection, not from the wall clock: the annual card is a

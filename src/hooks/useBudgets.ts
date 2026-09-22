@@ -6,10 +6,13 @@
  * Subscribes to both budget and transaction events for reactive updates.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { AppState, type AppStateStatus } from 'react-native';
 import { getBudgetRepository } from '../core/di';
 import { dataEvents } from '../core/events';
-import { Budget, CreateBudgetDTO, TransactionType, getCurrentMonth } from '../domain/entities';
+import { Budget, CreateBudgetDTO, TransactionType, UpdateBudgetDTO, getCurrentMonth } from '../domain/entities';
+import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
 
@@ -46,9 +49,11 @@ interface UseBudgetsResult {
     currentMonth: string;
     /** Create a new budget */
     createBudget: (dto: CreateBudgetDTO) => Promise<Budget>;
+    /** Update an existing budget (refused on a past month by the repository) */
+    updateBudget: (dto: UpdateBudgetDTO) => Promise<Budget>;
     /** Delete a budget */
     deleteBudget: (id: string) => Promise<void>;
-    /** Refresh budgets from repository */
+    /** Re-read the current month, then refresh budgets from repository */
     refreshBudgets: () => Promise<void>;
     /** Category IDs that already have a budget this month */
     budgetedCategoryIds: string[];
@@ -58,6 +63,7 @@ interface UseBudgetsResult {
  * Hook for managing monthly category budgets
  */
 export function useBudgets(): UseBudgetsResult {
+    const { t } = useTranslation();
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -66,7 +72,21 @@ export function useBudgets(): UseBudgetsResult {
     const { transactions } = useTransactions();
     const { categories } = useCategories();
 
-    const currentMonth = useMemo(() => getCurrentMonth(), []);
+    // State, not a mount-time constant: the Dashboard tab stays mounted, so an
+    // app left open across a month boundary must move to the new month.
+    const [currentMonth, setCurrentMonth] = useState(getCurrentMonth);
+    const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
+    /**
+     * Re-read the calendar month. Returns true when it changed; the change
+     * re-creates loadBudgets, and the effect below reloads for the new month.
+     */
+    const syncMonth = useCallback((): boolean => {
+        const now = getCurrentMonth();
+        if (now === currentMonth) return false;
+        setCurrentMonth(now);
+        return true;
+    }, [currentMonth]);
 
     /**
      * Load budgets for current month from repository
@@ -95,7 +115,9 @@ export function useBudgets(): UseBudgetsResult {
         transactions.forEach(t => {
             if (t.type !== TransactionType.EXPENSE) return;
 
-            const txMonth = `${t.date.getUTCFullYear()}-${String(t.date.getUTCMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match getCurrentMonth: a Valto month is the
+            // device's month (V-91).
+            const txMonth = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
             if (txMonth !== currentMonth) return;
 
             const current = spending.get(t.categoryId) || 0;
@@ -121,7 +143,9 @@ export function useBudgets(): UseBudgetsResult {
 
             return {
                 budget,
-                categoryName: category?.name || 'Unknown',
+                // No merge here, unlike the report breakdowns: each budget owns
+                // its own limit, so two budgets cannot share one row (V-64, D3).
+                categoryName: category?.name || t(MISSING_CATEGORY_LABEL_KEY),
                 categoryColor: category?.color || '#90A4AE',
                 categoryIcon: category?.icon,
                 spentAmount,
@@ -130,7 +154,7 @@ export function useBudgets(): UseBudgetsResult {
                 isOverBudget: spentAmount > budget.limitAmount,
             };
         });
-    }, [budgets, categories, monthlySpendingByCategory]);
+    }, [budgets, categories, monthlySpendingByCategory, t]);
 
     /**
      * Aggregated totals
@@ -175,6 +199,22 @@ export function useBudgets(): UseBudgetsResult {
     }, [budgetRepo, loadBudgets]);
 
     /**
+     * Update a budget
+     */
+    const updateBudget = useCallback(async (dto: UpdateBudgetDTO): Promise<Budget> => {
+        try {
+            const budget = await budgetRepo.updateFromDTO(dto);
+            await loadBudgets();
+            dataEvents.emit('budgets');
+            return budget;
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update budget');
+            // Rethrow the ORIGINAL error - see createBudget above.
+            throw err;
+        }
+    }, [budgetRepo, loadBudgets]);
+
+    /**
      * Delete a budget
      */
     const deleteBudget = useCallback(async (id: string): Promise<void> => {
@@ -193,8 +233,25 @@ export function useBudgets(): UseBudgetsResult {
      * Refresh budgets
      */
     const refreshBudgets = useCallback(async () => {
+        // A month change reloads through the effect below; no second read here.
+        if (syncMonth()) return;
         await loadBudgets();
-    }, [loadBudgets]);
+    }, [loadBudgets, syncMonth]);
+
+    // Foreground return: only on the transition INTO 'active' (pattern of
+    // useSettings), since AppState also fires for 'inactive' and 'background'.
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+            const previousState = appStateRef.current;
+            appStateRef.current = nextState;
+
+            if (previousState !== 'active' && nextState === 'active') {
+                syncMonth();
+            }
+        });
+
+        return () => subscription.remove();
+    }, [syncMonth]);
 
     // Load budgets on mount and subscribe to events
     useEffect(() => {
@@ -221,6 +278,7 @@ export function useBudgets(): UseBudgetsResult {
         error,
         currentMonth,
         createBudget,
+        updateBudget,
         deleteBudget,
         refreshBudgets,
         budgetedCategoryIds,

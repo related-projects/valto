@@ -16,6 +16,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 jest.mock('expo-router', () => ({
     useRouter: () => ({ push: jest.fn() }),
+    useFocusEffect: jest.fn(),
 }));
 
 jest.mock('../../core/security/SecurityContext', () => ({
@@ -88,6 +89,8 @@ jest.mock('../../hooks/useBudgets', () => ({
         totalBudgetSpent: 0,
         hasBudgets: false,
         createBudget: jest.fn(),
+        updateBudget: jest.fn(),
+        deleteBudget: jest.fn(),
         refreshBudgets: jest.fn().mockResolvedValue(undefined),
         budgetedCategoryIds: [],
     }),

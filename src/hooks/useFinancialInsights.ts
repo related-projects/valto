@@ -62,9 +62,14 @@ export function useFinancialInsights(): FinancialInsights {
 
     // --- Category Risk ---
     const categoryRisk = useMemo(() => {
+        // Accumulate, never assign: this record is keyed by the DISPLAY NAME,
+        // because useDashboard drops the category id. Two entries can legally
+        // share a name - two categories the user named the same - and an
+        // assignment silently dropped one of their amounts, shrinking the
+        // denominator and overstating whatever came out on top (V-64).
         const expensesByCategory: Record<string, number> = {};
         spendingByCategory.forEach(item => {
-            expensesByCategory[item.name] = item.value;
+            expensesByCategory[item.name] = (expensesByCategory[item.name] ?? 0) + item.value;
         });
         return evaluateCategoryRisk(expensesByCategory);
     }, [spendingByCategory]);

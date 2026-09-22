@@ -22,6 +22,9 @@
             "onTrack": "В рамках плана",
             "of": "из {{amount}}",
             "overAmount": "{{amount}} сверх бюджета",
+            "deleteTitle": "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0431\u044e\u0434\u0436\u0435\u0442",
+            "deleteMessage": "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u044d\u0442\u043e\u0442 \u0431\u044e\u0434\u0436\u0435\u0442? \u041e\u043f\u0435\u0440\u0430\u0446\u0438\u0438 \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u044f\u0442\u0441\u044f.",
+            "deleteFailed": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0431\u044e\u0434\u0436\u0435\u0442",
             "overCategory": "{{amount}} сверх"
         },
         "quickActions": {
@@ -238,6 +241,9 @@
             "invalidAmount": "Некорректная сумма",
             "invalidAmountMessage": "Введите корректный лимит бюджета больше 0",
             "error": "Ошибка",
+            "editTitle": "\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0431\u044e\u0434\u0436\u0435\u0442",
+            "updateFailed": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0431\u044e\u0434\u0436\u0435\u0442",
+            "monthClosed": "\u042d\u0442\u043e\u0442 \u0431\u044e\u0434\u0436\u0435\u0442 \u043e\u0442\u043d\u043e\u0441\u0438\u0442\u0441\u044f \u043a \u043f\u0440\u043e\u0448\u0435\u0434\u0448\u0435\u043c\u0443 \u043c\u0435\u0441\u044f\u0446\u0443 \u0438 \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0431\u044b\u0442\u044c \u0438\u0437\u043c\u0435\u043d\u0451\u043d.",
             "createFailed": "Не удалось создать бюджет"
         },
         "addWallet": {
@@ -515,7 +521,7 @@
         "statusInsufficientFunds": "Недостаточно средств",
         "defaultDescription": "Повторяющаяся транзакция",
         "frequencyEvery": "Каждый {{base}}",
-        "frequencyEveryN": "Каждые {{interval}} {{base}}",
+        "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
         "freqDay": "день",
         "freqWeek": "неделя",
         "freqMonth": "месяц",
@@ -562,6 +568,14 @@
         "generatePdf": "Создать и поделиться PDF",
         "exportFailed": "Экспорт не удался",
         "exportFailedMessage": "Не удалось экспортировать данные",
+        "report": {
+            "title": "Ежемесячный отчёт - {{period}}",
+            "generatedBy": "Создано в Valto",
+            "footer": "Финансовый отчёт Valto - {{period}}",
+            "description": "Описание",
+            "transferIn": "Входящий перевод",
+            "transferOut": "Исходящий перевод"
+        },
         "months": {
             "january": "Январь",
             "february": "Февраль",
@@ -645,6 +659,8 @@
         "editWallet": "Редактировать кошелёк {{name}}",
         "editRule": "Редактировать правило",
         "deleteRule": "Удалить правило",
+        "editBudget": "\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0431\u044e\u0434\u0436\u0435\u0442 {{category}}",
+        "deleteBudget": "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0431\u044e\u0434\u0436\u0435\u0442 {{category}}",
         "deleteTransaction": "Удалить операцию",
         "pauseRule": "Приостановить правило",
         "resumeRule": "Возобновить правило",

@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "dashboard": "Tableau de bord",
+    "dashboard": "Accueil",
     "transactions": "Transactions",
     "wallets": "Portefeuilles",
     "reports": "Rapports",
@@ -22,6 +22,9 @@
       "onTrack": "En bonne voie",
       "of": "sur {{amount}}",
       "overAmount": "{{amount}} au-dessus du budget",
+      "deleteTitle": "Supprimer le budget",
+      "deleteMessage": "\u00cates-vous s\u00fbr de vouloir supprimer ce budget ? Vos transactions ne sont pas modifi\u00e9es.",
+      "deleteFailed": "\u00c9chec de la suppression du budget",
       "overCategory": "{{amount}} dépassé"
     },
     "quickActions": {
@@ -238,6 +241,9 @@
       "invalidAmount": "Montant invalide",
       "invalidAmountMessage": "Veuillez entrer une limite de budget supérieure à 0",
       "error": "Erreur",
+      "editTitle": "Modifier le budget",
+      "updateFailed": "\u00c9chec de la mise \u00e0 jour du budget",
+      "monthClosed": "Ce budget concerne un mois pass\u00e9 et ne peut plus \u00eatre modifi\u00e9.",
       "createFailed": "Échec de la création du budget"
     },
     "addWallet": {
@@ -515,7 +521,7 @@
     "statusInsufficientFunds": "Fonds insuffisants",
     "defaultDescription": "Transaction récurrente",
     "frequencyEvery": "Chaque {{base}}",
-    "frequencyEveryN": "Tous les {{interval}} {{base}}s",
+    "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
     "freqDay": "jour",
     "freqWeek": "semaine",
     "freqMonth": "mois",
@@ -543,10 +549,10 @@
     "saveFailed": "Échec de l'enregistrement de la règle",
     "segmentExpense": "Dépense",
     "segmentIncome": "Revenu",
-    "segmentDaily": "Quotidien",
-    "segmentWeekly": "Hebdomadaire",
-    "segmentMonthly": "Mensuel",
-    "segmentYearly": "Annuel",
+    "segmentDaily": "Jour",
+    "segmentWeekly": "Semaine",
+    "segmentMonthly": "Mois",
+    "segmentYearly": "An",
     "selectWallet": "Choisir un portefeuille",
     "noWallets": "Aucun portefeuille disponible",
     "noCategories": "Aucune catégorie disponible",
@@ -562,6 +568,14 @@
     "generatePdf": "Générer et partager le PDF",
     "exportFailed": "Échec de l'export",
     "exportFailedMessage": "Impossible d'exporter les données",
+    "report": {
+      "title": "Rapport mensuel - {{period}}",
+      "generatedBy": "Généré par Valto",
+      "footer": "Rapport financier Valto - {{period}}",
+      "description": "Description",
+      "transferIn": "Transfert entrant",
+      "transferOut": "Transfert sortant"
+    },
     "months": {
       "january": "Janvier",
       "february": "Février",
@@ -645,6 +659,8 @@
     "editWallet": "Modifier le portefeuille {{name}}",
     "editRule": "Modifier la règle",
     "deleteRule": "Supprimer la règle",
+    "editBudget": "Modifier le budget {{category}}",
+    "deleteBudget": "Supprimer le budget {{category}}",
     "deleteTransaction": "Supprimer la transaction",
     "pauseRule": "Mettre en pause la règle",
     "resumeRule": "Reprendre la règle",

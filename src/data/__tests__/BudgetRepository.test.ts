@@ -9,6 +9,8 @@ import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { BudgetRepository } from '../repositories/BudgetRepository';
 import { RepositoryError, RepositoryErrorType } from '../repositories/IRepository';
 import { makeBudget, resetFactoryCounters } from '../../test-utils/testFactories';
+import { getCurrentMonth } from '../../domain/entities';
+import { BudgetMonthClosedError } from '../../domain/useCases/errors';
 
 describe('BudgetRepository', () => {
     let storage: SqlDatabase;
@@ -187,9 +189,10 @@ describe('BudgetRepository', () => {
     // ─── updateFromDTO ─────────────────────────────────────────────────
 
     it('updateFromDTO modifies limit amount', async () => {
+        // Current month: a past month is refused (see the F-09 tests below).
         const created = await repo.create({
             categoryId: 'cat-1',
-            month: '2026-03',
+            month: getCurrentMonth(),
             limitAmount: 50000,
         });
 
@@ -236,6 +239,46 @@ describe('BudgetRepository', () => {
         ).rejects.toMatchObject({
             type: RepositoryErrorType.VALIDATION_ERROR,
         });
+    });
+
+    // --- F-09: edit allowed on the current month and later, refused on a past one ---
+
+    it('updateFromDTO persists a current-month limit and refuses a past-month one, row unchanged', async () => {
+        const current = await repo.create({
+            categoryId: 'cat-1',
+            month: getCurrentMonth(),
+            limitAmount: 50000,
+        });
+        const past = makeBudget({ categoryId: 'cat-1', month: '2020-01', limitAmount: 50000 });
+        await repo.save(past);
+
+        await repo.updateFromDTO({ id: current.id, limitAmount: 64000 });
+        expect((await repo.getById(current.id))?.limitAmount).toBe(64000);
+
+        let caught: unknown;
+        try {
+            await repo.updateFromDTO({ id: past.id, limitAmount: 99000 });
+        } catch (err) {
+            caught = err;
+        }
+
+        expect(caught).toBeInstanceOf(BudgetMonthClosedError);
+        const reread = await repo.getById(past.id);
+        expect(reread?.limitAmount).toBe(50000);
+        expect(reread?.month).toBe('2020-01');
+    });
+
+    it('updateFromDTO refuses moving a budget into a past month', async () => {
+        const created = await repo.create({
+            categoryId: 'cat-1',
+            month: getCurrentMonth(),
+            limitAmount: 50000,
+        });
+
+        await expect(
+            repo.updateFromDTO({ id: created.id, month: '2020-01' })
+        ).rejects.toBeInstanceOf(BudgetMonthClosedError);
+        expect((await repo.getById(created.id))?.month).toBe(getCurrentMonth());
     });
 
     // ─── Domain Queries ────────────────────────────────────────────────

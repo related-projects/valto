@@ -59,7 +59,9 @@ describe('YtdSummaryCard', () => {
         render(<YtdSummaryCard {...POPULATED} />);
 
         expect(await screen.findByText('Cumul annuel (2025)')).toBeTruthy();
-        expect(screen.queryByText(`Cumul annuel (${new Date().getUTCFullYear()})`)).toBeNull();
+        // Local year: a Valto year is the device's year (V-91), so "the current
+        // year" here must be the same one the card would show.
+        expect(screen.queryByText(`Cumul annuel (${new Date().getFullYear()})`)).toBeNull();
     });
 
     it('renders the placeholder, not a rate of zero, when the year had no income', async () => {

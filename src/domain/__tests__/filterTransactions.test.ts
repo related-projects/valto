@@ -200,11 +200,17 @@ describe('filterTransactions', () => {
     });
 
     // ── 5. Filter by date range ───────────────────────────────────────
+    //
+    // Boundaries are built with the local constructor, like the MOCK_TRANSACTIONS
+    // rows above. A bare literal such as new Date('2026-03-05') parses as UTC
+    // midnight, which startOfDay/endOfDay then snap to the PREVIOUS local day
+    // west of UTC - making the result depend on the machine time zone rather
+    // than on filterTransactions (V-91).
 
     it('filters by date range (inclusive on both boundaries)', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            startDate: new Date('2026-03-05'),
-            endDate: new Date('2026-03-20'),
+            startDate: new Date(2026, 2, 5),
+            endDate: new Date(2026, 2, 20),
         });
         // tx-2 (Mar 5), tx-3 (Mar 10), tx-4 (Mar 15), tx-5 (Mar 20)
         expect(result).toHaveLength(4);
@@ -213,8 +219,8 @@ describe('filterTransactions', () => {
 
     it('handles same start and end date (single day)', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            startDate: new Date('2026-03-10'),
-            endDate: new Date('2026-03-10'),
+            startDate: new Date(2026, 2, 10),
+            endDate: new Date(2026, 2, 10),
         });
         // tx-3 only (Mar 10)
         expect(result).toHaveLength(1);
@@ -223,7 +229,7 @@ describe('filterTransactions', () => {
 
     it('handles start date only', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            startDate: new Date('2026-03-20'),
+            startDate: new Date(2026, 2, 20),
         });
         // tx-5 (Mar 20), tx-6 (Mar 25), tx-7 (Mar 31)
         expect(result).toHaveLength(3);
@@ -232,7 +238,7 @@ describe('filterTransactions', () => {
 
     it('handles end date only', () => {
         const result = filterTransactions(MOCK_TRANSACTIONS, {
-            endDate: new Date('2026-03-05'),
+            endDate: new Date(2026, 2, 5),
         });
         // tx-1 (Mar 1), tx-2 (Mar 5)
         expect(result).toHaveLength(2);

@@ -104,3 +104,21 @@ export class WalletHasRecurringRulesError extends Error {
         this.name = 'WalletHasRecurringRulesError';
     }
 }
+
+/**
+ * Raised when an edit targets a budget whose month is already over.
+ *
+ * A budget for a past month is the record of the limit the user lived with
+ * that month; rewriting it after the fact would change what the reports say
+ * about that month. The current month and later months stay editable. The
+ * refusal lives in the repository so no caller can bypass it by skipping the
+ * UI. Deletion is not covered by this rule.
+ */
+export class BudgetMonthClosedError extends Error {
+    readonly code = 'BUDGET_MONTH_CLOSED' as const;
+
+    constructor(message = 'Budgets for a past month cannot be edited') {
+        super(message);
+        this.name = 'BudgetMonthClosedError';
+    }
+}

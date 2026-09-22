@@ -8,6 +8,7 @@ export { deleteCategory } from './deleteCategory';
 export { deleteTransaction } from './deleteTransaction';
 export { deleteWallet } from './deleteWallet';
 export {
+    BudgetMonthClosedError,
     CategoryHasRecurringRulesError,
     InsufficientFundsError,
     LastWalletError,

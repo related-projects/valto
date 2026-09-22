@@ -12,22 +12,33 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import type { Transaction } from '../../../domain/entities/Transaction';
+import type { TFunction } from 'i18next';
+import { TransactionType, type Transaction } from '../../../domain/entities/Transaction';
 import type { Wallet } from '../../../domain/entities/Wallet';
 import type { Category } from '../../../domain/entities/Category';
 import { getCurrencyByCode, type CurrencyDefinition } from '../../../domain/constants/currencies';
-import { loadSettings, type DecimalSeparator } from '../settingsService';
+import { ledgerEffect } from '../../../domain/ledger/ledgerEffect';
+import {
+    TRANSFER_IN_CATEGORY_ID,
+    TRANSFER_OUT_CATEGORY_ID,
+    isTransferCategoryId,
+} from '../../../domain/ledger/transferCategories';
+import { loadSettings, type DateFormatPreference, type DecimalSeparator } from '../settingsService';
+import i18n from '../../../localization/i18n';
 import { formatAmount } from '../../../utils/formatAmount';
+import { formatDate } from '../../../utils/formatDate';
+import { MISSING_CATEGORY_LABEL_KEY } from '../../../utils/missingCategory';
 import { centsToMajor } from '../../../utils/normalizeAmount';
 
 // ─── CSV Export ───────────────────────────────────────────────────────
 
 /**
  * Escape a CSV field value.
- * Wraps in double-quotes if the value contains commas, quotes, or newlines.
+ * Wraps in double-quotes if the value contains commas, quotes, line feeds or
+ * carriage returns (a lone CR ends the record for some readers).
  */
 function escapeCSV(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
         return `"${value.replace(/"/g, '""')}"`;
     }
     return value;
@@ -55,16 +66,28 @@ function formatCsvAmount(amountMinor: number, decimals: number): string {
 }
 
 /**
+ * CSV dates, in the rows and in the file name: the device's local calendar day,
+ * whatever the app date format setting. Stored dates are UTC instants, and the
+ * UTC day of anything stored before 01:00 at UTC+1 (every recurring row) is the
+ * previous one.
+ */
+const CSV_DATE_FORMAT: DateFormatPreference = 'YYYY-MM-DD';
+
+/**
  * Generate a CSV string from transactions.
  * Resolves walletId/categoryId to human-readable names.
  * Amounts are emitted in `currency`'s minor-unit exponent (machine-readable),
  * with an ISO currency-code column so the amount's scale is self-describing.
+ * Dates follow CSV_DATE_FORMAT. Verified by
+ * src/data/__tests__/exportService.datesTransfersEscaping.test.ts (T1 local
+ * day, T2 carriage return).
  */
 export function generateCSV(
     transactions: Transaction[],
     wallets: Wallet[],
     categories: Category[],
     currency: CurrencyDefinition,
+    t: TFunction,
 ): string {
     const walletNames = buildNameMap(wallets);
     const categoryNames = buildNameMap(categories);
@@ -72,10 +95,18 @@ export function generateCSV(
     const header = 'date,type,amount,currency,wallet,category,description';
 
     const rows = transactions.map(tx => {
-        const date = tx.date.toISOString().split('T')[0]; // YYYY-MM-DD
+        const date = formatDate(tx.date, CSV_DATE_FORMAT);
         const amount = formatCsvAmount(tx.amount, currency.decimals);
         const wallet = escapeCSV(walletNames.get(tx.walletId) ?? tx.walletId);
-        const category = escapeCSV(categoryNames.get(tx.categoryId) ?? tx.categoryId);
+        // A transfer leg carries a reserved id with no Category row, so it is
+        // checked first: it is not a missing category and must not take that
+        // label. It keeps its raw id, as this column's neighbour `tx.type` keeps
+        // its raw enum - the CSV is the machine-readable export.
+        const category = escapeCSV(
+            isTransferCategoryId(tx.categoryId)
+                ? tx.categoryId
+                : categoryNames.get(tx.categoryId) ?? t(MISSING_CATEGORY_LABEL_KEY),
+        );
         const description = escapeCSV(tx.note ?? '');
         return `${date},${tx.type},${amount},${currency.code},${wallet},${category},${description}`;
     });
@@ -93,8 +124,11 @@ export async function shareCSV(
 ): Promise<void> {
     const settings = await loadSettings();
     const currency = getCurrencyByCode(settings.currency);
-    const csv = generateCSV(transactions, wallets, categories, currency);
-    const filename = `valto_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    // Fixed to the persisted language, for the reason given in shareMonthlyPDF:
+    // the export follows the app language, not the device locale.
+    const t = i18n.getFixedT(settings.language);
+    const csv = generateCSV(transactions, wallets, categories, currency, t);
+    const filename = `valto_transactions_${formatDate(new Date(), CSV_DATE_FORMAT)}.csv`;
     const fileUri = `${FileSystem.cacheDirectory}${filename}`;
 
     await FileSystem.writeAsStringAsync(fileUri, csv, {
@@ -114,11 +148,58 @@ export async function shareCSV(
 
 // ─── PDF Report ───────────────────────────────────────────────────────
 
+/** Same keys the ExportScreen month selector shows, so the report names the month the user picked. */
+const MONTH_KEYS = [
+    'export.months.january', 'export.months.february', 'export.months.march',
+    'export.months.april', 'export.months.may', 'export.months.june',
+    'export.months.july', 'export.months.august', 'export.months.september',
+    'export.months.october', 'export.months.november', 'export.months.december',
+] as const;
+
+const TYPE_KEYS: Record<TransactionType, string> = {
+    [TransactionType.INCOME]: 'modals.addTransaction.income',
+    [TransactionType.EXPENSE]: 'modals.addTransaction.expense',
+    [TransactionType.TRANSFER]: 'modals.addTransaction.transfer',
+};
+
+/** A transfer leg carries a reserved category id and no Category row, so it gets a label of its own. */
+const TRANSFER_LEG_KEYS = new Map<string, string>([
+    [TRANSFER_IN_CATEGORY_ID, 'export.report.transferIn'],
+    [TRANSFER_OUT_CATEGORY_ID, 'export.report.transferOut'],
+]);
+
+/**
+ * Escape user-entered text for HTML element content. `&` goes first so the
+ * entities the other replacements write are not escaped again.
+ */
+function escapeHTML(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /**
  * Generate an HTML string for a monthly PDF report.
  * Amounts render as the app displays them: `currency` symbol, the user's
  * decimal `separator`, and the currency's minor-unit `decimals`.
  * Exported for unit testing (pure string build, no native modules).
+ *
+ * Every label comes from `t`, fixed to the app language by the caller; a key an
+ * incomplete bundle lacks falls back to English. The month name comes from the
+ * bundle and row dates from the user's `dateFormat` read with local getters, so
+ * nothing here reads the device locale or prints a UTC day. Verified by
+ * src/data/__tests__/exportService.language.test.ts (T1 fr, T2 zh fallback,
+ * T3 UTC+1 day shift).
+ *
+ * A row's sign and colour follow ledgerEffect, so a transfer's incoming leg
+ * reads as a credit, and a transfer leg's category cell shows its own label.
+ * Every user-entered value, and an id standing in for a missing name, is
+ * HTML-escaped. Verified by
+ * src/data/__tests__/exportService.datesTransfersEscaping.test.ts (T3 transfer
+ * legs, T4 escaping).
  */
 export function generateReportHTML(
     year: number,
@@ -128,11 +209,13 @@ export function generateReportHTML(
     categories: Category[],
     currency: CurrencyDefinition,
     separator: DecimalSeparator,
+    dateFormat: DateFormatPreference,
+    t: TFunction,
 ): string {
     const walletNames = buildNameMap(wallets);
     const categoryNames = buildNameMap(categories);
 
-    const monthName = new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
+    const period = `${t(MONTH_KEYS[month - 1])} ${year}`;
 
     let totalIncome = 0;
     let totalExpense = 0;
@@ -143,16 +226,21 @@ export function generateReportHTML(
             if (tx.type === 'income') totalIncome += tx.amount;
             else if (tx.type === 'expense') totalExpense += tx.amount;
 
-            const sign = tx.type === 'income' ? '+' : '-';
-            const color = tx.type === 'income' ? '#22c55e' : '#ef4444';
+            const credit = ledgerEffect(tx) > 0;
+            const sign = credit ? '+' : '-';
+            const color = credit ? '#22c55e' : '#ef4444';
+            const legKey = TRANSFER_LEG_KEYS.get(tx.categoryId);
+            const category = legKey
+                ? t(legKey)
+                : escapeHTML(categoryNames.get(tx.categoryId) ?? t(MISSING_CATEGORY_LABEL_KEY));
             return `
                 <tr>
-                    <td>${tx.date.toISOString().split('T')[0]}</td>
-                    <td>${tx.type}</td>
+                    <td>${formatDate(tx.date, dateFormat)}</td>
+                    <td>${t(TYPE_KEYS[tx.type])}</td>
                     <td style="color: ${color}; font-weight: 600;">${sign}${formatAmount(tx.amount, currency.symbol, separator, currency.decimals)}</td>
-                    <td>${walletNames.get(tx.walletId) ?? tx.walletId}</td>
-                    <td>${categoryNames.get(tx.categoryId) ?? tx.categoryId}</td>
-                    <td>${tx.note ?? ''}</td>
+                    <td>${escapeHTML(walletNames.get(tx.walletId) ?? tx.walletId)}</td>
+                    <td>${category}</td>
+                    <td>${escapeHTML(tx.note ?? '')}</td>
                 </tr>`;
         })
         .join('');
@@ -187,20 +275,20 @@ export function generateReportHTML(
     </style>
 </head>
 <body>
-    <h1>Monthly Report - ${monthName} ${year}</h1>
-    <p class="subtitle">Generated by Valto</p>
+    <h1>${t('export.report.title', { period })}</h1>
+    <p class="subtitle">${t('export.report.generatedBy')}</p>
 
     <div class="summary">
         <div class="stat stat-income">
-            <div class="stat-label">Income</div>
+            <div class="stat-label">${t('transactions.income')}</div>
             <div class="stat-value" style="color: #22c55e;">+${formatAmount(totalIncome, currency.symbol, separator, currency.decimals)}</div>
         </div>
         <div class="stat stat-expense">
-            <div class="stat-label">Expenses</div>
+            <div class="stat-label">${t('transactions.expenses')}</div>
             <div class="stat-value" style="color: #ef4444;">-${formatAmount(totalExpense, currency.symbol, separator, currency.decimals)}</div>
         </div>
         <div class="stat stat-net">
-            <div class="stat-label">Net Balance</div>
+            <div class="stat-label">${t('reports.financialSummary.netBalance')}</div>
             <div class="stat-value" style="color: ${netColor};">${netBalance >= 0 ? '+' : ''}${formatAmount(netBalance, currency.symbol, separator, currency.decimals)}</div>
         </div>
     </div>
@@ -208,20 +296,20 @@ export function generateReportHTML(
     <table>
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Wallet</th>
-                <th>Category</th>
-                <th>Description</th>
+                <th>${t('modals.addTransaction.date')}</th>
+                <th>${t('modals.addTransaction.type')}</th>
+                <th>${t('modals.addTransaction.amount')}</th>
+                <th>${t('modals.addTransaction.wallet')}</th>
+                <th>${t('modals.addTransaction.category')}</th>
+                <th>${t('export.report.description')}</th>
             </tr>
         </thead>
         <tbody>
-            ${rows || '<tr><td colspan="6" style="text-align:center; padding:16px; color:#999;">No transactions for this month</td></tr>'}
+            ${rows || `<tr><td colspan="6" style="text-align:center; padding:16px; color:#999;">${t('reports.financialSummary.noActivity')}</td></tr>`}
         </tbody>
     </table>
 
-    <div class="footer">Valto Financial Report - ${monthName} ${year}</div>
+    <div class="footer">${t('export.report.footer', { period })}</div>
 </body>
 </html>`;
 }
@@ -238,7 +326,13 @@ export async function shareMonthlyPDF(
 ): Promise<void> {
     const settings = await loadSettings();
     const currency = getCurrencyByCode(settings.currency);
-    const html = generateReportHTML(year, month, transactions, wallets, categories, currency, settings.decimalSeparator);
+    // The persisted language is the one app/_layout.tsx hands to i18n at startup;
+    // fixing `t` to it keeps the report off the device locale (exportService.language.test.ts).
+    const t = i18n.getFixedT(settings.language);
+    const html = generateReportHTML(
+        year, month, transactions, wallets, categories, currency,
+        settings.decimalSeparator, settings.dateFormat, t,
+    );
 
     const { uri } = await Print.printToFileAsync({
         html,
@@ -248,7 +342,7 @@ export async function shareMonthlyPDF(
     if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
             mimeType: 'application/pdf',
-            dialogTitle: 'Monthly Report',
+            dialogTitle: t('export.pdfTitle'),
             UTI: 'com.adobe.pdf',
         });
     } else {
