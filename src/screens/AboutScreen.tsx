@@ -10,7 +10,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/theme';
 
@@ -102,7 +102,22 @@ export const AboutScreen = () => {
                     backgroundColor: colors.accentForeground + '22',
                     borderRadius: radius.full,
                 }]}>
-                    <Text style={{ fontSize: 32 }}>💰</Text>
+                    {/* The app's own icon - the file app.json declares as `icon`,
+                        so the one screen that names the app shows what the
+                        launcher shows. borderRadius sits on the Image rather than
+                        on overflow:'hidden' on the circle, which Android does not
+                        clip reliably. No tintColor: the artwork carries its own
+                        colours. Decorative on purpose - the title beside it
+                        already announces the app, and a label here would be read
+                        out twice. */}
+                    <Image
+                        source={require('../../assets/images/icon.png')}
+                        style={{ width: 72, height: 72, borderRadius: radius.full }}
+                        resizeMode="cover"
+                        testID="about_app_logo"
+                        accessibilityElementsHidden
+                        importantForAccessibility="no"
+                    />
                 </View>
                 <Text style={{
                     color: colors.accentForeground,

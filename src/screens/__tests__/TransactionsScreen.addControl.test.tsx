@@ -1,15 +1,29 @@
 /**
- * TransactionsScreen add-control test
+ * Controls that open the add-transaction flow from the Transactions tab.
  *
- * The screen a user opens to "faire la liste des depenses du mois" had a filter
- * control and no way to add anything: every path to a new transaction went
- * through an unlabelled FAB. This asserts the labelled control and that pressing
- * it actually opens the add-transaction sheet.
+ * The tab carried three of them: a labelled button in the screen header, the
+ * empty-state call to action inside the list, and the tab bar's floating button
+ * rendered over every tab. The header button is the one removed, so this file
+ * asserts it is gone AND that the other two still reach the same sheet - a
+ * removal must not quietly take a survivor with it.
  *
- * Rendered against the REAL fr resources - a t() stub returning the key would
- * pass on a button labelled "transactions.add".
+ * Rendered against the REAL fr resources: a t() stub returning the key would
+ * pass on a button labelled "transactions.add". Every control is addressed by
+ * testID rather than by its French label, so no line here needs a non-ASCII
+ * character.
  */
 
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { fireEvent, render } from '@testing-library/react-native';
+import React from 'react';
+
+import { CustomTabBar } from '../../components/navigation/CustomTabBar';
+import i18n from '../../localization/i18n';
+import { TransactionsScreen } from '../TransactionsScreen';
+
+// jest.mock is hoisted above the imports above, so every factory here is
+// self-contained: one closing over a module-level const would read it in its
+// temporal dead zone when the mocked module is first required.
 jest.mock('react-native-safe-area-context', () => ({
     useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -17,8 +31,6 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('expo-router', () => ({
     useRouter: () => ({ push: jest.fn() }),
 }));
-
-const mockRefreshTransactions = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('../../hooks/useTransactions', () => ({
     useTransactions: () => ({
@@ -29,7 +41,7 @@ jest.mock('../../hooks/useTransactions', () => ({
         resetFilters: jest.fn(),
         loadNextPage: jest.fn(),
         loadingMore: false,
-        refreshTransactions: mockRefreshTransactions,
+        refreshTransactions: jest.fn().mockResolvedValue(undefined),
         createTransaction: jest.fn(),
     }),
 }));
@@ -55,34 +67,59 @@ jest.mock('../../hooks/useFormatting', () => ({
     }),
 }));
 
-import { fireEvent, render } from '@testing-library/react-native';
-import React from 'react';
+/** The add sheet's own title in fr. Plain ASCII, so it can be asserted directly. */
+const ADD_SHEET_TITLE = 'Ajouter une transaction';
 
-import i18n from '../../localization/i18n';
-import { TransactionsScreen } from '../TransactionsScreen';
+/**
+ * The tab bar maps over a navigation state. An empty route list renders no tabs
+ * and leaves the floating button, which is the only part of it under test here.
+ */
+const tabBarProps = {
+    state: { index: 0, routes: [] },
+    descriptors: {},
+    navigation: { emit: jest.fn(), navigate: jest.fn() },
+} as unknown as BottomTabBarProps;
 
 beforeAll(async () => {
     await i18n.changeLanguage('fr');
 });
 
-describe('TransactionsScreen', () => {
-    it('renders a labelled add control in the header', () => {
-        const { getByTestId } = render(<TransactionsScreen />);
+describe('TransactionsScreen header', () => {
+    it('renders no add control of its own', () => {
+        const { queryByTestId } = render(<TransactionsScreen />);
 
-        const addButton = getByTestId('transactions_add_button');
-        expect(addButton.props.accessibilityLabel).toBe('Ajouter');
+        expect(queryByTestId('transactions_add_button')).toBeNull();
     });
 
-    it('opens the add-transaction modal when the add control is pressed', () => {
-        const { getByTestId, queryByText, getByText } = render(<TransactionsScreen />);
+    it('keeps the filter control, which still opens the filter sheet', () => {
+        const { getByTestId } = render(<TransactionsScreen />);
 
-        // The modal title is not on screen before the press.
-        expect(queryByText('Ajouter une transaction')).toBeNull();
+        fireEvent.press(getByTestId('filter_icon_button'));
 
-        fireEvent.press(getByTestId('transactions_add_button'));
+        expect(getByTestId('filter_apply_button')).toBeTruthy();
+    });
+});
 
-        expect(getByText('Ajouter une transaction')).toBeTruthy();
+describe('the add controls that remain', () => {
+    it('opens the add sheet from the empty-state call to action', () => {
+        const { getByTestId, getByText, queryByText } = render(<TransactionsScreen />);
+
+        expect(queryByText(ADD_SHEET_TITLE)).toBeNull();
+
+        fireEvent.press(getByTestId('transaction_list_add_first'));
+
+        expect(getByText(ADD_SHEET_TITLE)).toBeTruthy();
         // And the sheet opens on the expense leg, which is what the user came for.
         expect(getByTestId('add_tx_type_expense')).toBeTruthy();
+    });
+
+    it('opens the add sheet from the tab bar floating button', () => {
+        const { getByTestId, getByText, queryByText } = render(<CustomTabBar {...tabBarProps} />);
+
+        expect(queryByText(ADD_SHEET_TITLE)).toBeNull();
+
+        fireEvent.press(getByTestId('fab_add_transaction'));
+
+        expect(getByText(ADD_SHEET_TITLE)).toBeTruthy();
     });
 });
