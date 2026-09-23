@@ -6,6 +6,7 @@
  * and savings rate. Fully reactive to transaction, budget, and category changes.
  */
 
+import type { TFunction } from 'i18next';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getBudgetRepository } from '../core/di';
@@ -69,14 +70,27 @@ export interface UseReportsResult {
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
-const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-];
+/**
+ * The same ordered keys the export service and the Export screen already use.
+ * Reports and Export are one tap apart, so a second set of month names here
+ * would be a second thing to translate and a second thing to get wrong.
+ */
+const MONTH_KEYS = [
+    'export.months.january', 'export.months.february', 'export.months.march',
+    'export.months.april', 'export.months.may', 'export.months.june',
+    'export.months.july', 'export.months.august', 'export.months.september',
+    'export.months.october', 'export.months.november', 'export.months.december',
+] as const;
 
-function formatMonthLabel(monthStr: string): string {
+/**
+ * `t` is a parameter rather than a closure, for the reason generateReportHTML
+ * takes one: the label belongs to the app language, and a helper that reached
+ * for a module-level i18n instance would be reading whatever language happened
+ * to be current instead of the caller's.
+ */
+function formatMonthLabel(monthStr: string, t: TFunction): string {
     const [year, month] = monthStr.split('-').map(Number);
-    return `${MONTH_NAMES[month - 1]} ${year}`;
+    return `${t(MONTH_KEYS[month - 1])} ${year}`;
 }
 
 function shiftMonth(monthStr: string, delta: number): string {
@@ -120,7 +134,7 @@ export function useReports(): UseReportsResult {
     }, [loadBudgets]);
 
     // ── Month navigation ───────────────────────────────────────────────
-    const monthLabel = useMemo(() => formatMonthLabel(selectedMonth), [selectedMonth]);
+    const monthLabel = useMemo(() => formatMonthLabel(selectedMonth, t), [selectedMonth, t]);
 
     const goToPreviousMonth = useCallback(() => {
         setSelectedMonth(prev => shiftMonth(prev, -1));

@@ -33,12 +33,3 @@ export function formatDate(date: Date, format: DateFormatPreference = 'MM/DD/YYY
             return `${month}/${day}/${year}`;
     }
 }
-
-/**
- * Format a Date object to show month and year only.
- *
- * @example formatMonthYear(new Date('2026-03-05')) -> "March 2026"
- */
-export function formatMonthYear(date: Date): string {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}

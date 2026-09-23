@@ -13,6 +13,15 @@ import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
 import { CategoryType, TransactionType, WalletType, getCurrentMonth } from '../../domain/entities';
+import i18n from '../../localization/i18n';
+
+/** The keys the month header is built from, in calendar order. */
+const MONTH_KEYS = [
+    'export.months.january', 'export.months.february', 'export.months.march',
+    'export.months.april', 'export.months.may', 'export.months.june',
+    'export.months.july', 'export.months.august', 'export.months.september',
+    'export.months.october', 'export.months.november', 'export.months.december',
+] as const;
 
 // Shared state
 let mockDb: SqlDatabase;
@@ -73,8 +82,14 @@ describe('useReports', () => {
             expect(result.current.loading).toBe(false);
         });
 
-        // Should contain a year and month name
-        expect(result.current.monthLabel).toMatch(/\w+ \d{4}/);
+        // A month name and a year. Not matched with \w: that is [A-Za-z0-9_],
+        // so it fails on the Cyrillic and accented names the label now carries
+        // in every language but English. The shape is asserted instead, against
+        // the hook's own selectedMonth so the machine time zone cannot decide
+        // which month is compared.
+        const [year, month] = result.current.selectedMonth.split('-').map(Number);
+        const monthName = i18n.getFixedT('en')(MONTH_KEYS[month - 1]);
+        expect(result.current.monthLabel).toBe(`${monthName} ${year}`);
     });
 
     it('navigates to previous month', async () => {

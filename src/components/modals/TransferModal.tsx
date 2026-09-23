@@ -18,6 +18,7 @@ import {
 import { Wallet } from '../../domain/entities';
 import { InsufficientFundsError } from '../../domain/useCases';
 import { useFormatting } from '../../hooks/useFormatting';
+import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
 import { useWallets } from '../../hooks/useWallets';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
@@ -36,7 +37,7 @@ const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, onSuccess }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const { t } = useTranslation();
-    const { formatAmount, parseAmountToCents, decimals } = useFormatting();
+    const { formatAmount, parseAmountToCentsResult, amountPlaceholder, decimals } = useFormatting();
 
     // Hooks
     const { wallets, refreshWallets, transferBetweenWallets } = useWallets();
@@ -91,12 +92,21 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
 
     const handleTransfer = async () => {
         // Single input->storage conversion point (major units -> integer minor units).
-        const amountNum = parseAmountToCents(amount);
+        const parsedAmount = parseAmountToCentsResult(amount);
 
-        if (amountNum === null) {
-            Alert.alert(t('modals.transfer.invalidAmount'), t('modals.transfer.invalidAmountMessage'));
+        if (!parsedAmount.ok) {
+            Alert.alert(
+                t('modals.transfer.invalidAmount'),
+                amountRefusalMessage(
+                    parsedAmount.cause,
+                    t,
+                    'modals.transfer.invalidAmountMessage',
+                    amountPlaceholder,
+                ),
+            );
             return;
         }
+        const amountNum = parsedAmount.value;
 
         if (!sourceWalletId) {
             Alert.alert(t('modals.transfer.noSourceWallet'), t('modals.transfer.noSourceWalletMessage'));
@@ -368,7 +378,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                         <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                             <TextInput
                                                 style={[styles.input, { color: colors.foreground }]}
-                                                placeholder="0.00"
+                                                placeholder={amountPlaceholder}
                                                 placeholderTextColor={colors.mutedForeground}
                                                 keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                                                 value={amount}

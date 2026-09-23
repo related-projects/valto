@@ -18,8 +18,12 @@ interface PinPadProps {
     showBiometricButton?: boolean;
     /** Called when biometric button is pressed */
     onBiometricPress?: () => void;
-    /** Title text above dots */
-    title?: string;
+    /**
+     * Translated title above the dots. Required: an English default here
+     * outlived translation once already, because every call site passed a title
+     * and nothing showed that the default was still in the file.
+     */
+    title: string;
     /** Subtitle/error text below dots */
     subtitle?: string;
     /** Whether to show error state (shake/red) */
@@ -32,7 +36,7 @@ export const PinPad: React.FC<PinPadProps> = ({
     onComplete,
     showBiometricButton = false,
     onBiometricPress,
-    title = 'Enter PIN',
+    title,
     subtitle,
     error = false,
     disabled = false,

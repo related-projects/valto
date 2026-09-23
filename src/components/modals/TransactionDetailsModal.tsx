@@ -133,7 +133,7 @@ export function TransactionDetailsModal() {
                 <View style={[styles.card, { backgroundColor: colors.card, borderRadius: radius.lg }]}>
 
                     <View style={styles.row}>
-                        <Text style={[styles.label, { color: colors.mutedForeground }]}>{t('modals.addTransaction.type') || "Type"}</Text>
+                        <Text style={[styles.label, { color: colors.mutedForeground }]}>{t('modals.addTransaction.type')}</Text>
                         <Text style={[styles.value, { color: colors.foreground, textTransform: 'capitalize' }]}>
                             {t(`transactions.filter${transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}`) || transaction.type}
                         </Text>

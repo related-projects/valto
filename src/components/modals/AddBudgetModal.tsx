@@ -25,6 +25,7 @@ import {
 import { BudgetMonthClosedError } from "../../domain/useCases/errors";
 import { useCategories } from "../../hooks/useCategories";
 import { useFormatting } from "../../hooks/useFormatting";
+import { amountRefusalMessage } from "../../utils/amountRefusalMessage";
 import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
 import { useTheme } from "../../theme/theme";
@@ -59,7 +60,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
   const { colors, spacing, typography, radius } = useTheme();
   const { t } = useTranslation();
   const { expenseCategories } = useCategories();
-  const { parseAmountToCents, centsToMajor, decimals } = useFormatting();
+  const { parseAmountToCentsResult, centsToMajor, amountPlaceholder, decimals } = useFormatting();
 
   // Form state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -103,15 +104,21 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
     }
 
     // Single input->storage conversion point (major units -> integer minor units).
-    const amountNum = parseAmountToCents(limitAmount);
+    const parsedLimit = parseAmountToCentsResult(limitAmount);
 
-    if (amountNum === null) {
+    if (!parsedLimit.ok) {
       Alert.alert(
         t("modals.addBudget.invalidAmount"),
-        t("modals.addBudget.invalidAmountMessage"),
+        amountRefusalMessage(
+          parsedLimit.cause,
+          t,
+          "modals.addBudget.invalidAmountMessage",
+          amountPlaceholder,
+        ),
       );
       return;
     }
+    const amountNum = parsedLimit.value;
 
     if (editingBudget && onUpdateBudget) {
       try {
@@ -291,7 +298,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                 >
                   <TextInput
                     style={[styles.input, { color: colors.foreground }]}
-                    placeholder="0.00"
+                    placeholder={amountPlaceholder}
                     placeholderTextColor={colors.mutedForeground}
                     keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                     value={limitAmount}

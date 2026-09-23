@@ -21,6 +21,7 @@ import { TransactionType } from '../../domain/entities';
 import { InsufficientFundsError } from '../../domain/useCases';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
+import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
 import { radius } from '../../theme/radius';
@@ -45,7 +46,7 @@ const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visible, onClose, onSuccess, initialType = 'expense' }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const { t, i18n } = useTranslation();
-    const { formatAmount, parseAmountToCents, decimals } = useFormatting();
+    const { formatAmount, parseAmountToCentsResult, amountPlaceholder, decimals } = useFormatting();
     const scrollViewRef = React.useRef<ScrollView>(null);
 
     // Hooks
@@ -174,12 +175,21 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
 
     const handleSave = async () => {
         // Single input->storage conversion point (major units -> integer minor units).
-        const amountNum = parseAmountToCents(amount);
+        const parsedAmount = parseAmountToCentsResult(amount);
 
-        if (amountNum === null) {
-            Alert.alert(t('modals.addTransaction.invalidAmount'), t('modals.addTransaction.invalidAmountMessage'));
+        if (!parsedAmount.ok) {
+            Alert.alert(
+                t('modals.addTransaction.invalidAmount'),
+                amountRefusalMessage(
+                    parsedAmount.cause,
+                    t,
+                    'modals.addTransaction.invalidAmountMessage',
+                    amountPlaceholder,
+                ),
+            );
             return;
         }
+        const amountNum = parsedAmount.value;
 
         if (!selectedWalletId) {
             Alert.alert(t('modals.addTransaction.noWalletSelected'), t('modals.addTransaction.noWalletSelectedMessage'));
@@ -304,7 +314,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                                     <TextInput
                                         style={[styles.input, { color: colors.foreground }]}
-                                        placeholder="0.00"
+                                        placeholder={amountPlaceholder}
                                         placeholderTextColor={colors.mutedForeground}
                                         keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                                         value={amount}

@@ -54,7 +54,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
-    const { parseAmount, normalizeAmount, decimals } = useFormatting();
+    const { parseAmount, normalizeAmount, amountPlaceholder, decimals } = useFormatting();
     const {
         step,
         next,
@@ -345,7 +345,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     marginBottom: spacing.xl,
                     ...shadows.card,
                 }}
-                placeholder="0.00"
+                placeholder={amountPlaceholder}
                 placeholderTextColor={colors.mutedForeground}
                 value={initialBalance}
                 onChangeText={setInitialBalance}

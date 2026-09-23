@@ -46,16 +46,19 @@ const ICONS = [
     'gift', 'cash', 'briefcase', 'trending-up', 'ellipsis-horizontal'
 ];
 
-const TYPE_SEGMENTS: Segment<CategoryType>[] = Object.values(CategoryType).map(t => ({
-    key: t,
-    label: t,
-    value: t,
-}));
-
 export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, categoryToEdit }) => {
     const { colors, spacing, typography, radius } = useTheme();
     const { t } = useTranslation();
     const { createCategory, updateCategory } = useCategories();
+
+    // Built here rather than at module scope: the labels are translations, so
+    // they have to be re-read when the language changes. SegmentControl hands
+    // `label` to both the visible Text and getSelectableA11y, so naming the
+    // types here is what stops the screen reader announcing "expense".
+    const TYPE_SEGMENTS: Segment<CategoryType>[] = [
+        { key: CategoryType.EXPENSE, label: t('categories.expense'), value: CategoryType.EXPENSE },
+        { key: CategoryType.INCOME, label: t('categories.income'), value: CategoryType.INCOME },
+    ];
 
     const [name, setName] = useState('');
     const [type, setType] = useState<CategoryType>(CategoryType.EXPENSE);

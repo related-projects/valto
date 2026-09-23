@@ -55,6 +55,20 @@ jest.mock('react-native-get-random-values', () => { });
 // The production DB module statically imports the encryption-key helper, which
 // imports expo-secure-store. Tests never open the encrypted DB, but importing
 // the module chain would otherwise fail with "Cannot find native module".
+// --- expo-application (native binary constants) ---
+// The About and Settings screens read the version and build number off the
+// running binary. The module resolves its constants from the native side, so
+// importing it under jest fails with "Cannot find native module" unless it is
+// mocked here - globally rather than per file, because any screen that pulls in
+// Settings pulls this in with it. The values below stand for a real build; the
+// null branch, which is what removed the '1' fallback, is driven per test.
+jest.mock('expo-application', () => ({
+    nativeApplicationVersion: '1.1.2',
+    nativeBuildVersion: '1',
+    applicationId: 'com.valto.app',
+    applicationName: 'Valto',
+}));
+
 jest.mock('expo-secure-store', () => ({
     getItemAsync: jest.fn(async () => null),
     setItemAsync: jest.fn(async () => undefined),

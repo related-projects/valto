@@ -62,7 +62,9 @@ jest.mock('../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         formatAmount: (v: number) => String(v),
         formatAmountWhole: (v: number) => String(v),
-        parseAmountToCents: (v: string) => (v ? Number(v) : null),
+        parseAmountToCentsResult: (v: string) =>
+            (v ? { ok: true, value: Number(v) } : { ok: false, cause: 'empty' }),
+        amountPlaceholder: '0.00',
         decimals: 2,
     }),
 }));
