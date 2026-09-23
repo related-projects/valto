@@ -17,6 +17,8 @@ import {
 } from "react-native";
 import { WalletType } from "../../domain/entities";
 import { useFormatting } from "../../hooks/useFormatting";
+import { amountRefusalMessage } from "../../utils/amountRefusalMessage";
+import type { AmountResult } from "../../utils/normalizeAmount";
 import { useWallets } from "../../hooks/useWallets";
 import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
@@ -43,7 +45,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
 
   // Hooks
   const { createWallet } = useWallets();
-  const { parseAmount, normalizeAmount, decimals } = useFormatting();
+  const { parseAmountResult, normalizeAmount, amountPlaceholder, decimals } = useFormatting();
 
   // Form state
   const [name, setName] = useState("");
@@ -69,18 +71,30 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
       return;
     }
 
-    const balanceNum = balance ? parseAmount(balance) : 0;
+    // An empty field means "start at zero", which is why this screen accepts a
+    // zero balance where the amount screens refuse one.
+    const parsedBalance: AmountResult = balance
+      ? parseAmountResult(balance)
+      : { ok: true, value: 0 };
 
-    if (balanceNum === null || balanceNum < 0) {
+    if (!parsedBalance.ok || parsedBalance.value < 0) {
       Alert.alert(
         t("modals.addWallet.invalidBalance"),
-        t("modals.addWallet.invalidBalanceMessage"),
+        parsedBalance.ok
+          ? // A negative opening balance. The existing sentence names that cause.
+            t("modals.addWallet.invalidBalanceMessage")
+          : amountRefusalMessage(
+              parsedBalance.cause,
+              t,
+              "modals.addWallet.invalidBalanceMessage",
+              amountPlaceholder,
+            ),
       );
       return;
     }
 
     // Single input->storage conversion point (major units -> integer minor units).
-    const balanceMinor = normalizeAmount(balanceNum);
+    const balanceMinor = normalizeAmount(parsedBalance.value);
 
     try {
       setSaving(true);
@@ -251,7 +265,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
                 >
                   <TextInput
                     style={[styles.input, { color: colors.foreground }]}
-                    placeholder="0.00"
+                    placeholder={amountPlaceholder}
                     placeholderTextColor={colors.mutedForeground}
                     keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                     value={balance}

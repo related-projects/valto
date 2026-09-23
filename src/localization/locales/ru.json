@@ -411,6 +411,7 @@
         "securityPin": "PIN включён",
         "securityOff": "Выкл.",
         "backupData": "Резервная копия",
+        "backupShareTitle": "Сохранить резервную копию",
         "restoreData": "Восстановить",
         "resetAllData": "Удалить финансовые данные",
         "resetCurrency": "Сменить базовую валюту",
@@ -480,6 +481,12 @@
         "notificationsDeniedMessage": "Уведомления заблокированы в настройках устройства. Включите их в настройках устройства."
     },
     "common": {
+        "amountErrors": {
+            "empty": "Введите сумму",
+            "notANumber": "Это не число",
+            "negative": "Введите положительную сумму",
+            "tooManyDecimals": "Введите сумму в формате {{example}}"
+        },
         "ok": "OK",
         "cancel": "Отмена",
         "save": "Сохранить",

@@ -57,6 +57,7 @@ jest.mock('../../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         parseAmount: (v: string) => (v ? Number(v) : null),
         normalizeAmount: (v: number) => Math.round(v * 100),
+        amountPlaceholder: '0.00',
         decimals: 2,
     }),
 }));

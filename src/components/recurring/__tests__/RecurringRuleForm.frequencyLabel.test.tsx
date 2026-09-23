@@ -38,8 +38,11 @@ jest.mock('../../../hooks/useCategories', () => ({
 jest.mock('../../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         formatAmount: (v: number) => String(v),
+        formatDate: (d: Date) => d.toISOString().slice(0, 10),
         centsToMajor: (v: number) => v / 100,
-        parseAmountToCents: (v: string) => (v ? Number(v) : null),
+        parseAmountToCentsResult: (v: string) =>
+            (v ? { ok: true, value: Number(v) } : { ok: false, cause: 'empty' }),
+        amountPlaceholder: '0.00',
         decimals: 2,
     }),
 }));

@@ -36,6 +36,7 @@ import {
     serializeWallet,
 } from '../../domain/entities';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
+import i18n from '../../localization/i18n';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
 import { isTransferCategoryId } from '../../domain/ledger/transferCategories';
 import {
@@ -383,6 +384,11 @@ export async function createAndShareBackup(): Promise<void> {
     const snapshot = await createBackupSnapshot();
     const json = JSON.stringify(snapshot, null, 2);
 
+    // Fixed to the persisted language, as TransactionExportService does: the
+    // share sheet follows the app language, not the device locale.
+    const settings = await loadSettings();
+    const t = i18n.getFixedT(settings.language);
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `valto-backup-${timestamp}.json`;
     const file = new ExpoFile(Paths.cache, filename);
@@ -392,7 +398,7 @@ export async function createAndShareBackup(): Promise<void> {
     if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri, {
             mimeType: 'application/json',
-            dialogTitle: 'Save Backup',
+            dialogTitle: t('settings.backupShareTitle'),
             UTI: 'public.json',
         });
     }

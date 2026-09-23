@@ -22,6 +22,7 @@ import { RecurrenceFrequency } from '../../domain/entities/RecurringTransaction'
 import { useFormatting } from '../../hooks/useFormatting';
 import { RECURRENCE_UNITS } from '../../localization/recurrenceForms';
 import { getButtonA11y } from '../../utils/accessibility';
+import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
 import type { CreateRecurringTransactionDTO, UpdateRecurringTransactionDTO } from '../../domain/entities/RecurringTransaction';
 import type { RecurringTransaction } from '../../domain/entities/RecurringTransaction';
 import { useCategories } from '../../hooks/useCategories';
@@ -51,7 +52,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     const insets = useSafeAreaInsets();
     const { wallets } = useWallets();
     const { categories } = useCategories();
-    const { parseAmountToCents, centsToMajor, decimals } = useFormatting();
+    const { parseAmountToCentsResult, centsToMajor, formatDate, amountPlaceholder, decimals } = useFormatting();
 
     const isEdit = !!existingRule;
 
@@ -118,11 +119,20 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     };
 
     const handleSubmit = async () => {
-        const amountCents = parseAmountToCents(amount);
-        if (amountCents === null) {
-            Alert.alert(t('recurring.invalidAmount'), t('recurring.invalidAmountMessage'));
+        const parsedAmount = parseAmountToCentsResult(amount);
+        if (!parsedAmount.ok) {
+            Alert.alert(
+                t('recurring.invalidAmount'),
+                amountRefusalMessage(
+                    parsedAmount.cause,
+                    t,
+                    'recurring.invalidAmountMessage',
+                    amountPlaceholder,
+                ),
+            );
             return;
         }
+        const amountCents = parsedAmount.value;
         if (!walletId) {
             Alert.alert(t('recurring.walletRequired'), t('recurring.walletRequiredMessage'));
             return;
@@ -172,8 +182,6 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
             setSubmitting(false);
         }
     };
-
-    const formatDate = (d: Date) => d.toLocaleDateString();
 
     const frequencyLabel = () => {
         const intVal = parseInt(interval, 10) || 1;
@@ -297,7 +305,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                 <View style={{ marginTop: spacing.md }}>
                     <InputField
                         label={t('recurring.amount')}
-                        placeholder="0.00"
+                        placeholder={amountPlaceholder}
                         value={amount}
                         onChangeText={setAmount}
                         keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}

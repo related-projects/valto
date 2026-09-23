@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +19,12 @@ import { getButtonA11y } from '../utils/accessibility';
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+/**
+ * The same source the About screen reads, so the two rows cannot disagree: the
+ * running binary, through expo-application. `null` where the platform reports
+ * nothing, in which case the row simply carries no subtitle.
+ */
+const APP_VERSION = Application.nativeApplicationVersion;
 
 export const SettingsScreen = () => {
     const { t } = useTranslation();
@@ -398,7 +403,7 @@ export const SettingsScreen = () => {
                     />
                     <ListItem
                         title={t('settings.aboutValto')}
-                        subtitle={`v${APP_VERSION}`}
+                        subtitle={APP_VERSION === null ? undefined : `v${APP_VERSION}`}
                         leftIcon={
                             <IconBadge icon={<Ionicons name="information-circle-outline" size={20} color={colors.primary} />} />
                         }
