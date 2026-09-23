@@ -41,7 +41,8 @@ jest.mock('../../../hooks/useTransactions', () => ({
 jest.mock('../../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         formatAmount: (cents: number) => String(cents),
-        parseAmountToCents: () => null,
+        parseAmountToCentsResult: () => ({ ok: false, cause: 'empty' }),
+        amountPlaceholder: '0.00',
         decimals: 2,
     }),
 }));

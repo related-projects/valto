@@ -75,16 +75,47 @@ const SEPARATORS: Record<NumberFormatProfile, ProfileSeparators> = {
 const CONTAINS_GROUPING_SPACE = new RegExp(GROUPING_SPACE_CLASS);
 
 /**
+ * Why an amount was refused.
+ *
+ * These were one `null` until F-06. Five different mistakes reaching a call
+ * site as the same value meant the call site could own only one message, and
+ * the message it owned named the cause easiest to describe - the sign. A user
+ * whose currency has no minor unit was told to enter an amount greater than
+ * zero after typing a perfectly positive one.
+ *
+ *  - empty            nothing was typed
+ *  - notANumber       not a single clean number in the active profile
+ *  - tooManyDecimals  more fraction digits than the currency's exponent allows
+ *  - negative         parsed below zero, where the caller requires positive
+ *  - zero             parsed to exactly zero, where the caller requires positive
+ */
+export type AmountRefusalCause =
+    | 'empty'
+    | 'notANumber'
+    | 'tooManyDecimals'
+    | 'negative'
+    | 'zero';
+
+/** A parsed amount, or the reason there is not one. */
+export type AmountResult =
+    | { ok: true; value: number }
+    | { ok: false; cause: AmountRefusalCause };
+
+const refused = (cause: AmountRefusalCause): AmountResult => ({ ok: false, cause });
+
+/**
  * Shared tail of every parse branch: enforce the currency's fraction width, then
  * convert. `normalized` must already use '.' as its decimal point and carry no
  * grouping.
  */
-function finishParse(sign: string, normalized: string, decimals: number): number | null {
+function finishParse(sign: string, normalized: string, decimals: number): AmountResult {
     const dotIndex = normalized.indexOf('.');
-    if (dotIndex !== -1 && normalized.length - dotIndex - 1 > decimals) return null;
+    if (dotIndex !== -1 && normalized.length - dotIndex - 1 > decimals) {
+        return refused('tooManyDecimals');
+    }
 
     const parsed = Number(`${sign}${normalized}`);
-    return Number.isFinite(parsed) ? parsed : null;
+    return Number.isFinite(parsed) ? { ok: true, value: parsed } : refused('notANumber');
 }
 
 /**
@@ -119,8 +150,25 @@ export function parseAmountInput(
     profile: NumberFormatProfile = 'dot',
     decimals = 2,
 ): number | null {
+    const result = parseAmountInputResult(input, profile, decimals);
+    return result.ok ? result.value : null;
+}
+
+/**
+ * parseAmountInput, with the reason for a refusal instead of a bare null.
+ *
+ * This is the implementation; parseAmountInput above is the null-returning view
+ * of it. Writing it that way round is deliberate: the two cannot drift, so the
+ * set of accepted and refused amounts is the same before and after F-06 and
+ * only the message a caller can show has changed.
+ */
+export function parseAmountInputResult(
+    input: string,
+    profile: NumberFormatProfile = 'dot',
+    decimals = 2,
+): AmountResult {
     const trimmed = input.trim();
-    if (trimmed === '') return null;
+    if (trimmed === '') return refused('empty');
 
     const sign = /^[+-]/.test(trimmed) ? trimmed[0] : '';
     const body = sign ? trimmed.slice(1) : trimmed;
@@ -138,7 +186,7 @@ export function parseAmountInput(
         const spaceGrouped = new RegExp(
             `^\\d{1,3}(?:${GROUPING_SPACE_CLASS}\\d{3})+(?:${decimalRe}\\d*)?$`,
         );
-        if (!spaceGrouped.test(body)) return null;
+        if (!spaceGrouped.test(body)) return refused('notANumber');
         const withoutGrouping = body.replace(GROUPING_SPACES_GLOBAL, '').split(decimal).join('.');
         return finishParse(sign, withoutGrouping, decimals);
     }
@@ -164,7 +212,7 @@ export function parseAmountInput(
         // Not a valid group, so the grouping character can only have been meant as a decimal.
         cleaned = body.split(thousands).join('.');
     }
-    if (cleaned === null) return null;
+    if (cleaned === null) return refused('notANumber');
 
     return finishParse(sign, cleaned, decimals);
 }
@@ -186,9 +234,32 @@ export function parseAndNormalizeAmount(
     profile: NumberFormatProfile = 'dot',
     decimals = 2,
 ): number | null {
-    const parsed = parseAmountInput(input, profile, decimals);
-    if (parsed === null || parsed <= 0) return null;
-    return normalizeAmount(parsed, decimals);
+    const result = parseAndNormalizeAmountResult(input, profile, decimals);
+    return result.ok ? result.value : null;
+}
+
+/**
+ * parseAndNormalizeAmount, with the reason for a refusal instead of a bare null.
+ *
+ * Adds the two sign causes to the three parse ones. Zero and negative are kept
+ * apart on purpose: "greater than 0" is a fair thing to say to someone who
+ * typed 0, and a confusing thing to say to someone who typed -5 and meant a
+ * refund.
+ *
+ * @example parseAndNormalizeAmountResult('15.75') -> { ok: true, value: 1575 }
+ * @example parseAndNormalizeAmountResult('-5')    -> { ok: false, cause: 'negative' }
+ * @example parseAndNormalizeAmountResult('0')     -> { ok: false, cause: 'zero' }
+ */
+export function parseAndNormalizeAmountResult(
+    input: string,
+    profile: NumberFormatProfile = 'dot',
+    decimals = 2,
+): AmountResult {
+    const parsed = parseAmountInputResult(input, profile, decimals);
+    if (!parsed.ok) return parsed;
+    if (parsed.value < 0) return refused('negative');
+    if (parsed.value === 0) return refused('zero');
+    return { ok: true, value: normalizeAmount(parsed.value, decimals) };
 }
 
 /**

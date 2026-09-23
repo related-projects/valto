@@ -10,9 +10,10 @@ import { dataEvents } from '../core/events/dataEvents';
 import { type AppSettings, loadSettings } from '../data/services/settingsService';
 import { getCurrencyByCode } from '../domain/constants/currencies';
 import { DEFAULT_NUMBER_FORMAT } from '../domain/constants/numberFormats';
+import { amountPlaceholder as amountPlaceholderUtil } from '../utils/amountPlaceholder';
 import { formatAmountCompact as formatAmountCompactUtil, formatAmount as formatAmountUtil, formatAmountWhole as formatAmountWholeUtil } from '../utils/formatAmount';
 import { formatDate as formatDateUtil } from '../utils/formatDate';
-import { centsToMajor as centsToMajorUtil, normalizeAmount as normalizeAmountUtil, parseAmountInput as parseAmountInputUtil, parseAndNormalizeAmount as parseAndNormalizeAmountUtil } from '../utils/normalizeAmount';
+import { centsToMajor as centsToMajorUtil, normalizeAmount as normalizeAmountUtil, parseAmountInputResult as parseAmountInputResultUtil, parseAmountInput as parseAmountInputUtil, parseAndNormalizeAmountResult as parseAndNormalizeAmountResultUtil, parseAndNormalizeAmount as parseAndNormalizeAmountUtil } from '../utils/normalizeAmount';
 
 export function useFormatting() {
     const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -79,6 +80,27 @@ export function useFormatting() {
         [decimals],
     );
 
+    /**
+     * Same acceptance rule as parseAmount, but a refusal names its cause so the
+     * caller can say WHY rather than guessing. See normalizeAmount.ts.
+     */
+    const parseAmountResult = useCallback(
+        (input: string) => parseAmountInputResultUtil(input, numberFormat, decimals),
+        [numberFormat, decimals],
+    );
+
+    /** Same acceptance rule as parseAmountToCents; a refusal names its cause. */
+    const parseAmountToCentsResult = useCallback(
+        (input: string) => parseAndNormalizeAmountResultUtil(input, numberFormat, decimals),
+        [numberFormat, decimals],
+    );
+
+    /**
+     * The hint for an empty amount field: derived from the currency's exponent
+     * and the user's decimal character, never a translated literal.
+     */
+    const amountPlaceholder = amountPlaceholderUtil(decimals, numberFormat);
+
     return {
         formatAmount,
         formatAmountCompact,
@@ -86,8 +108,11 @@ export function useFormatting() {
         formatDate,
         parseAmount,
         parseAmountToCents,
+        parseAmountResult,
+        parseAmountToCentsResult,
         normalizeAmount,
         centsToMajor,
+        amountPlaceholder,
         decimals,
         settings,
     };

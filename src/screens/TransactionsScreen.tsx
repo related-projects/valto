@@ -122,72 +122,50 @@ export const TransactionsScreen = () => {
                     >
                         {t('transactions.title')}
                     </Text>
-                    {/* Add + filter, in that order: recording a transaction is the
-                        primary job of this screen, filtering an existing list the
-                        secondary one. Same button shape and tokens as the Wallets
-                        header so the two "add" affordances read as one idiom. */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                        <TouchableOpacity
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                backgroundColor: colors.accent,
-                                paddingHorizontal: spacing.md,
-                                paddingVertical: spacing.sm,
-                                borderRadius: radius.md,
-                                gap: spacing.xs,
-                            }}
-                            onPress={() => setAddModalVisible(true)}
-                            testID="transactions_add_button"
-                            accessibilityRole="button"
-                            accessibilityLabel={t('transactions.add')}
-                        >
-                            <Ionicons name="add" size={18} color={colors.accentForeground} />
-                            <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>
-                                {t('transactions.add')}
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: spacing.lg,
-                                backgroundColor: activeFilterCount > 0 ? colors.accent : colors.card,
-                                borderWidth: 1,
-                                borderColor: activeFilterCount > 0 ? colors.accent : colors.border,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                            onPress={() => setFilterModalVisible(true)}
-                            testID="filter_icon_button"
-                        >
-                            <Ionicons
-                                name="options-outline"
-                                size={20}
-                                color={activeFilterCount > 0 ? colors.accentForeground : colors.foreground}
-                            />
-                            {activeFilterCount > 0 && (
-                                <View
-                                    style={{
-                                        position: 'absolute',
-                                        top: -4,
-                                        right: -4,
-                                        backgroundColor: colors.destructive,
-                                        borderRadius: 10,
-                                        minWidth: 18,
-                                        height: 18,
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        paddingHorizontal: 4,
-                                    }}
-                                >
-                                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
-                                        {activeFilterCount}
-                                    </Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    {/* Filtering is the only job this header holds. Adding a
+                        transaction is reached from the tab bar's floating button,
+                        which is over this screen like every other, and from the
+                        empty state below when there is nothing to list. */}
+                    <TouchableOpacity
+                        style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: spacing.lg,
+                            backgroundColor: activeFilterCount > 0 ? colors.accent : colors.card,
+                            borderWidth: 1,
+                            borderColor: activeFilterCount > 0 ? colors.accent : colors.border,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                        onPress={() => setFilterModalVisible(true)}
+                        testID="filter_icon_button"
+                    >
+                        <Ionicons
+                            name="options-outline"
+                            size={20}
+                            color={activeFilterCount > 0 ? colors.accentForeground : colors.foreground}
+                        />
+                        {activeFilterCount > 0 && (
+                            <View
+                                style={{
+                                    position: 'absolute',
+                                    top: -4,
+                                    right: -4,
+                                    backgroundColor: colors.destructive,
+                                    borderRadius: 10,
+                                    minWidth: 18,
+                                    height: 18,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    paddingHorizontal: 4,
+                                }}
+                            >
+                                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                                    {activeFilterCount}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
                 <InputField
                     placeholder={t('transactions.searchPlaceholder')}

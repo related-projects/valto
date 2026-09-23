@@ -138,7 +138,7 @@ export async function shareCSV(
     if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {
             mimeType: 'text/csv',
-            dialogTitle: 'Export Transactions',
+            dialogTitle: t('export.csvTitle'),
             UTI: 'public.comma-separated-values-text',
         });
     } else {

@@ -2,27 +2,34 @@
  * About Valto Screen
  *
  * Displays app information: name, version, description, and contact.
- * Reads version dynamically from expo config.
+ *
+ * The version and build number are read from the RUNNING BINARY through
+ * expo-application, not from expoConfig. eas.json sets
+ * cli.appVersionSource: "remote", so EAS stamps the build number into the
+ * native project and never into the config that ships to Constants: the old
+ * `Constants.expoConfig?.ios?.buildNumber ?? ... ?? '1'` had both branches
+ * undefined in every build and printed a confident "1" forever.
+ *
+ * expo-application returns `string | null` - null on web, and on any platform
+ * that has nothing to report. A row with no value is not rendered rather than
+ * filled with a placeholder: that is what removed the need for an 'N/A' key,
+ * and it is also what makes InfoRow's `value: string` honest again.
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/theme';
 
 // ─── Static Data ──────────────────────────────────────────────────────
 
 const APP_NAME = 'Valto';
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
-const BUILD_NUMBER = Constants.expoConfig?.ios?.buildNumber
-    ?? Constants.expoConfig?.android?.versionCode?.toString()
-    ?? '1';
 const CONTACT_EMAIL = 'renkakpo@gmail.com';
-const SDK_VERSION = Constants.expoConfig?.sdkVersion ?? 'N/A';
 
 // ─── Info Row Component ───────────────────────────────────────────────
 
@@ -56,6 +63,13 @@ export const AboutScreen = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
+
+    // Read at render rather than at import: these are native constants, and a
+    // module-level read runs before the test harness - or a host that reports
+    // nothing - can be observed.
+    const appVersion = Application.nativeApplicationVersion;
+    const buildNumber = Application.nativeBuildVersion;
+    const sdkVersion = Constants.expoConfig?.sdkVersion ?? null;
 
     const handleEmailPress = () => {
         Linking.openURL(`mailto:${CONTACT_EMAIL}`).catch(() => {
@@ -102,7 +116,22 @@ export const AboutScreen = () => {
                     backgroundColor: colors.accentForeground + '22',
                     borderRadius: radius.full,
                 }]}>
-                    <Text style={{ fontSize: 32 }}>💰</Text>
+                    {/* The app's own icon - the file app.json declares as `icon`,
+                        so the one screen that names the app shows what the
+                        launcher shows. borderRadius sits on the Image rather than
+                        on overflow:'hidden' on the circle, which Android does not
+                        clip reliably. No tintColor: the artwork carries its own
+                        colours. Decorative on purpose - the title beside it
+                        already announces the app, and a label here would be read
+                        out twice. */}
+                    <Image
+                        source={require('../../assets/images/icon.png')}
+                        style={{ width: 72, height: 72, borderRadius: radius.full }}
+                        resizeMode="cover"
+                        testID="about_app_logo"
+                        accessibilityElementsHidden
+                        importantForAccessibility="no"
+                    />
                 </View>
                 <Text style={{
                     color: colors.accentForeground,
@@ -112,14 +141,16 @@ export const AboutScreen = () => {
                 }}>
                     {APP_NAME}
                 </Text>
-                <Text style={{
-                    color: colors.accentForeground,
-                    fontSize: typography.sizes.sm,
-                    opacity: 0.8,
-                    marginTop: 2,
-                }}>
-                    {t('about.version', { version: APP_VERSION })}
-                </Text>
+                {appVersion !== null && (
+                    <Text style={{
+                        color: colors.accentForeground,
+                        fontSize: typography.sizes.sm,
+                        opacity: 0.8,
+                        marginTop: 2,
+                    }}>
+                        {t('about.version', { version: appVersion })}
+                    </Text>
+                )}
             </View>
 
             {/* Description */}
@@ -155,9 +186,15 @@ export const AboutScreen = () => {
                 marginBottom: spacing.lg,
                 ...shadows.card,
             }]}>
-                <InfoRow label={t('about.appVersion')} value={APP_VERSION} />
-                <InfoRow label={t('about.buildNumber')} value={BUILD_NUMBER} />
-                <InfoRow label={t('about.sdkVersion')} value={SDK_VERSION} />
+                {appVersion !== null && (
+                    <InfoRow label={t('about.appVersion')} value={appVersion} />
+                )}
+                {buildNumber !== null && (
+                    <InfoRow label={t('about.buildNumber')} value={buildNumber} />
+                )}
+                {sdkVersion !== null && (
+                    <InfoRow label={t('about.sdkVersion')} value={sdkVersion} />
+                )}
                 <InfoRow label={t('about.architecture')} value={t('about.architectureValue')} />
                 <InfoRow label={t('about.storage')} value={t('about.storageValue')} />
             </View>

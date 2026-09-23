@@ -411,6 +411,7 @@
         "securityPin": "PIN ativado",
         "securityOff": "Desativado",
         "backupData": "Backup",
+        "backupShareTitle": "Guardar cópia de segurança",
         "restoreData": "Restaurar",
         "resetAllData": "Excluir os dados financeiros",
         "resetCurrency": "Redefinir moeda base",
@@ -480,6 +481,12 @@
         "notificationsDeniedMessage": "As notificações estão bloqueadas pelas configurações do seu dispositivo. Ative-as nas configurações do dispositivo."
     },
     "common": {
+        "amountErrors": {
+            "empty": "Introduza um valor",
+            "notANumber": "Isto não é um número válido",
+            "negative": "Introduza um valor positivo",
+            "tooManyDecimals": "Introduza o valor no formato {{example}}"
+        },
         "ok": "OK",
         "cancel": "Cancelar",
         "save": "Salvar",

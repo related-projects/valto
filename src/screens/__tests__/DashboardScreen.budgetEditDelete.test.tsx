@@ -153,7 +153,10 @@ const mockFormatting = {
     formatAmountCompact: (v: number) => String(v),
     formatAmountWhole: (v: number) => String(v),
     parseAmountToCents: (v: string) => (v ? Number(v) * 100 : null),
+    parseAmountToCentsResult: (v: string) =>
+        (v ? { ok: true, value: Number(v) * 100 } : { ok: false, cause: 'empty' }),
     centsToMajor: (v: number) => v / 100,
+    amountPlaceholder: '0.00',
     decimals: 2,
 };
 

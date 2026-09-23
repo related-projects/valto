@@ -411,6 +411,7 @@
     "securityPin": "PIN enabled",
     "securityOff": "Off",
     "backupData": "Backup Data",
+    "backupShareTitle": "Save Backup",
     "restoreData": "Restore Data",
     "resetAllData": "Delete Financial Data",
     "resetCurrency": "Reset Base Currency",
@@ -480,6 +481,12 @@
     "notificationsDeniedMessage": "Notifications are blocked by your device settings. Please enable them in your device settings."
   },
   "common": {
+    "amountErrors": {
+      "empty": "Please enter an amount",
+      "notANumber": "This is not a valid number",
+      "negative": "Please enter a positive amount",
+      "tooManyDecimals": "Enter the amount like {{example}}"
+    },
     "ok": "OK",
     "cancel": "Cancel",
     "save": "Save",
