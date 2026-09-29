@@ -152,6 +152,7 @@ const mockFormatting = {
     formatAmount: (v: number) => String(v),
     formatAmountCompact: (v: number) => String(v),
     formatAmountWhole: (v: number) => String(v),
+    formatPercentNumber: (v: number, d: number) => v.toFixed(d),
     parseAmountToCents: (v: string) => (v ? Number(v) * 100 : null),
     parseAmountToCentsResult: (v: string) =>
         (v ? { ok: true, value: Number(v) * 100 } : { ok: false, cause: 'empty' }),

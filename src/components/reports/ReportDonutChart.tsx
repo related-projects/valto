@@ -37,7 +37,7 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatPercentNumber } = useFormatting();
 
     // Donut chart parameters
     const size = 160;
@@ -143,7 +143,7 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
                                 fontWeight: typography.weights.semibold,
                             }}
                         >
-                            {item.percentage.toFixed(0)}%
+                            {formatPercentNumber(item.percentage, 0)}%
                         </Text>
                     </View>
                 ))}

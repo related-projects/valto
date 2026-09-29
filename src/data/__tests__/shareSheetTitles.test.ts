@@ -22,9 +22,22 @@ import { __setDatabaseForTests } from '../storage/sql/database';
  * settings language and leaves i18n's own current language on English: a title
  * that came from the running i18n instance rather than from settings would show
  * up as English here.
+ *
+ * Registry V-95. The expected titles are written out, not re-derived with t().
+ * i18next returns the key itself for a key it cannot find, so comparing the
+ * sheet's title with t(key) passed even with the key deleted from every bundle:
+ * both sides resolved to "settings.backupShareTitle". The values below are
+ * ru.json settings.backupShareTitle and export.csvTitle, escaped to keep this
+ * file ASCII.
  */
 
 const TEST_LANGUAGE = 'ru';
+
+const RU_BACKUP_TITLE =
+    '\u{421}\u{43e}\u{445}\u{440}\u{430}\u{43d}\u{438}\u{442}\u{44c} ' +
+    '\u{440}\u{435}\u{437}\u{435}\u{440}\u{432}\u{43d}\u{443}\u{44e} ' +
+    '\u{43a}\u{43e}\u{43f}\u{438}\u{44e}';
+const RU_CSV_TITLE = '\u{42d}\u{43a}\u{441}\u{43f}\u{43e}\u{440}\u{442} CSV';
 
 jest.mock('expo-sharing', () => ({
     shareAsync: jest.fn().mockResolvedValue(undefined),
@@ -62,8 +75,6 @@ jest.mock('../../core/events', () => ({
 const mockedShareAsync = Sharing.shareAsync as jest.Mock;
 const mockedLoadSettings = jest.requireMock('../services/settingsService').loadSettings as jest.Mock;
 
-const fixed = i18n.getFixedT(TEST_LANGUAGE);
-
 const dialogTitleOfLastShare = (): string =>
     String(mockedShareAsync.mock.calls[0][1].dialogTitle);
 
@@ -91,14 +102,14 @@ describe('share-sheet titles', () => {
         await createAndShareBackup();
 
         expect(mockedShareAsync).toHaveBeenCalledTimes(1);
-        expect(dialogTitleOfLastShare()).toBe(fixed('settings.backupShareTitle'));
+        expect(dialogTitleOfLastShare()).toBe(RU_BACKUP_TITLE);
     });
 
     it('titles the CSV sheet in the persisted language, reusing the export key', async () => {
         await shareCSV([], [], []);
 
         expect(mockedShareAsync).toHaveBeenCalledTimes(1);
-        expect(dialogTitleOfLastShare()).toBe(fixed('export.csvTitle'));
+        expect(dialogTitleOfLastShare()).toBe(RU_CSV_TITLE);
     });
 
     it('leaves neither title in English', async () => {
