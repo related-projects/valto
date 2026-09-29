@@ -22,6 +22,7 @@ import { SavingsLevel, evaluateRecurringHealth } from '../domain/insights';
 import { useBudgets } from '../hooks/useBudgets';
 import { useDashboard } from '../hooks/useDashboard';
 import { useFinancialInsights } from '../hooks/useFinancialInsights';
+import { useFormatting } from '../hooks/useFormatting';
 import { useRecurringRules } from '../hooks/useRecurringRules';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
@@ -104,6 +105,7 @@ export const DashboardScreen = () => {
 
     // Financial Insights
     const { savingsHealth, categoryRisk, budgetPace } = useFinancialInsights();
+    const { formatPercentNumber } = useFormatting();
 
     // Standing orders that are meant to be running and are not. Faults only:
     // a paused rule is the user's own intent and an expired one reached the end
@@ -259,7 +261,7 @@ export const DashboardScreen = () => {
             {categoryRisk.riskLevel !== 'low' && (
                 <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                     <InsightBanner
-                        message={t('insights.categoryRisk', { category: categoryRisk.topCategory, percent: categoryRisk.percentage.toFixed(0) })}
+                        message={t('insights.categoryRisk', { category: categoryRisk.topCategory, percent: formatPercentNumber(categoryRisk.percentage, 0) })}
                         variant={categoryRisk.riskLevel === 'high' ? 'destructive' : 'warning'}
                         icon="pie-chart-outline"
                     />

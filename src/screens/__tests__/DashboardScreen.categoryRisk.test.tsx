@@ -1,13 +1,27 @@
+import { render, screen } from '@testing-library/react-native';
+import React from 'react';
+
+import { getDefaultSettings } from '../../data/services/settingsService';
+import i18n from '../../localization/i18n';
+import { DashboardScreen } from '../DashboardScreen';
+
 /**
- * DashboardScreen first-expense tests
+ * DashboardScreen - the category-risk insight prints its share
  *
- * The observed failure state: wallets funded, nothing recorded, "Aucune
- * transaction" everywhere and no obvious next step. In that state the dashboard
- * must offer the add-expense action, and the budget CTA - capping a spend that
- * has not been entered yet - must not be the strongest affordance on the screen.
+ * Registry V-95. The insight's percentage is built on this screen, not in the
+ * domain: evaluateCategoryRisk returns a number and the screen turns it into
+ * the {{percent}} of insights.categoryRisk. No test reached that line; every
+ * other dashboard suite renders riskLevel 'low', where the banner is absent.
  *
- * Rendered against the REAL fr resources. A t() stub returning the key cannot
- * tell "Ajouter une dépense" from "Créer un budget".
+ * This is a CONTROL. The share is printed with 0 digits, so it carries no
+ * separator under any profile and reads the same before and after the screen
+ * moves onto the shared percentage helper. It runs the REAL useFormatting under
+ * the comma profile (set in settingsService.loadSettings) so the helper, not a
+ * stub, is what prints it. Expected strings are written out, never derived:
+ * comma profile amounts are "5.000,00" plus U+00A0 plus the symbol (\xA0 here).
+ *
+ * Harness from DashboardScreen.firstExpense.test.tsx, minus its useFormatting
+ * mock.
  */
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -30,10 +44,15 @@ jest.mock('../../core/security/SecurityContext', () => ({
     }),
 }));
 
+jest.mock('../../data/services/settingsService', () => {
+    const actual = jest.requireActual('../../data/services/settingsService');
+    return { ...actual, loadSettings: jest.fn() };
+});
+
 // `mock` prefix so jest.mock() hoisting allows the reference.
 const mockWallet = {
     id: 'w1',
-    name: 'Uba Account',
+    name: 'Main',
     balance: 500000,
     type: 'bank',
     createdAt: new Date('2024-01-01T00:00:00.000Z'),
@@ -96,69 +115,43 @@ jest.mock('../../hooks/useBudgets', () => ({
     }),
 }));
 
+// 39.6 is a 'medium' share (30 to 40), so the banner renders, and it rounds to 40.
 jest.mock('../../hooks/useFinancialInsights', () => ({
     useFinancialInsights: () => ({
         savingsHealth: { level: 'weak', messageKey: 'insights.noIncomeNoExpense', messageParams: {} },
         spendingTrend: { messageKey: 'insights.noSpendingEither', messageParams: {} },
-        categoryRisk: { topCategory: 'None', percentage: 0, riskLevel: 'low' },
+        categoryRisk: { topCategory: 'Food', percentage: 39.6, riskLevel: 'medium' },
         budgetPace: null,
     }),
 }));
 
-// The dashboard reads the per-rule statuses to decide whether any standing
-// order is not running. This install has no rules, so no banner.
 jest.mock('../../hooks/useRecurringRules', () => ({
     useRecurringRules: () => ({ rules: [], statuses: {}, loading: false }),
 }));
 
-jest.mock('../../hooks/useFormatting', () => ({
-    useFormatting: () => ({
-        formatAmount: (v: number) => String(v),
-        formatAmountCompact: (v: number) => String(v),
-        formatAmountWhole: (v: number) => String(v),
-        formatPercentNumber: (v: number, d: number) => v.toFixed(d),
-        parseAmountToCentsResult: (v: string) =>
-            (v ? { ok: true, value: Number(v) } : { ok: false, cause: 'empty' }),
-        amountPlaceholder: '0.00',
-        decimals: 2,
-    }),
-}));
-
-import { fireEvent, render } from '@testing-library/react-native';
-import React from 'react';
-
-import i18n from '../../localization/i18n';
-import { DashboardScreen } from '../DashboardScreen';
+const mockedLoadSettings = jest.requireMock('../../data/services/settingsService')
+    .loadSettings as jest.Mock;
 
 beforeAll(async () => {
-    await i18n.changeLanguage('fr');
+    await i18n.changeLanguage('en');
 });
 
-describe('DashboardScreen with one wallet and zero transactions', () => {
-    it('offers the add-expense action from the transactions empty state', () => {
-        const { getByTestId, queryByText, getByText } = render(<DashboardScreen />);
-
-        expect(getByText('Ajouter une dépense')).toBeTruthy();
-        expect(queryByText('Ajouter une transaction')).toBeNull();
-
-        fireEvent.press(getByTestId('transaction_list_add_first'));
-
-        // The add-transaction sheet is open, on the expense leg.
-        expect(getByText('Ajouter une transaction')).toBeTruthy();
-        expect(getByTestId('add_tx_type_expense')).toBeTruthy();
+beforeEach(() => {
+    jest.clearAllMocks();
+    mockedLoadSettings.mockResolvedValue({
+        ...getDefaultSettings(),
+        currency: 'USD',
+        language: 'en',
+        decimalSeparator: 'comma',
     });
+});
 
-    it('de-emphasises the budget CTA while no transaction has been recorded', () => {
-        const { getByTestId } = render(<DashboardScreen />);
+describe('DashboardScreen category-risk insight', () => {
+    it('control: prints a 0-digit share with no separator under the comma profile', async () => {
+        render(<DashboardScreen />);
 
-        const budgetCta = getByTestId('budget_progress_create_budget');
-        const style = Array.isArray(budgetCta.props.style)
-            ? Object.assign({}, ...budgetCta.props.style)
-            : budgetCta.props.style;
-
-        // Still present and still reachable - just not filled like a primary action.
-        expect(budgetCta.props.accessibilityLabel).toBe('Créer un budget');
-        expect(style.backgroundColor).toBe('transparent');
-        expect(style.borderWidth).toBe(1);
+        // Total balance and the wallet row: the comma profile is loaded.
+        expect((await screen.findAllByText('5.000,00\xA0$')).length).toBeGreaterThan(0);
+        expect(screen.getByText('Food accounts for 40% of your spending.')).toBeTruthy();
     });
 });

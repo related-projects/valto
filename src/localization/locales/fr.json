@@ -575,6 +575,7 @@
     "generatePdf": "Générer et partager le PDF",
     "exportFailed": "Échec de l'export",
     "exportFailedMessage": "Impossible d'exporter les données",
+    "exportTimedOutMessage": "L'export a pris trop de temps. Veuillez réessayer.",
     "report": {
       "title": "Rapport mensuel - {{period}}",
       "generatedBy": "Généré par Valto",

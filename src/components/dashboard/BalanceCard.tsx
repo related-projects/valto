@@ -83,7 +83,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius, shadows, isDark } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatPercentNumber } = useFormatting();
     const [hidden, setHidden] = useState(false);
     const authInProgress = useRef(false);
 
@@ -140,7 +140,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
         return (
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: bgColor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.full, marginTop: 4, alignSelf: 'flex-start' }}>
                 <Ionicons name={iconName} size={10} color={textColor} />
-                <Text style={{ color: textColor, fontSize: typography.sizes.xs - 2, fontWeight: '600', marginLeft: 2 }}>{Math.abs(change).toFixed(1)}%</Text>
+                <Text style={{ color: textColor, fontSize: typography.sizes.xs - 2, fontWeight: '600', marginLeft: 2 }}>{formatPercentNumber(Math.abs(change), 1)}%</Text>
             </View>
         );
     };

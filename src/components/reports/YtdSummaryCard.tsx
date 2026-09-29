@@ -37,10 +37,10 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatPercentNumber } = useFormatting();
 
     const savingsRateDisplay = savingsRate !== null
-        ? `${(savingsRate * 100).toFixed(1)}%`
+        ? `${formatPercentNumber(savingsRate * 100, 1)}%`
         : EMPTY_VALUE_PLACEHOLDER;
     const savingsRateColor = savingsRate === null
         ? colors.mutedForeground

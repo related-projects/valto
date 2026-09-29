@@ -37,7 +37,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatPercentNumber } = useFormatting();
 
     if (!hasActivity) {
         return (
@@ -91,7 +91,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
             },
             {
                 label: t('reports.financialSummary.savingsRate'),
-                value: savingsRate !== null ? `${savingsRate.toFixed(1)}%` : EMPTY_VALUE_PLACEHOLDER,
+                value: savingsRate !== null ? `${formatPercentNumber(savingsRate, 1)}%` : EMPTY_VALUE_PLACEHOLDER,
                 color: savingsRate !== null && savingsRate > 0 ? colors.successText : colors.mutedForeground,
                 icon: 'trending-up-outline',
                 bgColor: savingsRate !== null && savingsRate > 0 ? colors.successBackground : colors.muted,
