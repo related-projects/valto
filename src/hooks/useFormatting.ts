@@ -13,6 +13,7 @@ import { DEFAULT_NUMBER_FORMAT } from '../domain/constants/numberFormats';
 import { amountPlaceholder as amountPlaceholderUtil } from '../utils/amountPlaceholder';
 import { formatAmountCompact as formatAmountCompactUtil, formatAmount as formatAmountUtil, formatAmountWhole as formatAmountWholeUtil } from '../utils/formatAmount';
 import { formatDate as formatDateUtil } from '../utils/formatDate';
+import { formatPercentNumber as formatPercentNumberUtil } from '../utils/formatPercent';
 import { centsToMajor as centsToMajorUtil, normalizeAmount as normalizeAmountUtil, parseAmountInputResult as parseAmountInputResultUtil, parseAmountInput as parseAmountInputUtil, parseAndNormalizeAmountResult as parseAndNormalizeAmountResultUtil, parseAndNormalizeAmount as parseAndNormalizeAmountUtil } from '../utils/normalizeAmount';
 
 export function useFormatting() {
@@ -49,6 +50,15 @@ export function useFormatting() {
     const formatAmountWhole = useCallback(
         (amountMinor: number) => formatAmountWholeUtil(amountMinor, currencySymbol, numberFormat, decimals),
         [currencySymbol, numberFormat, decimals],
+    );
+
+    /**
+     * The digits of a percentage on the 0-100 scale, with the same decimal
+     * character as the amounts. No "%" and no grouping: see formatPercent.ts.
+     */
+    const formatPercentNumber = useCallback(
+        (value: number, digits: number) => formatPercentNumberUtil(value, digits, numberFormat),
+        [numberFormat],
     );
 
     const formatDate = useCallback(
@@ -105,6 +115,7 @@ export function useFormatting() {
         formatAmount,
         formatAmountCompact,
         formatAmountWhole,
+        formatPercentNumber,
         formatDate,
         parseAmount,
         parseAmountToCents,

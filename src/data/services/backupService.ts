@@ -398,6 +398,10 @@ export async function createAndShareBackup(): Promise<void> {
     if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri, {
             mimeType: 'application/json',
+            // Android's share sheet does not show this title: expo-sharing hands
+            // it to Intent.createChooser, and the API 36 chooser discards a
+            // chooser title for a send intent. iOS receives it as the
+            // UIActivityViewController title, so it stays. Verified: REGISTRE V-95.
             dialogTitle: t('settings.backupShareTitle'),
             UTI: 'public.json',
         });

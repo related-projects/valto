@@ -30,7 +30,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatPercentNumber } = useFormatting();
 
     if (data.length === 0) {
         return (
@@ -103,7 +103,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                             fontSize: typography.sizes.xs,
                                         }}
                                     >
-                                        {item.percentage.toFixed(0)}%
+                                        {formatPercentNumber(item.percentage, 0)}%
                                     </Text>
                                     <Text
                                         style={{
