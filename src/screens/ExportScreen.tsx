@@ -11,6 +11,7 @@ import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PdfRenderTimeoutError } from '../data/services/export/TransactionExportService';
 import { useExport } from '../hooks/useExport';
 import { useTheme } from '../theme/theme';
 import { getButtonA11y } from '../utils/accessibility';
@@ -48,8 +49,13 @@ export const ExportScreen: React.FC = () => {
     const handleExportPDF = useCallback(async () => {
         try {
             await exportMonthlyPDF(selectedYear, selectedMonth);
-        } catch {
-            Alert.alert(t('export.exportFailed'), t('export.exportFailedMessage'));
+        } catch (error) {
+            Alert.alert(
+                t('export.exportFailed'),
+                error instanceof PdfRenderTimeoutError
+                    ? t('export.exportTimedOutMessage')
+                    : t('export.exportFailedMessage'),
+            );
         }
     }, [exportMonthlyPDF, selectedYear, selectedMonth, t]);
 

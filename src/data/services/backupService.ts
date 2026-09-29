@@ -401,6 +401,8 @@ export async function createAndShareBackup(): Promise<void> {
             dialogTitle: t('settings.backupShareTitle'),
             UTI: 'public.json',
         });
+    } else {
+        throw new Error('Sharing is not available on this device');
     }
 }
 
