@@ -4,11 +4,12 @@
  * Handles CSV export, PDF monthly report generation, and native sharing.
  *
  * Dependencies:
- * - expo-file-system: write temp files
+ * - expo-file-system: write the CSV (legacy API) and name the PDF (File API)
  * - expo-print: HTML -> PDF conversion
  * - expo-sharing: native share sheet
  */
 
+import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -315,6 +316,66 @@ export function generateReportHTML(
 }
 
 /**
+ * How long the HTML -> PDF render may run before the export gives up (V-94).
+ * expo-print settles its promise only once the page is written or the write
+ * fails: a renderer that dies first leaves it pending for good, and there is no
+ * cancel API.
+ */
+export const PDF_RENDER_TIMEOUT_MS = 30_000;
+
+/** The render did not finish within PDF_RENDER_TIMEOUT_MS. ExportScreen gives it a message of its own. */
+export class PdfRenderTimeoutError extends Error {
+    constructor() {
+        super(`PDF render did not finish within ${PDF_RENDER_TIMEOUT_MS} ms`);
+        this.name = 'PdfRenderTimeoutError';
+    }
+}
+
+/**
+ * Print.printToFileAsync, abandoned after PDF_RENDER_TIMEOUT_MS.
+ *
+ * The race settles once. After a timeout the caller has already thrown, so a
+ * late result from the abandoned render reaches only the race, which ignores it:
+ * nothing is renamed or shared, and no state is written. The race's own
+ * subscription also keeps a late rejection from going unhandled. The native job
+ * keeps running; expo-print cannot stop it.
+ */
+async function printToFileWithTimeout(html: string): Promise<Print.FilePrintResult> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const expiry = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new PdfRenderTimeoutError()), PDF_RENDER_TIMEOUT_MS);
+    });
+    try {
+        return await Promise.race([Print.printToFileAsync({ html, base64: false }), expiry]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/**
+ * The name the shared PDF carries: the reported month, not the export date.
+ * Fixed ASCII and untranslated, like the CSV and backup names (V-95).
+ */
+function reportFileName(year: number, month: number): string {
+    return `valto_report_${year}-${String(month).padStart(2, '0')}.pdf`;
+}
+
+/**
+ * Move the printed file, which expo-print names with a UUID, to its report name
+ * in the cache. The File API refuses to move onto an existing file, so the
+ * previous export of the same month is removed first: a re-export replaces it.
+ * Returns the uri to share.
+ */
+function nameReportFile(printedUri: string, year: number, month: number): string {
+    const report = new ExpoFile(Paths.cache, reportFileName(year, month));
+    if (report.exists) {
+        report.delete();
+    }
+    new ExpoFile(printedUri).move(report);
+    return report.uri;
+}
+
+/**
  * Generate and share a PDF monthly report.
  */
 export async function shareMonthlyPDF(
@@ -334,10 +395,8 @@ export async function shareMonthlyPDF(
         settings.decimalSeparator, settings.dateFormat, t,
     );
 
-    const { uri } = await Print.printToFileAsync({
-        html,
-        base64: false,
-    });
+    const { uri: printedUri } = await printToFileWithTimeout(html);
+    const uri = nameReportFile(printedUri, year, month);
 
     if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {
