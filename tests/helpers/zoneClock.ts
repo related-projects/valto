@@ -220,6 +220,26 @@ export function installZoneClock(timeZone: string, nowUtcMs: number): void {
 }
 
 /**
+ * Fix what `new Date()` returns, and nothing else: every Date keeps the native
+ * getters and setters, so the zone is the one the PROCESS runs in (TZ=...).
+ *
+ * installZoneClock cannot serve code that calls the local SETTERS, as
+ * startOfDay does with setHours: it moves the getters only, so a setter would
+ * compute in the process zone while the getters read another one. A suite that
+ * must hold in any zone pins the clock with this, builds its fixtures with the
+ * local constructor, and is run under several TZ values instead.
+ *
+ * Calling it again re-pins the clock to the new instant. Undone by
+ * restoreZoneClock, like installZoneClock. Verified by zoneClock.test.ts -
+ * "pinClock".
+ *
+ * @param nowUtcMs The instant the clock is pinned to, in UTC milliseconds.
+ */
+export function pinClock(nowUtcMs: number): void {
+    jest.useFakeTimers({ now: nowUtcMs, doNotFake: [...TIMER_APIS] });
+}
+
+/**
  * Undo installZoneClock: put the native prototype methods back and return to
  * real timers. Safe to call when nothing is installed, so it can sit in an
  * afterEach that also covers tests which never installed a clock.

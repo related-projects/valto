@@ -67,18 +67,20 @@ export function startOfDay(d: Date): Date {
     return result;
 }
 
-/**
- * Compute all due dates for a rule between lastGeneratedDate (exclusive) and today (inclusive).
- * Respects endDate if present.
- */
-export function computeDueDates(
-    rule: RecurringTransaction,
-    today: Date,
-): Date[] {
-    const dates: Date[] = [];
-    const fence = startOfDay(rule.lastGeneratedDate);
-    const end = rule.endDate ? startOfDay(rule.endDate) : null;
+/** Safety limit on how many occurrences a walk visits (~10 years of daily). */
+const MAX_ITERATIONS = 3650;
 
+/**
+ * Walk the rule's occurrences in order - occurrence k, 0-based from startDate - while
+ * `keepGoing(date)` holds, and at most MAX_ITERATIONS of them. The one definition of the
+ * series, shared by deriveLastGeneratedIndex and computeDueOccurrences so the two can never
+ * number an occurrence differently. `visit` returns false to stop early.
+ */
+function walkOccurrences(
+    rule: RecurringTransaction,
+    keepGoing: (date: Date) => boolean,
+    visit: (index: number, date: Date) => boolean,
+): void {
     // Start from the rule's startDate and step forward
     const start = startOfDay(rule.startDate);
     let cursor = start;
@@ -88,28 +90,88 @@ export function computeDueDates(
     // day-31 rule) is clamped for that month only and the series returns to the anchor day.
     const anchorDay = start.getDate();
 
-    // Safety limit to prevent infinite loops
-    const MAX_ITERATIONS = 3650; // ~10 years of daily
-    let iterations = 0;
-
-    const todayFence = startOfDay(today);
-
-    while (cursor.getTime() <= todayFence.getTime() && iterations < MAX_ITERATIONS) {
-        iterations++;
-
-        // Only include dates after the watermark
-        if (cursor.getTime() > fence.getTime()) {
-            // Respect endDate
-            if (end && cursor.getTime() > end.getTime()) {
-                break;
-            }
-            dates.push(new Date(cursor));
-        }
-
+    for (let index = 0; index < MAX_ITERATIONS && keepGoing(cursor); index++) {
+        if (!visit(index, cursor)) return;
         cursor = startOfDay(advanceDate(cursor, rule.frequency, rule.interval, anchorDay));
     }
+}
 
-    return dates;
+/**
+ * The number of the last occurrence whose day is on or before the day of lastGeneratedDate,
+ * both read in the current zone; -1 when there is none.
+ *
+ * This is the interpretation the engine gave the watermark before the occurrence key existed
+ * (register policy no. 10): an occurrence counted as generated when its local day was not
+ * after the watermark's local day. Occurrence days strictly increase with their number, so
+ * "number > this" and "day after the watermark's day" select the same occurrences, and a rule
+ * given this number emits in an unchanged zone exactly what it emitted before. Verified by
+ * migrationV7OccurrenceKey.test.ts - "migration v7: backfills each index so the first run
+ * emits exactly what the unfixed engine would have".
+ *
+ * Used where a rule has no number yet: the v7 backfill, a restore from a file written before
+ * it, and a schedule edit (against the new schedule).
+ */
+export function deriveLastGeneratedIndex(rule: RecurringTransaction): number {
+    const fence = startOfDay(rule.lastGeneratedDate).getTime();
+    let last = -1;
+    walkOccurrences(
+        rule,
+        (date) => date.getTime() <= fence,
+        (index) => {
+            last = index;
+            return true;
+        },
+    );
+    return last;
+}
+
+/** One occurrence of a rule: its number from startDate, and its local day. */
+export interface DueOccurrence {
+    index: number;
+    date: Date;
+}
+
+/**
+ * Every occurrence numbered after the rule's last generated one whose day is on or before
+ * today (inclusive), in the current zone. Respects endDate if present.
+ *
+ * What was generated is read from lastGeneratedIndex, which no zone moves; lastGeneratedDate
+ * is read only when a rule has no number yet. Verified by recurringOccurrenceKey.test.ts -
+ * "zone shift: after a writer zone 6 h east, a second run writes no occurrence twice...".
+ */
+export function computeDueOccurrences(
+    rule: RecurringTransaction,
+    today: Date,
+): DueOccurrence[] {
+    const occurrences: DueOccurrence[] = [];
+    const lastIndex = rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule);
+    const end = rule.endDate ? startOfDay(rule.endDate) : null;
+    const todayFence = startOfDay(today).getTime();
+
+    walkOccurrences(
+        rule,
+        (date) => date.getTime() <= todayFence,
+        (index, date) => {
+            if (index > lastIndex) {
+                // Respect endDate
+                if (end && date.getTime() > end.getTime()) {
+                    return false;
+                }
+                occurrences.push({ index, date: new Date(date) });
+            }
+            return true;
+        },
+    );
+
+    return occurrences;
+}
+
+/** The days of computeDueOccurrences, for callers that only price or count them. */
+export function computeDueDates(
+    rule: RecurringTransaction,
+    today: Date,
+): Date[] {
+    return computeDueOccurrences(rule, today).map((occurrence) => occurrence.date);
 }
 
 /**

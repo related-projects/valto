@@ -100,6 +100,8 @@ const RULE_WITH_END: RecurringTransaction = {
     frequency: RecurrenceFrequency.MONTHLY,
     interval: 2,
     lastGeneratedDate: new Date('2029-11-15T00:00:00.000Z'),
+    lastGeneratedIndex: -1,
+    scheduleVersion: 1,
     isPaused: false,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
 };
@@ -115,6 +117,8 @@ const RULE_WITHOUT_END: RecurringTransaction = {
     frequency: RecurrenceFrequency.WEEKLY,
     interval: 1,
     lastGeneratedDate: new Date('2030-01-25T00:00:00.000Z'),
+    lastGeneratedIndex: -1,
+    scheduleVersion: 0,
     isPaused: true,
     createdAt: new Date('2026-01-02T00:00:00.000Z'),
 };
@@ -236,6 +240,7 @@ describe('a recurring rule survives the backup file', () => {
         expect(restored[1].endDate).toEqual(new Date('2031-01-15T00:00:00.000Z'));
         expect(restored[1].interval).toBe(2);
         expect(restored[1].lastGeneratedDate).toEqual(new Date('2029-11-15T00:00:00.000Z'));
+        expect(restored[1].scheduleVersion).toBe(1);
     });
 
     it('replaces the live rules with the ones the v2 file carries', async () => {

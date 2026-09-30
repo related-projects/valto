@@ -1,4 +1,4 @@
-import { dateInZone, installZoneClock, restoreZoneClock } from '../helpers/zoneClock';
+import { dateInZone, installZoneClock, pinClock, restoreZoneClock } from '../helpers/zoneClock';
 
 /**
  * Tests for the zone helper itself (REGISTRE V-91).
@@ -152,5 +152,46 @@ describe('restoreZoneClock', () => {
     it('is safe to call when nothing was installed', () => {
         expect(() => restoreZoneClock()).not.toThrow();
         expect(Date.prototype.getFullYear).toBe(nativeGetFullYear);
+    });
+});
+
+describe('pinClock', () => {
+    it('fixes what new Date() returns', () => {
+        pinClock(LAGOS_MARCH_FIRST_MIDNIGHT);
+
+        expect(Date.now()).toBe(LAGOS_MARCH_FIRST_MIDNIGHT);
+        expect(new Date().getTime()).toBe(LAGOS_MARCH_FIRST_MIDNIGHT);
+    });
+
+    it('leaves every local getter native, so the zone stays the process zone', () => {
+        pinClock(LAGOS_MARCH_FIRST_MIDNIGHT);
+
+        expect(Date.prototype.getFullYear).toBe(nativeGetFullYear);
+        expect(Date.prototype.getMonth).toBe(nativeGetMonth);
+        expect(Date.prototype.getDate).toBe(nativeGetDate);
+        expect(Date.prototype.getHours).toBe(nativeGetHours);
+        expect(Date.prototype.getMinutes).toBe(nativeGetMinutes);
+        expect(Date.prototype.getTimezoneOffset).toBe(nativeGetTimezoneOffset);
+    });
+
+    it('re-pins the clock when called again', () => {
+        pinClock(LAGOS_MARCH_FIRST_MIDNIGHT);
+        pinClock(LAGOS_MARCH_FIRST_MIDNIGHT + 86400000);
+
+        expect(Date.now()).toBe(LAGOS_MARCH_FIRST_MIDNIGHT + 86400000);
+    });
+
+    it('is undone by restoreZoneClock', () => {
+        pinClock(LAGOS_MARCH_FIRST_MIDNIGHT);
+
+        restoreZoneClock();
+
+        expect(Date.now()).toBeGreaterThan(Date.UTC(2026, 8, 1));
+    });
+
+    it('leaves real timers running, so async helpers still settle', async () => {
+        pinClock(LAGOS_MARCH_FIRST_MIDNIGHT);
+
+        await expect(new Promise((resolve) => setTimeout(() => resolve('settled'), 1))).resolves.toBe('settled');
     });
 });

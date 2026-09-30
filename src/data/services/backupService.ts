@@ -35,6 +35,7 @@ import {
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
+import { deriveLastGeneratedIndex } from '../../domain/calculations/recurrenceDates';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
@@ -482,8 +483,20 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     const transactions = snapshot.data.transactions.map(deserializeTransaction);
     const categories = snapshot.data.categories.map(deserializeCategory);
     const budgets = snapshot.data.budgets.map(deserializeBudget);
+    // A file written before the occurrence key existed carries no number for
+    // its rules. Each gets the one the v7 backfill would give it, derived from
+    // its watermark in the zone the restore runs in, and it is stored with the
+    // rule - so a later zone change no longer moves it. Verified by
+    // backupRestoreOccurrenceKey.test.ts - "restore: a file without the
+    // occurrence key still restores, each rule getting the backfill index".
     const recurringRules = carriesRules
-        ? snapshot.data.recurringRules.map(deserializeRecurringTransaction)
+        ? snapshot.data.recurringRules
+            .map(deserializeRecurringTransaction)
+            .map((rule) =>
+                rule.lastGeneratedIndex === undefined || rule.lastGeneratedIndex === null
+                    ? { ...rule, lastGeneratedIndex: deriveLastGeneratedIndex(rule) }
+                    : rule,
+            )
         : [];
 
     const db = getDb();
