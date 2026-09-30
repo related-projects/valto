@@ -2,92 +2,94 @@
  * Transaction Runner
  *
  * Shared `runInTransaction` implementation used by every SqlDatabase adapter.
- * Opens BEGIN -> runs work -> COMMIT; ROLLBACK + rethrow on any error. Nested
- * calls degrade to SAVEPOINTs so a transactional use case invoked inside an
- * outer transaction is still atomic (and never issues an illegal nested BEGIN).
+ * Opens BEGIN -> runs work -> COMMIT; ROLLBACK + rethrow on any error.
  *
- * Concurrency on an async connection:
- * better-sqlite3 is synchronous, so two `runInTransaction` calls can never
- * interleave there. op-sqlite is ASYNC, so without serialization two
- * independent top-level transactions on the single shared connection could
- * overlap - the second BEGIN would hit "cannot start a transaction within a
- * transaction", or worse, silently couple two unrelated units of work into one
- * commit/rollback. A promise-chain mutex forces ONE top-level transaction to
- * run to completion before the next starts.
+ * One transaction at a time per connection (REGISTRE V-106):
+ * op-sqlite is ASYNC and runs every statement of the single shared connection
+ * in the order it was issued, whichever call chain issued it. Without a lock,
+ * statements of two independent units of work would interleave inside one
+ * BEGIN/COMMIT and share its fate. A promise-chain lock therefore lets ONE
+ * transaction run at a time: a call made while another transaction is open
+ * waits until that transaction's COMMIT or ROLLBACK has settled, then runs as
+ * its own top-level transaction. There are no savepoints: a call from another
+ * chain can never become part of an unrelated transaction, so it can never be
+ * reported as a success and then be rolled back with it. Verified by
+ * transactionConcurrency.test.ts - "V-106 a: a write made by another chain
+ * survives the rollback..." and transactionExclusive.test.ts - "V-106 b1",
+ * "V-106 b2", "V-106 d1" and "V-106 d2".
  *
- * Re-entrance stays cheap: a `runInTransaction` issued from inside an active
- * transaction's `work()` (same flow) sees `depth > 0` and nests via SAVEPOINT
- * WITHOUT taking the mutex - taking it would deadlock the flow against its own
- * outer transaction. Because the mutex is awaited BEFORE `depth` is set, two
- * independent top-level calls issued in the same tick both observe `depth === 0`
- * and serialize, rather than one wrongly nesting into the other.
+ * The lock is released on every exit path - after COMMIT or ROLLBACK has
+ * settled, and also when BEGIN, COMMIT or ROLLBACK themselves throw. Verified
+ * by the three control tests in transactionExclusive.test.ts ("control: BEGIN
+ * throws...", "control: COMMIT throws...", "control: ROLLBACK throws...").
  */
 
 import type { SqlQueryResult } from './SqlDatabase';
 
 type Execute = (sql: string, params?: unknown[]) => Promise<SqlQueryResult>;
 
-export function createTransactionRunner(execute: Execute) {
-    // Nesting depth of the CURRENTLY-RUNNING top-level transaction. 0 between
-    // transactions; set to 1 only after the mutex has been acquired.
-    let depth = 0;
-    // Mutex tail: each top-level transaction chains behind the previous one.
-    let tail: Promise<unknown> = Promise.resolve();
-
-    async function runSavepoint<T>(work: () => Promise<T>): Promise<T> {
-        const name = `sp_${depth}`;
-        await execute(`SAVEPOINT ${name}`);
-        depth++;
-        try {
-            const result = await work();
-            await execute(`RELEASE ${name}`);
-            depth--;
-            return result;
-        } catch (error) {
-            try {
-                await execute(`ROLLBACK TO ${name}`);
-                await execute(`RELEASE ${name}`);
-            } finally {
-                depth--;
-            }
-            throw error;
-        }
+/**
+ * runInTransaction was called from inside a running transaction callback.
+ * Nested transactions are not supported (REGISTRE V-106).
+ */
+export class NestedTransactionError extends Error {
+    constructor() {
+        super(
+            'runInTransaction was called from inside a running transaction callback. ' +
+                'Nested transactions are not supported (REGISTRE V-106).',
+        );
+        this.name = 'NestedTransactionError';
     }
+}
 
-    async function runTopLevel<T>(work: () => Promise<T>): Promise<T> {
+const ignore = () => undefined;
+
+export function createTransactionRunner(execute: Execute) {
+    // Lock tail: settles once the last queued transaction has fully ended -
+    // COMMIT or ROLLBACK settled, or BEGIN failed. Never rejects.
+    let tail: Promise<void> = Promise.resolve();
+    // True only while a callback is executing synchronously, up to its first
+    // await. See the guard in runInTransaction.
+    let inCallbackPrefix = false;
+
+    async function runExclusive<T>(work: () => Promise<T>): Promise<T> {
         await execute('BEGIN');
-        depth = 1;
         try {
-            const result = await work();
+            let pending: Promise<T>;
+            inCallbackPrefix = true;
+            try {
+                pending = work();
+            } finally {
+                inCallbackPrefix = false;
+            }
+            const result = await pending;
             await execute('COMMIT');
-            depth = 0;
             return result;
         } catch (error) {
-            try {
-                await execute('ROLLBACK');
-            } finally {
-                depth = 0;
-            }
+            // A ROLLBACK that throws propagates its own error, as before.
+            await execute('ROLLBACK');
             throw error;
         }
     }
 
     return function runInTransaction<T>(work: () => Promise<T>): Promise<T> {
-        // Re-entrant: already inside the active top-level transaction's work.
-        // Nest via SAVEPOINT and never wait on the mutex (that would deadlock
-        // the flow against its own outer transaction).
-        if (depth > 0) {
-            return runSavepoint(work);
+        // Nested calls are not supported (REGISTRE V-106). A call made while a
+        // callback is still executing synchronously - before its first await -
+        // can only come from inside that callback, since nothing else runs
+        // until it yields, so it throws NestedTransactionError. Verified by
+        // transactionConcurrency.test.ts - "V-106 e1: a runInTransaction call
+        // in the callback synchronous prefix throws NestedTransactionError".
+        //
+        // Limit, accepted in V-106: a call made after the callback's first
+        // await cannot be told apart from a call from another chain, and is
+        // NOT detected. It queues behind the transaction it was made from,
+        // which is waiting for it, so neither ever settles. No timeout or
+        // watchdog stands in for this.
+        if (inCallbackPrefix) {
+            throw new NestedTransactionError();
         }
-        // Top-level: queue behind any in-flight top-level transaction. `depth`
-        // stays 0 until the prior transaction fully drains, so concurrent
-        // top-level calls serialize instead of colliding on BEGIN.
-        const result = tail.then(() => runTopLevel(work));
-        // Keep the chain alive even if this transaction rejects.
-        tail = result.then(
-            () => undefined,
-            () => undefined,
-        );
-        return result;
+        const run = tail.then(() => runExclusive(work));
+        tail = run.then(ignore, ignore);
+        return run;
     };
 }
