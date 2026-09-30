@@ -47,6 +47,16 @@ export interface Transaction {
 
     /** Timestamp when this transaction was created in the system */
     readonly createdAt: Date;
+
+    /**
+     * The occurrence key, set only on a row the recurring engine generated:
+     * the rule, its schedule version and the occurrence number. The three are
+     * set together or not at all, and a partial unique index refuses a second
+     * row with the same key (REGISTRE V-98).
+     */
+    readonly recurringRuleId?: string;
+    readonly recurringScheduleVersion?: number;
+    readonly recurringOccurrenceIndex?: number;
 }
 
 /**
@@ -89,6 +99,10 @@ export interface SerializableTransaction {
     date: string; // ISO string
     note?: string;
     createdAt: string; // ISO string
+    /** Absent on rows no rule generated, and in files written before REGISTRE V-98. */
+    recurringRuleId?: string;
+    recurringScheduleVersion?: number;
+    recurringOccurrenceIndex?: number;
 }
 
 /**

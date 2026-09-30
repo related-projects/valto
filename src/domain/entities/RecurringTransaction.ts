@@ -53,8 +53,29 @@ export interface RecurringTransaction {
     /** Multiplier for frequency (e.g. interval=2 + frequency=weekly -> every 2 weeks) */
     readonly interval: number;
 
-    /** Date of the last successfully generated transaction (watermark for idempotency) */
+    /**
+     * Local midnight of the last generated occurrence, in the zone that wrote
+     * it. Still written with every occurrence so older readers and backups
+     * keep their meaning, but no longer what decides whether an occurrence was
+     * generated: see lastGeneratedIndex.
+     */
     readonly lastGeneratedDate: Date;
+
+    /**
+     * Number of the last generated occurrence, counted from 0 at startDate;
+     * -1 when none has been. Zone-independent, unlike lastGeneratedDate
+     * (REGISTRE V-98). Absent on a rule that predates it - a file restored
+     * from an older backup, or a row not yet migrated - until it is derived
+     * from lastGeneratedDate; see deriveLastGeneratedIndex.
+     */
+    readonly lastGeneratedIndex?: number;
+
+    /**
+     * Incremented whenever an edit changes the schedule (startDate, frequency,
+     * interval), so the occurrence numbers of the new schedule cannot collide
+     * with those already used by the old one. Absent means 0.
+     */
+    readonly scheduleVersion?: number;
 
     /** Whether this rule is paused (engine skips paused rules) */
     readonly isPaused: boolean;
@@ -108,6 +129,10 @@ export interface SerializableRecurringTransaction {
     frequency: RecurrenceFrequency;
     interval: number;
     lastGeneratedDate: string;
+    /** Absent in files written before REGISTRE V-98. */
+    lastGeneratedIndex?: number;
+    /** Absent in files written before REGISTRE V-98. */
+    scheduleVersion?: number;
     isPaused: boolean;
     createdAt: string;
 }

@@ -15,7 +15,7 @@ import {
     UpdateRecurringTransactionDTO,
 } from '../../domain/entities/RecurringTransaction';
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
-import { addMonthsClamped, startOfDay } from '../../domain/calculations/recurrenceDates';
+import { addMonthsClamped, deriveLastGeneratedIndex, startOfDay } from '../../domain/calculations/recurrenceDates';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import {
     recurringMapper,
@@ -200,6 +200,9 @@ export class RecurringTransactionRepository
             interval: dto.interval,
             // Watermark one interval before startDate so the first generation includes startDate.
             lastGeneratedDate: this.computeDateBefore(dto.startDate, dto.frequency, dto.interval),
+            // Nothing generated yet: occurrence 0, on startDate, is the first due.
+            lastGeneratedIndex: -1,
+            scheduleVersion: 0,
             isPaused: false,
             createdAt: now,
         };
@@ -225,7 +228,41 @@ export class RecurringTransactionRepository
             interval: dto.interval ?? existing.interval,
         };
 
-        return this.update(updated);
+        return this.update(this.renumberIfRescheduled(existing, updated));
+    }
+
+    /**
+     * Keep the occurrence key meaningful across an edit of the schedule.
+     *
+     * Occurrence numbers count from startDate along one schedule. Once the
+     * frequency or the interval changes (startDate cannot be edited today, but
+     * is compared too), number k names a different day than it did, so:
+     *  - scheduleVersion is incremented: the new schedule's keys can then
+     *    never collide with a row the old schedule already wrote, which would
+     *    have silently swallowed a new occurrence as "already generated";
+     *  - lastGeneratedIndex is re-derived against the NEW schedule from
+     *    lastGeneratedDate, in the current zone - the same reading the engine
+     *    gave the watermark before the key existed, so in a constant zone an
+     *    edit emits exactly what it emitted then. What that behaviour should be
+     *    is V-105; this only keeps the key from making it worse.
+     * Verified by recurringOccurrenceKey.test.ts - the three "control
+     * (non-regression)" edit cases.
+     */
+    private renumberIfRescheduled(
+        existing: RecurringTransaction,
+        updated: RecurringTransaction,
+    ): RecurringTransaction {
+        const rescheduled =
+            updated.frequency !== existing.frequency ||
+            updated.interval !== existing.interval ||
+            updated.startDate.getTime() !== existing.startDate.getTime();
+        if (!rescheduled) return updated;
+
+        return {
+            ...updated,
+            scheduleVersion: (existing.scheduleVersion ?? 0) + 1,
+            lastGeneratedIndex: deriveLastGeneratedIndex(updated),
+        };
     }
 
     async pauseRule(id: string): Promise<RecurringTransaction> {
@@ -242,6 +279,31 @@ export class RecurringTransactionRepository
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Recurring rule with id ${id} not found`);
         }
         return this.update({ ...rule, isPaused: false });
+    }
+
+    /**
+     * Record that occurrence `index` of a rule is in the ledger. Meant to run
+     * inside the same database transaction as that occurrence's insert and
+     * balance update, so the three commit or roll back together. Verified by
+     * recurringOccurrenceKey.test.ts - "interrupted run: a failed watermark
+     * write leaves no occurrence behind to be written again".
+     *
+     * One targeted UPDATE, not a read-modify-write of the whole row. The number
+     * only moves forward: a lower one - from a run that lost a race to another
+     * - leaves the row as it is (recurringOccurrenceKey.test.ts - "overlapping
+     * runs: two concurrent engine runs write each occurrence once").
+     * lastGeneratedDate is still written, as the day of that occurrence, so
+     * older readers and backups keep their meaning.
+     */
+    async recordGeneratedOccurrence(id: string, index: number, date: Date): Promise<void> {
+        const { rowsAffected } = await this.db.execute(
+            `UPDATE recurring_rules SET last_generated_index = ?, last_generated_date = ?
+             WHERE id = ? AND (last_generated_index IS NULL OR last_generated_index < ?)`,
+            [index, date.toISOString(), id, index],
+        );
+        if (rowsAffected === 0 && !(await sqlExists(this.db, recurringMapper, id))) {
+            throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Recurring rule with id ${id} not found`);
+        }
     }
 
     async updateLastGeneratedDate(id: string, date: Date): Promise<RecurringTransaction> {

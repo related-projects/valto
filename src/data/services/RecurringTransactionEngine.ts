@@ -6,9 +6,15 @@
  *
  * Runs on app launch, after migrations, before UI renders.
  *
- * Idempotency:
- * Uses `lastGeneratedDate` as a watermark - only generates transactions
- * for dates strictly after the watermark up to today.
+ * Idempotency (REGISTRE V-98):
+ * Each rule records the number of its last generated occurrence
+ * (`lastGeneratedIndex`), counted from startDate and independent of any time
+ * zone; only occurrences numbered after it, due on or before today, are
+ * generated. Each generated transaction carries its occurrence key (rule,
+ * schedule version, number) under a unique index, and the transaction, the
+ * wallet balance and the rule's number are written in ONE database
+ * transaction. Verified by recurringOccurrenceKey.test.ts - "zone shift...",
+ * "interrupted run..." and "unique key...".
  *
  * Insufficient Funds Handling:
  * Expense rules targeting cash/mobile wallets are pre-checked before
@@ -17,15 +23,14 @@
  * reported as a business outcome - NOT a system error.
  */
 
-import { type CreateTransactionDTO } from '../../domain/entities/Transaction';
+import { type CreateTransactionDTO, TransactionType } from '../../domain/entities/Transaction';
 import type { RecurringTransaction } from '../../domain/entities/RecurringTransaction';
 import type { CategoryRepository } from '../repositories/CategoryRepository';
 import type { RecurringTransactionRepository } from '../repositories/RecurringTransactionRepository';
 import type { TransactionRepository } from '../repositories/TransactionRepository';
 import type { WalletRepository } from '../repositories/WalletRepository';
 import type { EventBus, RunInTransaction } from '../../domain/useCases/types';
-import { createTransaction } from '../../domain/useCases/createTransaction';
-import { computeDueDates, startOfDay } from '../../domain/calculations/recurrenceDates';
+import { computeDueOccurrences, startOfDay } from '../../domain/calculations/recurrenceDates';
 import { checkInsufficientFunds } from '../../domain/recurring';
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -159,7 +164,8 @@ async function generateForRule(
     rule: RecurringTransaction,
 ): Promise<GenerateResult> {
     const today = startOfDay(new Date());
-    const dueDates = computeDueDates(rule, today);
+    const dueOccurrences = computeDueOccurrences(rule, today);
+    const dueDates = dueOccurrences.map((occurrence) => occurrence.date);
 
     if (dueDates.length === 0) return { generated: 0 };
 
@@ -228,48 +234,62 @@ async function generateForRule(
     // ─── Generate transactions ────────────────────────────────────────
     console.log(`[RecurringEngine] Rule ${rule.id}: generating ${dueDates.length} transaction(s)`);
 
-    // The watermark advances once per occurrence, immediately after that
-    // occurrence has committed.
+    // One database transaction per occurrence: the transaction row, the
+    // wallet balance and the rule's occurrence number commit together or not
+    // at all (REGISTRE V-98).
     //
-    // It used to be a single write after the loop. createTransaction commits
-    // each occurrence in its own transaction, so a failure on the fourth of six
-    // left the first three in the ledger with the watermark still on the old
-    // fence: the next run recomputed from that fence and generated all six
-    // again. Nothing detects the result - there is no unique constraint on a
-    // transaction and no column linking one back to the rule that made it.
+    // The number used to be a date watermark written AFTER createTransaction
+    // had committed the occurrence on its own. A run interrupted between the
+    // two left the occurrence in the ledger with the watermark still before
+    // it, and the next run wrote it again. Inside one transaction a failure
+    // anywhere rolls all three back, and the occurrence stays due. Verified by
+    // recurringOccurrenceKey.test.ts - "interrupted run: a failed watermark
+    // write leaves no occurrence behind to be written again".
     //
-    // That stayed latent while a run covered one or two occurrences. The restore
-    // now runs a catch-up over however old the backup file is, so a run of five
-    // or ten occurrences is ordinary and so is a failure part-way through one.
+    // Each occurrence still commits on its own, so a failure on the fourth of
+    // six keeps the first three and their numbers - see
+    // recurringWatermarkPerOccurrence.test.ts.
     //
-    // The remaining window is one occurrence wide: a crash between an
-    // occurrence's commit and its watermark write re-emits that occurrence, and
-    // closing it would take a boundary spanning the ledger write and the rule
-    // update.
-    for (const dueDate of dueDates) {
+    // A key already in the ledger means the occurrence was generated before:
+    // nothing is written, nothing is debited, no error is raised, and the
+    // rule's number still moves past it. Verified by the same file - "unique
+    // key: the engine treats a key conflict as already generated...".
+    const scheduleVersion = rule.scheduleVersion ?? 0;
+    // The expression createTransaction uses, which generated these rows before.
+    const balanceAdjustment = rule.type === TransactionType.EXPENSE ? -rule.amount : rule.amount;
+    let generated = 0;
+
+    for (const occurrence of dueOccurrences) {
         const dto: CreateTransactionDTO = {
             type: rule.type,
             amount: rule.amount,
             walletId: rule.walletId,
             categoryId: rule.categoryId,
-            date: dueDate,
+            date: occurrence.date,
             note: rule.description,
         };
 
-        await createTransaction(
-            {
-                transactionRepo: deps.transactionRepo,
-                walletRepo: deps.walletRepo,
-                eventBus: deps.eventBus,
-                runInTransaction: deps.runInTransaction,
-            },
-            dto,
-        );
+        const written = await deps.runInTransaction(async () => {
+            const row = await deps.transactionRepo.createRecurringOccurrence(dto, {
+                ruleId: rule.id,
+                scheduleVersion,
+                occurrenceIndex: occurrence.index,
+            });
+            if (row) {
+                await deps.walletRepo.updateBalance(rule.walletId, balanceAdjustment);
+            }
+            await deps.recurringRepo.recordGeneratedOccurrence(rule.id, occurrence.index, occurrence.date);
+            return row;
+        });
 
-        await deps.recurringRepo.updateLastGeneratedDate(rule.id, dueDate);
+        if (written) {
+            generated++;
+            // After commit, as createTransaction does.
+            deps.eventBus.emitMultiple(['transactions', 'wallets']);
+        }
     }
 
-    return { generated: dueDates.length };
+    return { generated };
 }
 
 // --- Date computation -------------------------------------------------
