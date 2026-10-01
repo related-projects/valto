@@ -23,6 +23,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { BetterSqliteDatabase } from '../../../tests/helpers/BetterSqliteDatabase';
 import { pinClock, restoreZoneClock } from '../../../tests/helpers/zoneClock';
@@ -34,6 +35,7 @@ import { WalletType } from '../../domain/entities/Wallet';
 import { createTransaction } from '../../domain/useCases/createTransaction';
 import { createWallet } from '../../domain/useCases/createWallet';
 import { transferFunds } from '../../domain/useCases/transferFunds';
+import { useRecurringRules } from '../../hooks/useRecurringRules';
 import { runMigrations } from '../migrations';
 import { CategoryRepository } from '../repositories/CategoryRepository';
 import { processRecurringRules } from '../services/RecurringTransactionEngine';
@@ -81,9 +83,10 @@ jest.mock('expo-sharing', () => ({
     isAvailableAsync: jest.fn().mockResolvedValue(true),
 }));
 
-// Silence the reactive event bus.
+// Silence the reactive event bus. `subscribe` is there for the hooks case m
+// mounts, which subscribe on mount.
 jest.mock('../../core/events', () => ({
-    dataEvents: { emit: jest.fn(), emitMultiple: jest.fn() },
+    dataEvents: { emit: jest.fn(), emitMultiple: jest.fn(), subscribe: () => () => undefined },
 }));
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
@@ -336,5 +339,46 @@ describe('V-98 f. restore (process zone; CI: UTC, Africa/Lagos, America/New_York
         const after = await ledgerState();
         expect(after.counts).toEqual(before.counts);
         expect(after.balances).toEqual(before.balances);
+    });
+});
+
+describe('V-105 m. edit after a restore (process zone; CI: UTC, Africa/Lagos, America/New_York)', () => {
+    it('m. a schedule edit made after restoring a backup from a writer zone 6 h east debits no Club due date twice', async () => {
+        await seedThroughProductionWriters();
+        const file = await writeBackup();
+        const shift = (iso: string) => new Date(new Date(iso).getTime() - SIX_HOURS_MS).toISOString();
+        for (const r of file.data.recurringRules) {
+            r.lastGeneratedDate = shift(r.lastGeneratedDate);
+        }
+        for (const t of file.data.transactions) {
+            if (t.note !== undefined && RECURRING_NOTES.includes(t.note)) {
+                t.date = shift(t.date);
+            }
+        }
+        await restoreFile(file);
+
+        const clubRows = async () =>
+            (await container.transactionRepository.getAll()).filter((t) => t.note === 'Club');
+        const known = new Set((await clubRows()).map((t) => t.id));
+        expect(known.size).toBe(6);
+        const club = (await container.recurringTransactionRepository.getAll()).find((r) => r.description === 'Club')!;
+
+        // The edit, on 20 Jun, through the hook the rules screen calls: every
+        // other month back to every month.
+        const view = renderHook(() => useRecurringRules());
+        await waitFor(() => {
+            expect(view.result.current.loading).toBe(false);
+        });
+        await act(async () => {
+            await view.result.current.updateRule({ id: club.id, interval: 1 });
+        });
+        await processRecurringRules(engineDeps());
+        pinClock(new Date(2026, 6, 20, 12, 0).getTime());
+        await processRecurringRules(engineDeps());
+
+        // 10 Jan .. 10 Jun were debited before the backup; the first date after
+        // the edit day is 10 Jul.
+        const added = (await clubRows()).filter((t) => !known.has(t.id));
+        expect(added.map((t) => t.date.getTime())).toEqual([new Date(2026, 6, 10).getTime()]);
     });
 });

@@ -128,13 +128,16 @@ export async function processRecurringRules(
 }
 
 /**
- * Retry processing a single rule by ID.
- * Use after the user has added funds to the wallet.
+ * Process a single rule by ID: generate what is due for it up to the local day
+ * of `now`. Used after the user has added funds to the wallet, and to record
+ * what is due before an edit or a pause (recurringRuleChanges), which passes
+ * the same `now` it saves the edit with.
  * Returns the generation result for that rule.
  */
 export async function retryRule(
     deps: RecurringEngineDeps,
     ruleId: string,
+    now: Date = new Date(),
 ): Promise<GenerateResult> {
     const rule = await deps.recurringRepo.getById(ruleId);
     if (!rule) {
@@ -145,7 +148,7 @@ export async function retryRule(
         throw new Error(`Recurring rule ${ruleId} is paused`);
     }
 
-    return generateForRule(deps, rule);
+    return generateForRule(deps, rule, now);
 }
 
 /**
@@ -162,8 +165,9 @@ export async function retryRule(
 async function generateForRule(
     deps: RecurringEngineDeps,
     rule: RecurringTransaction,
+    now: Date = new Date(),
 ): Promise<GenerateResult> {
-    const today = startOfDay(new Date());
+    const today = startOfDay(now);
     const dueOccurrences = computeDueOccurrences(rule, today);
     const dueDates = dueOccurrences.map((occurrence) => occurrence.date);
 

@@ -14,8 +14,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { container } from '../core/di/container';
+import { container, getUseCaseDeps } from '../core/di/container';
 import { dataEvents } from '../core/events/dataEvents';
+import type { RecurringEngineDeps } from '../data/services/RecurringTransactionEngine';
+import { editRecurringRule, pauseRecurringRule, type PauseOutcome } from '../data/services/recurringRuleChanges';
 import type { RecurringTransaction, CreateRecurringTransactionDTO, UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
 import {
     RecurringRuleStatus,
@@ -24,6 +26,18 @@ import {
 } from '../domain/recurring';
 import { useCategories } from './useCategories';
 import { useWallets } from './useWallets';
+
+/** The engine's dependencies, assembled as the rules screen assembles them for a create. */
+function engineDeps(): RecurringEngineDeps {
+    return {
+        recurringRepo: container.recurringTransactionRepository,
+        transactionRepo: container.transactionRepository,
+        walletRepo: container.walletRepository,
+        categoryRepo: container.categoryRepository,
+        eventBus: dataEvents,
+        runInTransaction: getUseCaseDeps().runInTransaction,
+    };
+}
 
 export function useRecurringRules() {
     const [rules, setRules] = useState<RecurringTransaction[]>([]);
@@ -60,13 +74,16 @@ export function useRecurringRules() {
         [repo],
     );
 
+    // An edit and a pause first record what is due under the stored rule
+    // (REGISTRE V-105); see recurringRuleChanges. A refusal is thrown to the
+    // screen, which names it.
     const updateRule = useCallback(
         async (dto: UpdateRecurringTransactionDTO) => {
-            const rule = await repo.updateFromDTO(dto);
+            const rule = await editRecurringRule(engineDeps(), dto);
             dataEvents.emit('recurringRules');
             return rule;
         },
-        [repo],
+        [],
     );
 
     const deleteRule = useCallback(
@@ -78,11 +95,12 @@ export function useRecurringRules() {
     );
 
     const pauseRule = useCallback(
-        async (id: string) => {
-            await repo.pauseRule(id);
+        async (id: string): Promise<PauseOutcome> => {
+            const outcome = await pauseRecurringRule(engineDeps(), id);
             dataEvents.emit('recurringRules');
+            return outcome;
         },
-        [repo],
+        [],
     );
 
     const resumeRule = useCallback(

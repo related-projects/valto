@@ -12,7 +12,8 @@ import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
-import { TransactionType, RecurrenceFrequency } from '../../domain/entities';
+import { CategoryType, TransactionType, RecurrenceFrequency, WalletType } from '../../domain/entities';
+import { pinClock, restoreZoneClock } from '../../../tests/helpers/zoneClock';
 
 let mockDb: SqlDatabase;
 let mockRecurringRepo: RecurringTransactionRepository;
@@ -78,6 +79,24 @@ describe('useRecurringRules', () => {
         mockEmit.mockClear();
         mockSubscribe.mockClear();
         mockSubscribe.mockReturnValue(jest.fn());
+
+        // An edit or a pause of an active rule first records what is due
+        // under it (REGISTRE V-105), through the engine, which needs the
+        // rule's wallet and category to exist and a fixed "today". Process
+        // zone; the assertions here do not depend on it.
+        pinClock(new Date(2026, 5, 20, 12, 0).getTime());
+        await mockWalletRepo.save({
+            id: 'w-1',
+            name: 'Main',
+            balance: 10000000,
+            type: WalletType.BANK,
+            createdAt: new Date(2025, 0, 1),
+        });
+        await mockCategoryRepo.save({ id: 'cat-food', name: 'Food', type: CategoryType.EXPENSE });
+    });
+
+    afterEach(() => {
+        restoreZoneClock();
     });
 
     const sampleDTO = {
