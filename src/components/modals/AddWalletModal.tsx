@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { WalletType } from "../../domain/entities";
 import { useFormatting } from "../../hooks/useFormatting";
+import { useSubmitLock } from "../../hooks/useSubmitLock";
 import { amountRefusalMessage } from "../../utils/amountRefusalMessage";
 import type { AmountResult } from "../../utils/normalizeAmount";
 import { useWallets } from "../../hooks/useWallets";
@@ -61,7 +62,8 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
     setSelectedColor(WALLET_COLORS[0]);
   };
 
-  const handleSave = async () => {
+  // A press made while a save is running is ignored (REGISTRE V-121).
+  const handleSave = useSubmitLock(async () => {
     // Validation
     if (!name.trim()) {
       Alert.alert(
@@ -117,7 +119,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleClose = () => {
     resetForm();
