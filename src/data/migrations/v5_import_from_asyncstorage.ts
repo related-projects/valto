@@ -37,7 +37,7 @@ import {
     sqlInsert,
     transactionMapper,
 } from '../storage/sql/mappers';
-import { applyOccurrenceKeySchema } from '../storage/sql/schema';
+import { applyEndOccurrenceSchema, applyOccurrenceKeySchema } from '../storage/sql/schema';
 import { StorageKeys } from '../storage/StorageKeys';
 import type { Migration } from './migrationRunner';
 
@@ -69,13 +69,14 @@ export const v5_import_from_asyncstorage: Migration = {
         ).map(deserializeRecurringTransaction);
 
         // The inserts below go through the CURRENT mappers, which write the
-        // occurrence-key columns migration v7 adds. A database left at version
-        // 4 - an earlier v5 failed and is being retried - still has the v4
-        // baseline tables, so those columns must exist first. Idempotent.
-        // Verified by migrationV7OccurrenceKey.test.ts - "control
-        // (non-regression): v5 still imports into tables created by the v4
-        // baseline".
+        // occurrence-key columns migration v7 adds and the end column v8 adds.
+        // A database left at version 4 - an earlier v5 failed and is being
+        // retried - still has the v4 baseline tables, so those columns must
+        // exist first. Idempotent. Verified by migrationV7OccurrenceKey.test.ts
+        // - "control (non-regression): v5 still imports into tables created by
+        // the v4 baseline".
         await applyOccurrenceKeySchema(db);
+        await applyEndOccurrenceSchema(db);
 
         // Wallets need an explicit opening_balance, so insert them directly.
         for (const w of wallets) {

@@ -83,8 +83,10 @@ describe('deriveRecurringRuleStatus', () => {
     // The badge used to read from isPaused alone, so a rule whose endDate had
     // passed rendered "Active" while generating nothing. This is the state that
     // is legitimate and must not be dressed up as a fault.
+    // 1 Jan, its only occurrence before the 20 Jan end, is generated: an ended
+    // rule with an occurrence still due is not EXPIRED (REGISTRE V-114).
     it('reports EXPIRED for a rule that today renders as Active', () => {
-        const expired = rule({ endDate: localDate(2026, 1, 20) });
+        const expired = rule({ endDate: localDate(2026, 1, 20), lastGeneratedIndex: 0 });
 
         expect(expired.isPaused).toBe(false);
         expect(
@@ -153,7 +155,7 @@ describe('deriveRecurringRuleStatus', () => {
 
         it('EXPIRED wins over MISSING_REFERENCE', () => {
             const status = deriveRecurringRuleStatus(
-                rule({ endDate: localDate(2026, 1, 20) }),
+                rule({ endDate: localDate(2026, 1, 20), lastGeneratedIndex: 0 }),
                 { wallet: null, category: null },
                 TODAY,
             );
@@ -183,7 +185,7 @@ describe('deriveScheduleStatus', () => {
     });
 
     it('returns EXPIRED without consulting any reference', () => {
-        expect(deriveScheduleStatus(rule({ endDate: localDate(2026, 1, 20) }), TODAY)).toBe(
+        expect(deriveScheduleStatus(rule({ endDate: localDate(2026, 1, 20), lastGeneratedIndex: 0 }), TODAY)).toBe(
             RecurringRuleStatus.EXPIRED,
         );
     });

@@ -44,8 +44,23 @@ export interface RecurringTransaction {
     /** Date from which to start generating transactions */
     readonly startDate: Date;
 
-    /** Optional end date - no transactions generated after this */
+    /**
+     * Optional end date, as the user chose it. Says whether the rule has an end
+     * and is what the screen shows; which occurrences it covers is fixed by
+     * endOccurrenceIndex (REGISTRE V-114, V-103).
+     */
     readonly endDate?: Date;
+
+    /**
+     * Number of the last occurrence the rule may generate, counted from 0 at
+     * startDate in the current schedule version; fixed when the end date is
+     * chosen, from its local day in the zone the device is in then, so a later
+     * zone change cannot move it. Absent when the rule has no end, and on a
+     * rule that predates it - a file restored from an older backup, or a row
+     * not yet migrated - until it is derived from endDate; see
+     * deriveEndOccurrenceIndex.
+     */
+    readonly endOccurrenceIndex?: number;
 
     /** How often to generate (daily, weekly, monthly, yearly) */
     readonly frequency: RecurrenceFrequency;
@@ -126,6 +141,8 @@ export interface SerializableRecurringTransaction {
     description?: string;
     startDate: string;
     endDate?: string;
+    /** Absent in files written before REGISTRE V-114, and when the rule has no end. */
+    endOccurrenceIndex?: number;
     frequency: RecurrenceFrequency;
     interval: number;
     lastGeneratedDate: string;

@@ -184,7 +184,8 @@ describe('V-98 d. migration v7 on a v6 database (process zone; CI: UTC, Africa/L
 
         await runMigrations();
 
-        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(7);
+        // v8 (REGISTRE V-114) runs after v7 in the same boot.
+        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(8);
 
         // The index of the last occurrence each rule has already written.
         const { rows: ruleRows } = await db.execute(

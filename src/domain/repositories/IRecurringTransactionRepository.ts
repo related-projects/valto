@@ -7,8 +7,10 @@
  *
  * Two scopes live here, and they answer different questions. Do not merge them.
  *
- *  - getActiveRules is "what executes now". The engine wants this: a paused or
- *    expired rule has no occurrence to generate today.
+ *  - getActiveRules is "what executes now". The engine wants this: a paused
+ *    rule, or one that has generated its last occurrence, has nothing to
+ *    generate today. A rule past its end day with an occurrence still due is
+ *    still in it (REGISTRE V-114).
  *  - getByWalletId / getByCategoryId are "what exists". The deletion guards want
  *    this: `is_paused` records WHEN a rule runs, not whether it is still a
  *    standing order. A paused rule can be resumed, and it must not be resumable
@@ -20,7 +22,7 @@ import type { RecurringTransaction } from '../entities';
 import type { IRepository } from './IRepository';
 
 export interface IRecurringTransactionRepository extends IRepository<RecurringTransaction> {
-    /** Rules that are not paused and have not passed their end date. */
+    /** Rules that are not paused and still have an occurrence to generate. */
     getActiveRules(): Promise<RecurringTransaction[]>;
 
     /** Every rule drawing on a given wallet, paused and expired ones included. */

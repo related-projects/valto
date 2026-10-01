@@ -23,7 +23,11 @@ import { dataEvents } from '../core/events/dataEvents';
 import { processRecurringRules } from '../data/services/RecurringTransactionEngine';
 import { RecurrenceFrequency, type CreateRecurringTransactionDTO, type RecurringTransaction, type UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
 import { RecurringRuleStatus, isFaultStatus } from '../domain/recurring';
-import { RecurringCatchUpRefusedError, RecurringRuleReferenceMissingError } from '../domain/useCases/errors';
+import {
+    RecurringCatchUpRefusedError,
+    RecurringEndDateEditRefusedError,
+    RecurringRuleReferenceMissingError,
+} from '../domain/useCases/errors';
 import { useFormatting } from '../hooks/useFormatting';
 import { useRecurringRules } from '../hooks/useRecurringRules';
 import { RECURRENCE_UNITS } from '../localization/recurrenceForms';
@@ -202,8 +206,10 @@ export const RecurringRulesScreen: React.FC = () => {
 
     /**
      * The message for an edit refused for a reason the user can act on
-     * (REGISTRE V-105, Owner decisions 2 and 8), or null for any other failure.
-     * Verified by RecurringRulesScreen.v105Messages.test.tsx - "f." and "o.".
+     * (REGISTRE V-105, Owner decisions 2 and 8; V-118, Owner decision 3), or
+     * null for any other failure. Verified by
+     * RecurringRulesScreen.v105Messages.test.tsx - "f." and "o.", and
+     * RecurringRulesScreen.v118Messages.test.tsx.
      */
     const editRefusalMessage = useCallback(
         (error: unknown): string | null => {
@@ -225,6 +231,18 @@ export const RecurringRulesScreen: React.FC = () => {
                         ? 'recurring.editRefusedMissingWallet'
                         : 'recurring.editRefusedMissingCategory';
                 return t(key, { name });
+            }
+            // REGISTRE V-118, Owner decision 3. Verified by
+            // RecurringRulesScreen.v118Messages.test.tsx.
+            if (error instanceof RecurringEndDateEditRefusedError) {
+                const wallet = error.missing.includes('wallet');
+                const category = error.missing.includes('category');
+                const key = wallet && category
+                    ? 'recurring.editRefusedEndDateMissingWalletAndCategory'
+                    : wallet
+                        ? 'recurring.editRefusedEndDateMissingWallet'
+                        : 'recurring.editRefusedEndDateMissingCategory';
+                return t(key, { name, dates: formatDates(error.dueDates) });
             }
             return null;
         },
