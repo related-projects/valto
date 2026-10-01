@@ -175,3 +175,35 @@ export class RecurringRuleReferenceMissingError extends Error {
         this.name = 'RecurringRuleReferenceMissingError';
     }
 }
+
+/**
+ * Raised when an edit of a rule whose wallet or category no longer exists
+ * would leave a debit already due out of the ledger for good (REGISTRE V-118,
+ * Owner decision 3 of 01/10, pass 71, extending V-105 decision 8):
+ *
+ *  - the edit places the end before an occurrence that is due and not yet
+ *    recorded; or
+ *  - the edit reopens an ended rule (clears the end or moves it later) while
+ *    an occurrence before the old end is still due (Owner answer of 01/10):
+ *    reopening skips the time the rule was ended, and that cannot be done
+ *    without skipping the due occurrence too.
+ *
+ * Such a rule cannot record what is due before the edit, so nothing is
+ * generated and nothing is saved. The user repairs the reference first,
+ * keeping the end, then changes the end in a second edit, which records what
+ * is due before it applies. The missing references and the due dates travel
+ * on the error so the screen can name the refusal. Verified by
+ * recurringEndOccurrenceIndex.test.ts - "V-118 b.", "V-118 c." and
+ * "Decision 4 c.", and RecurringRulesScreen.v118Messages.test.tsx.
+ */
+export class RecurringEndDateEditRefusedError extends Error {
+    readonly code = 'RECURRING_END_DATE_EDIT_REFUSED' as const;
+
+    constructor(
+        readonly missing: readonly RecurringRuleReference[],
+        readonly dueDates: readonly Date[],
+    ) {
+        super(`Rule end date edit refused: missing ${missing.join(' and ')}, debits still due`);
+        this.name = 'RecurringEndDateEditRefusedError';
+    }
+}

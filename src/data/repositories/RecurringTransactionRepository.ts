@@ -17,7 +17,11 @@ import {
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
 import {
     addMonthsClamped,
+    deriveEndOccurrenceIndex,
     deriveLastGeneratedIndex,
+    endOccurrenceIndexForEdit,
+    endOccurrenceIndexOf,
+    hasOccurrencesLeft,
     lastOccurrenceIndexBefore,
     lastOccurrenceIndexOnOrBefore,
     lastSettledDay,
@@ -55,23 +59,21 @@ export class RecurringTransactionRepository
     }
 
     /**
-     * The rules the engine may execute now.
+     * The rules the engine may execute now: not paused, with an occurrence
+     * left to generate.
      *
-     * A rule is active THROUGH the end of its endDate day. The comparison is on
-     * whole days, not on the instant: `endDate > new Date()` measured the stored
-     * midnight against wall-clock time, so a rule ending today stopped being
-     * active at 00:00 and lost its final occurrence. Every other date decision
-     * in this path - computeDueDates and its endDate fence included - already
-     * runs on startOfDay, and the occurrence the engine would have generated is
-     * on or before endDate by construction, so the day-level comparison is the
-     * one that matches.
+     * A rule stays here until it has generated its last occurrence, whatever
+     * the day of its end (REGISTRE V-114, Owner decision 1). Comparing the end
+     * day with today dropped a rule whose end passed before the next launch
+     * with an occurrence still due, and lost that occurrence with no trace;
+     * and the end day, read in the current zone, moved with the device
+     * (V-103). The end is now the number of the last occurrence, fixed when it
+     * was chosen. Verified by recurringEndOccurrenceIndex.test.ts - "V-114 a.",
+     * "V-103 a." and "V-103 b.", and recurringEndDateBoundary.test.ts.
      */
     async getActiveRules(): Promise<RecurringTransaction[]> {
         const rules = await this.getAll();
-        const today = startOfDay(new Date()).getTime();
-        return rules.filter(
-            (r) => !r.isPaused && (!r.endDate || startOfDay(r.endDate).getTime() >= today),
-        );
+        return rules.filter((r) => !r.isPaused && hasOccurrencesLeft(r));
     }
 
     /**
@@ -214,7 +216,14 @@ export class RecurringTransactionRepository
             createdAt: now,
         };
 
-        return this.save(rule);
+        // The last occurrence is fixed now, from the end day in this zone
+        // (REGISTRE V-103, Owner decision 2). Verified by
+        // recurringEndOccurrenceIndex.test.ts - "V-103 b.".
+        return this.save(
+            rule.endDate
+                ? { ...rule, endOccurrenceIndex: deriveEndOccurrenceIndex({ ...rule, endDate: rule.endDate }) }
+                : rule,
+        );
     }
 
     /**
@@ -228,7 +237,7 @@ export class RecurringTransactionRepository
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Recurring rule with id ${dto.id} not found`);
         }
 
-        const updated: RecurringTransaction = {
+        const merged: RecurringTransaction = {
             ...existing,
             type: dto.type ?? existing.type,
             amount: dto.amount ?? existing.amount,
@@ -239,8 +248,52 @@ export class RecurringTransactionRepository
             frequency: dto.frequency ?? existing.frequency,
             interval: dto.interval ?? existing.interval,
         };
+        const updated: RecurringTransaction = {
+            ...merged,
+            endOccurrenceIndex: endOccurrenceIndexForEdit(existing, merged),
+        };
 
-        return this.update(this.renumberIfRescheduled(existing, updated, now));
+        const rescheduled = this.renumberIfRescheduled(existing, updated, now);
+        return this.update(rescheduled === updated ? this.reopenIfExtended(existing, updated, now) : rescheduled);
+    }
+
+    /**
+     * Reopen an ended rule without catching up the time it was ended
+     * (REGISTRE V-114, Owner decision 4): when an edit clears the end or moves
+     * it later, the next occurrence is the first on or after the local day of
+     * the edit, as for a resume (resumeRule, V-105 decision 3) - the number
+     * moves to the last occurrence before that day, and never back.
+     *
+     * Only once every occurrence up to the old end is in the ledger. The edit
+     * records them first (editRecurringRule); a rule whose wallet or category
+     * is missing cannot, and an edit that would have to skip past one of them
+     * is refused there (Owner answer of 01/10). A rule that is not ended has
+     * nothing before the edit day to skip, so the number does not move. A
+     * paused rule is left to resumeRule, and a schedule change to
+     * renumberIfRescheduled, which starts the new schedule strictly after the
+     * edit day (Owner answer of 01/10). Verified by
+     * recurringEndOccurrenceIndex.test.ts - "Decision 4 a.", "Decision 4 b.",
+     * "Decision 4 c." and "control: monthly -> weekly edit that also clears
+     * the end...".
+     */
+    private reopenIfExtended(
+        existing: RecurringTransaction,
+        updated: RecurringTransaction,
+        now: Date,
+    ): RecurringTransaction {
+        if (existing.isPaused) return updated;
+        const oldEnd = endOccurrenceIndexOf(existing);
+        if (oldEnd === null) return updated;
+        const newEnd = endOccurrenceIndexOf(updated);
+        if (newEnd !== null && newEnd <= oldEnd) return updated;
+
+        const stored = existing.lastGeneratedIndex ?? deriveLastGeneratedIndex(existing);
+        if (stored < oldEnd) return updated;
+
+        return {
+            ...updated,
+            lastGeneratedIndex: Math.max(stored, lastOccurrenceIndexBefore(updated, now)),
+        };
     }
 
     /**
@@ -264,7 +317,10 @@ export class RecurringTransactionRepository
      *       resumeRule moves the number to the resume day. Verified by
      *       recurringEditPauseForward.test.ts - "k. paused on 20 Sep, edited...".
      * The number changes numbering with the version; within one version it
-     * never decreases.
+     * never decreases. The end number is read again in the new numbering
+     * (endOccurrenceIndexForEdit, applied by updateFromDTO before this);
+     * verified by recurringEndOccurrenceIndex.test.ts - "control: monthly ->
+     * weekly edit on 20 Oct of a rule ending 30 Nov...".
      */
     private renumberIfRescheduled(
         existing: RecurringTransaction,

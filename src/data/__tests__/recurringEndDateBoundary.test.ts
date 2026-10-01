@@ -130,12 +130,15 @@ describe('a rule ending today still generates today', () => {
         expect(await transactionRepo.getAll()).toHaveLength(0);
     });
 
-    it('leaves a rule that ended yesterday out of the active set', async () => {
+    // Yesterday, its end day and last occurrence, is generated. A rule that
+    // ended with an occurrence still due stays in the active set until it is
+    // generated (REGISTRE V-114): recurringEndOccurrenceIndex.test.ts - "V-114 a.".
+    it('leaves a rule that ended yesterday and generated its last occurrence out of the active set', async () => {
         await db.runInTransaction(async () => recurringRepo.update({
             ...(await recurringRepo.getById('rule-1'))!,
             startDate: daysAgo(3),
             endDate: daysAgo(1),
-            lastGeneratedDate: daysAgo(2),
+            lastGeneratedDate: daysAgo(1),
         }));
 
         const active = await recurringRepo.getActiveRules();

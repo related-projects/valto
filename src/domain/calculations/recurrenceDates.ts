@@ -180,13 +180,84 @@ export interface DueOccurrence {
     date: Date;
 }
 
+// --- The end of a rule ------------------------------------------------
+
+/**
+ * The number of a rule's last occurrence read from its end date in the current zone: the last
+ * occurrence whose local day is on or before the local day of endDate, as the end was read
+ * before the number existed. Only meaningful for a rule that has an endDate.
+ *
+ * Used where the end is chosen (create, an edit of the end or of the schedule) and where a
+ * rule has no number yet: the v8 backfill and a restore from a file written before it.
+ * Verified by migrationV8EndOccurrenceIndex.test.ts - "migration v8: each rule with an end gets
+ * the number of its last occurrence...".
+ */
+export function deriveEndOccurrenceIndex(rule: RecurringTransaction & { endDate: Date }): number {
+    return lastOccurrenceIndexOnOrBefore(rule, rule.endDate);
+}
+
+/**
+ * The number of the last occurrence a rule may generate, or null when it has no end
+ * (REGISTRE V-114, V-103, Owner decision 2 of 01/10).
+ *
+ * The end is the number fixed when the end date was chosen, not the end date read in the
+ * current zone, so a zone change no longer adds or loses an occurrence. Verified by
+ * recurringEndOccurrenceIndex.test.ts - "V-103 a." and "V-103 b.". endDate is what says
+ * whether the rule has an end at all; the number is derived from it only for a rule that
+ * does not carry one yet.
+ */
+export function endOccurrenceIndexOf(rule: RecurringTransaction): number | null {
+    if (!rule.endDate) return null;
+    return rule.endOccurrenceIndex ?? deriveEndOccurrenceIndex({ ...rule, endDate: rule.endDate });
+}
+
+/**
+ * The end number for a rule as an edit saves it: kept when neither the end date nor the
+ * schedule changes - the form sends the end date with every edit (RecurringRuleForm.tsx:164),
+ * and an end that was not chosen again must not be read again in a zone the device may have
+ * moved to - and derived from the end date in the current zone otherwise. A schedule change
+ * renumbers every occurrence, so the end has to be read again in the new numbering.
+ */
+export function endOccurrenceIndexForEdit(
+    existing: RecurringTransaction,
+    updated: RecurringTransaction,
+): number | undefined {
+    if (!updated.endDate) return undefined;
+    const sameEnd = existing.endDate !== undefined && existing.endDate.getTime() === updated.endDate.getTime();
+    const sameSchedule =
+        existing.frequency === updated.frequency &&
+        existing.interval === updated.interval &&
+        existing.startDate.getTime() === updated.startDate.getTime();
+    if (sameEnd && sameSchedule && existing.endOccurrenceIndex !== undefined) {
+        return existing.endOccurrenceIndex;
+    }
+    return deriveEndOccurrenceIndex({ ...updated, endDate: updated.endDate });
+}
+
+/**
+ * Whether a rule still has an occurrence to generate: it has no end, or its last generated
+ * occurrence is before its last one. A rule whose end day has passed with an occurrence still
+ * due is not finished (REGISTRE V-114, Owner decision 1). Verified by
+ * recurringEndOccurrenceIndex.test.ts - "V-114 a." and "control: a rule that generated
+ * everything up to an end that has passed is Ended".
+ */
+export function hasOccurrencesLeft(rule: RecurringTransaction): boolean {
+    const end = endOccurrenceIndexOf(rule);
+    if (end === null) return true;
+    return (rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule)) < end;
+}
+
 /**
  * Every occurrence numbered after the rule's last generated one whose day is on or before
- * today (inclusive), in the current zone. Respects endDate if present.
+ * today (inclusive), in the current zone, up to the rule's last occurrence when it has an end.
  *
  * What was generated is read from lastGeneratedIndex, which no zone moves; lastGeneratedDate
  * is read only when a rule has no number yet. Verified by recurringOccurrenceKey.test.ts -
  * "zone shift: after a writer zone 6 h east, a second run writes no occurrence twice...".
+ *
+ * The end is a number too (endOccurrenceIndexOf), and today is no bound on it: an occurrence
+ * due on or before the end is listed even after the end day (REGISTRE V-114, V-103).
+ * Verified by recurringEndOccurrenceIndex.test.ts - "V-114 a." and "V-103 a.".
  */
 export function computeDueOccurrences(
     rule: RecurringTransaction,
@@ -194,18 +265,17 @@ export function computeDueOccurrences(
 ): DueOccurrence[] {
     const occurrences: DueOccurrence[] = [];
     const lastIndex = rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule);
-    const end = rule.endDate ? startOfDay(rule.endDate) : null;
+    const end = endOccurrenceIndexOf(rule);
     const todayFence = startOfDay(today).getTime();
 
     walkOccurrences(
         rule,
         (date) => date.getTime() <= todayFence,
         (index, date) => {
+            if (end !== null && index > end) {
+                return false;
+            }
             if (index > lastIndex) {
-                // Respect endDate
-                if (end && date.getTime() > end.getTime()) {
-                    return false;
-                }
                 occurrences.push({ index, date: new Date(date) });
             }
             return true;

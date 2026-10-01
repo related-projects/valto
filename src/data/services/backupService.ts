@@ -35,7 +35,7 @@ import {
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
-import { deriveLastGeneratedIndex } from '../../domain/calculations/recurrenceDates';
+import { deriveEndOccurrenceIndex, deriveLastGeneratedIndex } from '../../domain/calculations/recurrenceDates';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
@@ -489,6 +489,16 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     // rule - so a later zone change no longer moves it. Verified by
     // backupRestoreOccurrenceKey.test.ts - "restore: a file without the
     // occurrence key still restores, each rule getting the backfill index".
+    //
+    // The same goes for the number of a rule's last occurrence (REGISTRE
+    // V-114, V-103): a file written before it carries none, and each rule with
+    // an end gets the one its end date gives in the restoring zone - what the
+    // v8 backfill would give it. A file that carries it keeps the writer's, so
+    // a restore in another zone neither adds nor loses an occurrence. A rule
+    // without an end keeps none. Verified by
+    // backupRestoreEndOccurrenceIndex.test.ts - "backup: a file without the
+    // number still restores..." and "V-103 restore: a file restored 7 h east
+    // of its writer...".
     const recurringRules = carriesRules
         ? snapshot.data.recurringRules
             .map(deserializeRecurringTransaction)
@@ -497,6 +507,12 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
                     ? { ...rule, lastGeneratedIndex: deriveLastGeneratedIndex(rule) }
                     : rule,
             )
+            .map((rule) => ({
+                ...rule,
+                endOccurrenceIndex: !rule.endDate
+                    ? undefined
+                    : rule.endOccurrenceIndex ?? deriveEndOccurrenceIndex({ ...rule, endDate: rule.endDate }),
+            }))
         : [];
 
     const db = getDb();

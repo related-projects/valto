@@ -124,10 +124,26 @@ export async function applyOccurrenceKeySchema(db: SqlDatabase): Promise<void> {
     );
 }
 
+/**
+ * The number of a rule's last occurrence (REGISTRE V-114, V-103), added by
+ * migration v8. NULL when the rule has no end.
+ *
+ * Applied the same way as the occurrence key: by migration v8 to existing
+ * databases, and by applySchema - so by v4 - to new ones, whose v5 import
+ * already writes this column through the mappers. Idempotent.
+ */
+export async function applyEndOccurrenceSchema(db: SqlDatabase): Promise<void> {
+    const { rows } = await db.execute('PRAGMA table_info(recurring_rules)');
+    if (!rows.some((row) => row.name === 'end_occurrence_index')) {
+        await db.execute('ALTER TABLE recurring_rules ADD COLUMN end_occurrence_index INTEGER');
+    }
+}
+
 /** Apply the full schema to a database (idempotent). */
 export async function applySchema(db: SqlDatabase): Promise<void> {
     for (const stmt of SCHEMA_STATEMENTS) {
         await db.execute(stmt);
     }
     await applyOccurrenceKeySchema(db);
+    await applyEndOccurrenceSchema(db);
 }

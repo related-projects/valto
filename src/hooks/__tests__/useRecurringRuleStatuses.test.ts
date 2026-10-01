@@ -159,7 +159,9 @@ describe('useRecurringRules statuses', () => {
     it('reports EXPIRED for a rule that the screen renders as Active', async () => {
         await seedWallet(100000);
         await seedCategory();
-        await seedRule({ endDate: daysAgo(1), lastGeneratedDate: daysAgo(2) });
+        // Yesterday, the end day, is generated: an ended rule with an
+        // occurrence still due is not EXPIRED (REGISTRE V-114).
+        await seedRule({ endDate: daysAgo(1), lastGeneratedDate: daysAgo(1) });
 
         await expect(statusOfSeededRule()).resolves.toBe(RecurringRuleStatus.EXPIRED);
     });

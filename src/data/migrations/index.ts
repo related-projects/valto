@@ -15,6 +15,7 @@ import { v4_create_sqlite_schema } from './v4_create_sqlite_schema';
 import { v5_import_from_asyncstorage } from './v5_import_from_asyncstorage';
 import { v6_purge_imported_kv } from './v6_purge_imported_kv';
 import { v7_recurring_occurrence_key } from './v7_recurring_occurrence_key';
+import { v8_recurring_end_occurrence_index } from './v8_recurring_end_occurrence_index';
 
 // ─── Migration Registry ──────────────────────────────────────────────
 // Add new migrations here, in ascending version order.
@@ -27,6 +28,7 @@ const migrations: Migration[] = [
     v5_import_from_asyncstorage,
     v6_purge_imported_kv,
     v7_recurring_occurrence_key,
+    v8_recurring_end_occurrence_index,
 ];
 
 // ─── Public API ──────────────────────────────────────────────────────
