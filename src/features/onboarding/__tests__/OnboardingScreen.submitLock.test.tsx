@@ -9,9 +9,10 @@
  * tests/helpers/pressInOneBatch.ts, against the real useOnboarding hook, the
  * real container and runner, and an in-memory database.
  *
- * On this step an empty name falls back to the placeholder and an unreadable
- * amount to zero, so the refused input used below is the one the repository
- * refuses: a negative opening balance on a cash wallet.
+ * On this step an empty name falls back to the placeholder. The refused input
+ * used below is the one the repository refuses: a negative opening balance on
+ * a cash wallet. The screen's own refusal of an amount the parser cannot read
+ * (REGISTRE V-124) is covered by OnboardingScreen.openingBalance.test.tsx.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -41,10 +42,11 @@ jest.mock('react-native-safe-area-context', () => ({
 // The production parser and conversion, pinned to a two-decimal currency and
 // the dot profile so the result does not depend on the device locale.
 jest.mock('../../../hooks/useFormatting', () => {
-    const { normalizeAmount, parseAmountInput } = jest.requireActual('../../../utils/normalizeAmount');
+    const { normalizeAmount, parseAmountInput, parseAmountInputResult } = jest.requireActual('../../../utils/normalizeAmount');
     return {
         useFormatting: () => ({
             parseAmount: (v: string) => parseAmountInput(v, 'dot', 2),
+            parseAmountResult: (v: string) => parseAmountInputResult(v, 'dot', 2),
             normalizeAmount: (v: number) => normalizeAmount(v, 2),
             amountPlaceholder: '0.00',
             decimals: 2,
