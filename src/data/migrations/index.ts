@@ -41,4 +41,11 @@ export async function runMigrations(): Promise<void> {
     const db = await initDatabase();
     const finalVersion = await executeMigrations(migrations, asyncStorageAdapter, db);
     console.log(`[Migration] Schema at version ${finalVersion}`);
+    // From here on every SQL write must run inside runInTransaction (REGISTRE
+    // V-109). The migrations above run before the UI renders and write outside
+    // the runner by design, so the guard is armed only once they have all
+    // completed; a failed migration throws before this line. Verified by
+    // writeGuard.test.ts - "V-109 d1" and "control: the boot migrations write
+    // outside the runner and complete".
+    db.armWriteGuard?.();
 }

@@ -110,7 +110,12 @@ export function useWallets(): UseWalletsResult {
             // walletRepo.updateFromDTO. A copy in this hook could only disagree
             // with them, and the copy that used to sit here did: it refused a
             // negative balance for every wallet type.
-            const wallet = await walletRepo.updateFromDTO(dto);
+            //
+            // Through the runner (REGISTRE V-109): an edit made while another
+            // transaction is open waits for it to end instead of landing inside
+            // it and being erased by its rollback. Verified by
+            // writesThroughRunner.test.ts - "V-109 c5".
+            const wallet = await getUseCaseDeps().runInTransaction(() => walletRepo.updateFromDTO(dto));
             await loadWallets();
 
             // Emit wallet change event for other components

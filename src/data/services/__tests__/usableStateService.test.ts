@@ -28,6 +28,10 @@ jest.mock('../../../core/di', () => ({
         new (require('../../repositories/WalletRepository').WalletRepository)((global as any).__testDb),
     getCategoryRepository: () =>
         new (require('../../repositories/CategoryRepository').CategoryRepository)((global as any).__testDb),
+    // The repair writes through the runner (REGISTRE V-109).
+    getUseCaseDeps: () => ({
+        runInTransaction: (work: () => Promise<unknown>) => (global as any).__testDb.runInTransaction(work),
+    }),
 }));
 
 import { defaultCategories } from '../../seed/seedData';
@@ -40,7 +44,7 @@ let db: SqlDatabase;
 
 beforeEach(async () => {
     jest.clearAllMocks();
-    db = await createTestDb();
+    db = await createTestDb({ writeGuard: true });
     (global as any).__testDb = db;
     await (global as any).__kv.clear();
 });
@@ -69,11 +73,11 @@ describe('ensureUsableState materializes the terminal state', () => {
     });
 
     it('repairs only the missing half when a wallet exists but categories do not', async () => {
-        const mine = await new WalletRepository(db).create({
+        const mine = await db.runInTransaction(() => new WalletRepository(db).create({
             name: 'Mine',
             balance: 12345,
             type: WalletType.BANK,
-        });
+        }));
 
         await ensureUsableState();
 
@@ -86,12 +90,12 @@ describe('ensureUsableState materializes the terminal state', () => {
     });
 
     it('repairs only the missing half when categories exist but a wallet does not', async () => {
-        const kept = await new CategoryRepository(db).create({
+        const kept = await db.runInTransaction(() => new CategoryRepository(db).create({
             name: 'Only Mine',
             type: CategoryType.EXPENSE,
             icon: 'star',
             color: '#222222',
-        });
+        }));
 
         await ensureUsableState();
 
@@ -104,17 +108,17 @@ describe('ensureUsableState materializes the terminal state', () => {
     });
 
     it('is a no-op when the install is already usable, and stays one when run twice', async () => {
-        const wallet = await new WalletRepository(db).create({
+        const wallet = await db.runInTransaction(() => new WalletRepository(db).create({
             name: 'Mine',
             balance: 5000,
             type: WalletType.CASH,
-        });
-        const category = await new CategoryRepository(db).create({
+        }));
+        const category = await db.runInTransaction(() => new CategoryRepository(db).create({
             name: 'Mine',
             type: CategoryType.EXPENSE,
             icon: 'star',
             color: '#222222',
-        });
+        }));
 
         await ensureUsableState();
 

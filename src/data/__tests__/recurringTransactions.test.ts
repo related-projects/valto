@@ -93,12 +93,12 @@ describe('RecurringTransactionRepository', () => {
     let repo: RecurringTransactionRepository;
 
     beforeEach(async () => {
-        db = await createTestDb();
+        db = await createTestDb({ writeGuard: true });
         repo = new RecurringTransactionRepository(db);
     });
 
     it('saves and retrieves a rule', async () => {
-        const rule = await repo.save(validRule());
+        const rule = await db.runInTransaction(() => repo.save(validRule()));
         expect(rule.id).toBe('rule-1');
 
         const retrieved = await repo.getById('rule-1');
@@ -107,7 +107,7 @@ describe('RecurringTransactionRepository', () => {
     });
 
     it('rejects duplicate IDs', async () => {
-        await repo.save(validRule());
+        await db.runInTransaction(() => repo.save(validRule()));
         await expect(repo.save(validRule())).rejects.toMatchObject({
             type: RepositoryErrorType.DUPLICATE_ERROR,
         });
@@ -140,36 +140,36 @@ describe('RecurringTransactionRepository', () => {
     });
 
     it('pauses a rule', async () => {
-        await repo.save(validRule());
-        const paused = await repo.pauseRule('rule-1');
+        await db.runInTransaction(() => repo.save(validRule()));
+        const paused = await db.runInTransaction(() => repo.pauseRule('rule-1'));
         expect(paused.isPaused).toBe(true);
     });
 
     it('resumes a paused rule', async () => {
-        await repo.save(validRule({ isPaused: true }));
-        const resumed = await repo.resumeRule('rule-1');
+        await db.runInTransaction(() => repo.save(validRule({ isPaused: true })));
+        const resumed = await db.runInTransaction(() => repo.resumeRule('rule-1'));
         expect(resumed.isPaused).toBe(false);
     });
 
     it('getActiveRules excludes paused rules', async () => {
-        await repo.save(validRule({ id: 'active-1' }));
-        await repo.save(validRule({ id: 'paused-1', isPaused: true }));
+        await db.runInTransaction(() => repo.save(validRule({ id: 'active-1' })));
+        await db.runInTransaction(() => repo.save(validRule({ id: 'paused-1', isPaused: true })));
         const active = await repo.getActiveRules();
         expect(active).toHaveLength(1);
         expect(active[0].id).toBe('active-1');
     });
 
     it('deletes a rule', async () => {
-        await repo.save(validRule());
-        await repo.delete('rule-1');
+        await db.runInTransaction(() => repo.save(validRule()));
+        await db.runInTransaction(() => repo.delete('rule-1'));
         const all = await repo.getAll();
         expect(all).toHaveLength(0);
     });
 
     it('updates rule without affecting other rules', async () => {
-        await repo.save(validRule({ id: 'rule-1' }));
-        await repo.save(validRule({ id: 'rule-2', amount: 200 }));
-        await repo.update({ ...validRule({ id: 'rule-1' }), amount: 999 });
+        await db.runInTransaction(() => repo.save(validRule({ id: 'rule-1' })));
+        await db.runInTransaction(() => repo.save(validRule({ id: 'rule-2', amount: 200 })));
+        await db.runInTransaction(() => repo.update({ ...validRule({ id: 'rule-1' }), amount: 999 }));
 
         const r1 = await repo.getById('rule-1');
         const r2 = await repo.getById('rule-2');
@@ -181,7 +181,7 @@ describe('RecurringTransactionRepository', () => {
     // the opposite direction and clamps the same way: one month before the 31st of March is
     // the last day of February, not the 3rd of March.
     it('clamps the initial watermark of a monthly day-31 rule to the end of the short month', async () => {
-        const rule = await repo.create({
+        const rule = await db.runInTransaction(() => repo.create({
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
@@ -189,13 +189,13 @@ describe('RecurringTransactionRepository', () => {
             startDate: anchorDate(2025, 3, 31),
             frequency: RecurrenceFrequency.MONTHLY,
             interval: 1,
-        });
+        }));
 
         expect(toLocalDateString(rule.lastGeneratedDate)).toBe('2025-02-28');
     });
 
     it('clamps the initial watermark of a yearly February 29 rule to February 28', async () => {
-        const rule = await repo.create({
+        const rule = await db.runInTransaction(() => repo.create({
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
@@ -203,7 +203,7 @@ describe('RecurringTransactionRepository', () => {
             startDate: anchorDate(2024, 2, 29),
             frequency: RecurrenceFrequency.YEARLY,
             interval: 1,
-        });
+        }));
 
         expect(toLocalDateString(rule.lastGeneratedDate)).toBe('2023-02-28');
     });
@@ -409,39 +409,39 @@ describe('RecurringTransactionEngine', () => {
     let categoryRepo: CategoryRepository;
 
     beforeEach(async () => {
-        db = await createTestDb();
+        db = await createTestDb({ writeGuard: true });
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
         categoryRepo = new CategoryRepository(db);
 
         // Seed a wallet for transaction creation
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Test Wallet',
             balance: 10000,
             type: 'cash' as any,
             createdAt: new Date('2025-01-01'),
-        });
+        }));
 
         // Seed the category validRule() points at. It was missing: these tests
         // ran the engine on rules whose category did not exist, and were green,
         // because nothing checked the category. See the pre-flight in
         // generateForRule and recurringRuleReferences.test.ts.
-        await categoryRepo.save({
+        await db.runInTransaction(() => categoryRepo.save({
             id: 'cat-1',
             name: 'Test Category',
             type: CategoryType.EXPENSE,
-        });
+        }));
     });
 
     it('generates missing transactions for a rule', async () => {
         // Rule started two months ago, watermark one month before that
         // -> three dues: two months ago, last month, this month
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             startDate: monthStart(2),
             lastGeneratedDate: monthStart(3),
-        }));
+        })));
 
         const result = await processRecurringRules({
             recurringRepo,
@@ -463,10 +463,10 @@ describe('RecurringTransactionEngine', () => {
     });
 
     it('is idempotent — running twice produces no duplicates', async () => {
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             startDate: monthStart(2),
             lastGeneratedDate: monthStart(3),
-        }));
+        })));
 
         await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -485,7 +485,7 @@ describe('RecurringTransactionEngine', () => {
     });
 
     it('skips paused rules', async () => {
-        await recurringRepo.save(validRule({ isPaused: true }));
+        await db.runInTransaction(() => recurringRepo.save(validRule({ isPaused: true })));
 
         const result = await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -496,10 +496,10 @@ describe('RecurringTransactionEngine', () => {
     });
 
     it('updates lastGeneratedDate after generation', async () => {
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             startDate: monthStart(2),
             lastGeneratedDate: monthStart(3),
-        }));
+        })));
 
         await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -521,7 +521,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
     let categoryRepo: CategoryRepository;
 
     beforeEach(async () => {
-        db = await createTestDb();
+        db = await createTestDb({ writeGuard: true });
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
@@ -529,31 +529,31 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
         // The category validRule() points at - see the note in the describe
         // above. Each test here seeds its own wallet; the category is constant.
-        await categoryRepo.save({
+        await db.runInTransaction(() => categoryRepo.save({
             id: 'cat-1',
             name: 'Test Category',
             type: CategoryType.EXPENSE,
-        });
+        }));
     });
 
     it('skips expense rule when cash wallet has insufficient funds', async () => {
         // Wallet with only $50
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Cash Wallet',
             balance: 50,
             type: WalletType.CASH,
             createdAt: new Date('2025-01-01'),
-        });
+        }));
 
         // Rule: $100/month expense, two dues pending -> $200 needed, only $50 available
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
             startDate: monthStart(1),
             lastGeneratedDate: monthStart(2),
-        }));
+        })));
 
         const result = await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -577,22 +577,22 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
     it('skips rule when cumulative dues exceed balance (all-or-nothing)', async () => {
         // Wallet with $150 - enough for 1 month but not 3
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Cash Wallet',
             balance: 150,
             type: WalletType.CASH,
             createdAt: new Date('2025-01-01'),
-        });
+        }));
 
         // 3 overdue months x $100 = $300 needed
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
             startDate: monthStart(2),
             lastGeneratedDate: monthStart(3),
-        }));
+        })));
 
         const result = await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -609,22 +609,22 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
     it('never skips income rules regardless of balance', async () => {
         // Wallet with $0 balance
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Cash Wallet',
             balance: 0,
             type: WalletType.CASH,
             createdAt: new Date('2025-01-01'),
-        });
+        }));
 
         // Income rule - should always succeed
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             type: TransactionType.INCOME,
             amount: 500,
             walletId: 'w-1',
             startDate: monthStart(1),
             lastGeneratedDate: monthStart(2),
-        }));
+        })));
 
         const result = await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -636,21 +636,21 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
 
     it('never skips expense rules on bank wallets (overdraft allowed)', async () => {
         // Bank wallet with $0 balance - overdraft is allowed
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Bank Account',
             balance: 0,
             type: WalletType.BANK,
             createdAt: new Date('2025-01-01'),
-        });
+        }));
 
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
             startDate: monthStart(1),
             lastGeneratedDate: monthStart(2),
-        }));
+        })));
 
         const result = await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -666,21 +666,21 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
         const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Cash Wallet',
             balance: 10,
             type: WalletType.CASH,
             createdAt: new Date('2025-01-01'),
-        });
+        }));
 
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: 100,
             walletId: 'w-1',
             startDate: monthStart(1),
             lastGeneratedDate: monthStart(2),
-        }));
+        })));
 
         await processRecurringRules({
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
@@ -706,21 +706,21 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         const INITIAL_BALANCE = 10; // below EXPECTED_COST -> the first run must skip
 
         // Start with low balance
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Cash Wallet',
             balance: INITIAL_BALANCE,
             type: WalletType.CASH,
             createdAt: new Date('2025-01-01'),
-        });
+        }));
 
-        await recurringRepo.save(validRule({
+        await db.runInTransaction(() => recurringRepo.save(validRule({
             type: TransactionType.EXPENSE,
             amount: RULE_AMOUNT,
             walletId: 'w-1',
             startDate: monthStart(1),
             lastGeneratedDate: monthStart(2),
-        }));
+        })));
 
         // First run - should be skipped
         const firstResult = await processRecurringRules({
@@ -730,7 +730,7 @@ describe('RecurringTransactionEngine — Insufficient Funds', () => {
         expect(firstResult.skipped[0].amount).toBe(EXPECTED_COST);
 
         // Top the wallet up to exactly what the pending dues cost (updateBalance adds a delta)
-        await walletRepo.updateBalance('w-1', EXPECTED_COST - INITIAL_BALANCE);
+        await db.runInTransaction(() => walletRepo.updateBalance('w-1', EXPECTED_COST - INITIAL_BALANCE));
 
         // Retry the specific rule
         const retryResult = await retryRule(

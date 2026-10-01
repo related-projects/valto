@@ -33,9 +33,12 @@ export interface MockRepositoryBundle {
 /**
  * Create a fresh set of repositories backed by an in-memory SQLite database.
  * Returns all repos + a mock event bus + the transaction runner.
+ * `writeGuard` is passed to createTestDb (REGISTRE V-109).
  */
-export async function createMockRepositories(): Promise<MockRepositoryBundle> {
-    const db = await createTestDb();
+export async function createMockRepositories(
+    options: { writeGuard?: boolean } = {},
+): Promise<MockRepositoryBundle> {
+    const db = await createTestDb(options);
     return {
         db,
         walletRepo: new WalletRepository(db),

@@ -11,13 +11,15 @@
 
 import { getOrCreateEncryptionKey } from './encryptionKey';
 import { SqlDatabase, SqlQueryResult } from './SqlDatabase';
-import { createTransactionRunner } from './transaction';
+import { createTransactionRunner, type TransactionRunner } from './transaction';
+import { createWriteGuard } from './writeGuard';
 
 export const DB_NAME = 'valto.db';
 
 export class OpSQLiteDatabase implements SqlDatabase {
     private db: any;
-    runInTransaction: <T>(work: () => Promise<T>) => Promise<T>;
+    runInTransaction: TransactionRunner;
+    private writeGuard = createWriteGuard(() => this.runInTransaction.isTransactionOpen());
 
     private constructor(db: any) {
         this.db = db;
@@ -58,12 +60,26 @@ export class OpSQLiteDatabase implements SqlDatabase {
     }
 
     execute = async (sql: string, params: unknown[] = []): Promise<SqlQueryResult> => {
+        // Development and tests only (REGISTRE V-109, Owner decision 2). A
+        // release build bundles with __DEV__ = false and Metro inlines it, so
+        // this block compiles to `if (false)` and users never reach the guard.
+        // Verified by writeGuard.test.ts - "V-109 d1" and "V-109 e (control):
+        // with __DEV__ false, the same write with no transaction open is not
+        // refused".
+        if (__DEV__) {
+            this.writeGuard.check(sql);
+        }
         const res = await this.db.execute(sql, params);
         // op-sqlite has returned rows as either `rows._array` or `rows` across
         // versions - normalise both shapes.
         const rows = (res?.rows?._array ?? res?.rows ?? []) as Record<string, unknown>[];
         return { rows, rowsAffected: res?.rowsAffected ?? 0 };
     };
+
+    /** Arm the write guard (see writeGuard.ts). Called once the boot migrations have completed. */
+    armWriteGuard(): void {
+        this.writeGuard.arm();
+    }
 
     /** Absolute on-disk path of `valto.db`, as reported by the native driver. */
     getDbPath(): string | null {

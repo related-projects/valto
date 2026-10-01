@@ -98,26 +98,26 @@ const snapshotWithTransaction = (patch: Record<string, unknown>): BackupSnapshot
 
 /** Pre-restore ledger, so "database unchanged" has something to be measured against. */
 async function seedPreRestoreState(db: SqlDatabase) {
-    await db.execute(
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO wallets (id, name, balance, opening_balance, type, color, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ['w-old', 'Old Wallet', 4200, 4200, 'cash', null, ISO],
-    );
-    await db.execute(`INSERT INTO categories (id, name, type) VALUES (?, ?, ?)`, [
+    ));
+    await db.runInTransaction(() => db.execute(`INSERT INTO categories (id, name, type) VALUES (?, ?, ?)`, [
         'cat-old',
         'Old Category',
         'expense',
-    ]);
-    await db.execute(
+    ]));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO transactions (id, type, amount, category_id, wallet_id, date, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ['tx-old', 'expense', 900, 'cat-old', 'w-old', ISO, ISO],
-    );
-    await db.execute(
+    ));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO budgets (id, category_id, month, limit_amount, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         ['b-old', 'cat-old', '2025-12', 1000, ISO, ISO],
-    );
+    ));
 }
 
 /** Row counts of the four snapshot tables, keyed by table name. */
@@ -135,7 +135,7 @@ let db: SqlDatabase;
 beforeEach(async () => {
     jest.clearAllMocks();
     await AsyncStorage.clear();
-    db = await createTestDb();
+    db = await createTestDb({ writeGuard: true });
     __setDatabaseForTests(db);
 });
 

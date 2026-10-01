@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState, type AppStateStatus } from 'react-native';
-import { getBudgetRepository } from '../core/di';
+import { getBudgetRepository, getUseCaseDeps } from '../core/di';
 import { dataEvents } from '../core/events';
 import { Budget, CreateBudgetDTO, TransactionType, UpdateBudgetDTO, getCurrentMonth } from '../domain/entities';
 import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
@@ -184,7 +184,11 @@ export function useBudgets(): UseBudgetsResult {
      */
     const createBudget = useCallback(async (dto: CreateBudgetDTO): Promise<Budget> => {
         try {
-            const budget = await budgetRepo.create(dto);
+            // Through the runner (REGISTRE V-109): a write made while another
+            // transaction is open waits for it to end instead of landing inside
+            // it and being erased by its rollback. Verified by
+            // writesThroughRunner.test.ts - "V-109 c9".
+            const budget = await getUseCaseDeps().runInTransaction(() => budgetRepo.create(dto));
             await loadBudgets();
             dataEvents.emit('budgets');
             return budget;
@@ -203,7 +207,9 @@ export function useBudgets(): UseBudgetsResult {
      */
     const updateBudget = useCallback(async (dto: UpdateBudgetDTO): Promise<Budget> => {
         try {
-            const budget = await budgetRepo.updateFromDTO(dto);
+            // Through the runner (REGISTRE V-109), as createBudget. Verified by
+            // writesThroughRunner.test.ts - "V-109 c10".
+            const budget = await getUseCaseDeps().runInTransaction(() => budgetRepo.updateFromDTO(dto));
             await loadBudgets();
             dataEvents.emit('budgets');
             return budget;
@@ -219,7 +225,9 @@ export function useBudgets(): UseBudgetsResult {
      */
     const deleteBudget = useCallback(async (id: string): Promise<void> => {
         try {
-            await budgetRepo.delete(id);
+            // Through the runner (REGISTRE V-109), as createBudget. Verified by
+            // writesThroughRunner.test.ts - "V-109 c11".
+            await getUseCaseDeps().runInTransaction(() => budgetRepo.delete(id));
             await loadBudgets();
             dataEvents.emit('budgets');
         } catch (err) {

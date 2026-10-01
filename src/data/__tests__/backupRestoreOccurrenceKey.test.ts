@@ -186,14 +186,18 @@ async function seedThroughProductionWriters(): Promise<void> {
     await asyncStorageAdapter.set(StorageKeys.SCHEMA_VERSION, 6);
     await runMigrations();
 
-    // -- The rest through the paths the UI uses. --------------------------
+    // -- The rest through the paths the UI uses. runMigrations has armed the
+    //    write guard (REGISTRE V-109), so every write runs in a transaction,
+    //    as the UI's do. --------------------------------------------------
     const cash = await createWallet(writerDeps(), { name: 'Cash', balance: 100000, type: WalletType.CASH });
     const bank = await createWallet(writerDeps(), { name: 'Bank', balance: 5000000, type: WalletType.BANK });
-    const bills = await new CategoryRepository(db).create({ name: 'Bills', type: CategoryType.EXPENSE });
+    const bills = await db.runInTransaction(() =>
+        new CategoryRepository(db).create({ name: 'Bills', type: CategoryType.EXPENSE }),
+    );
     const rules = container.recurringTransactionRepository;
 
     const rule = (description: string, startDate: Date, frequency: RecurrenceFrequency, interval: number) =>
-        rules.create({
+        db.runInTransaction(() => rules.create({
             type: TransactionType.EXPENSE,
             amount: 2500,
             walletId: bank.id,
@@ -202,7 +206,7 @@ async function seedThroughProductionWriters(): Promise<void> {
             startDate,
             frequency,
             interval,
-        });
+        }));
 
     // 10 Mar .. 10 Jun: 4 occurrences.
     await rule('Rent', new Date(2026, 2, 10, 12, 0), RecurrenceFrequency.MONTHLY, 1);
@@ -215,8 +219,8 @@ async function seedThroughProductionWriters(): Promise<void> {
     const generated = await processRecurringRules(engineDeps());
     expect(generated.errors).toEqual([]);
 
-    await rules.updateFromDTO({ id: club.id, interval: 2 });
-    await rules.pauseRule(parking.id);
+    await db.runInTransaction(() => rules.updateFromDTO({ id: club.id, interval: 2 }));
+    await db.runInTransaction(() => rules.pauseRule(parking.id));
 
     await createTransaction(writerDeps(), {
         type: TransactionType.EXPENSE,

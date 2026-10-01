@@ -8,15 +8,21 @@
  * Why not op-sqlite here: op-sqlite is a native JSI module with no Node
  * bindings, so it cannot load in the jest-expo (Node) environment. SQL dialect
  * is identical (both are SQLite), so the port is honoured.
+ *
+ * Carries the same write guard as the production adapter (REGISTRE V-109,
+ * src/data/storage/sql/writeGuard.ts), consulted unconditionally: this adapter
+ * only ever runs under test. Unarmed until armWriteGuard() is called.
  */
 
 import Database from 'better-sqlite3';
 import { SqlDatabase, SqlQueryResult } from '../../src/data/storage/sql/SqlDatabase';
-import { createTransactionRunner } from '../../src/data/storage/sql/transaction';
+import { createTransactionRunner, type TransactionRunner } from '../../src/data/storage/sql/transaction';
+import { createWriteGuard } from '../../src/data/storage/sql/writeGuard';
 
 export class BetterSqliteDatabase implements SqlDatabase {
     private db: Database.Database;
-    runInTransaction: <T>(work: () => Promise<T>) => Promise<T>;
+    runInTransaction: TransactionRunner;
+    private writeGuard = createWriteGuard(() => this.runInTransaction.isTransactionOpen());
 
     constructor(filename = ':memory:') {
         this.db = new Database(filename);
@@ -25,6 +31,8 @@ export class BetterSqliteDatabase implements SqlDatabase {
     }
 
     execute = async (sql: string, params: unknown[] = []): Promise<SqlQueryResult> => {
+        this.writeGuard.check(sql);
+
         const trimmed = sql.trimStart();
         const returnsRows = /^(SELECT|PRAGMA|WITH)/i.test(trimmed);
 
@@ -42,6 +50,11 @@ export class BetterSqliteDatabase implements SqlDatabase {
         const info = stmt.run(...(params as never[]));
         return { rows: [], rowsAffected: info.changes };
     };
+
+    /** Start refusing writes made with no transaction open (see writeGuard.ts). */
+    armWriteGuard(): void {
+        this.writeGuard.arm();
+    }
 
     /** Close the underlying connection (call in afterEach to free memory). */
     close(): void {

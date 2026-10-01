@@ -20,7 +20,7 @@
  * same as calling it once. That is what lets it also run on every boot.
  */
 
-import { getCategoryRepository, getWalletRepository } from '../../core/di';
+import { getCategoryRepository, getUseCaseDeps, getWalletRepository } from '../../core/di';
 import { initializeSeedData, resetDefaultWallet, resetSeedFlag } from '../seed';
 
 /**
@@ -41,10 +41,19 @@ export async function ensureUsableState(): Promise<void> {
         await initializeSeedData();
     }
 
+    // Each write goes through the runner (REGISTRE V-109), one transaction per
+    // step: the seed's categories in initializeSeedData's own, the wallet here,
+    // its check and its create together. Not one transaction for both: that
+    // would hold the lock across the seed flag's key-value reads and writes,
+    // and initializeSeedData's transaction - which boot needs on its own -
+    // would nest inside it (REGISTRE V-106). Verified by
+    // writesThroughRunner.test.ts - "V-109 c15".
     const walletRepo = getWalletRepository();
-    const wallets = await walletRepo.getAll();
+    await getUseCaseDeps().runInTransaction(async () => {
+        const wallets = await walletRepo.getAll();
 
-    if (wallets.length === 0) {
-        await walletRepo.create(resetDefaultWallet);
-    }
+        if (wallets.length === 0) {
+            await walletRepo.create(resetDefaultWallet);
+        }
+    });
 }

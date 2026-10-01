@@ -56,7 +56,11 @@ export function useCategories(): UseCategoriesResult {
      */
     const createCategory = useCallback(async (dto: CreateCategoryDTO): Promise<Category> => {
         try {
-            const category = await categoryRepo.create(dto);
+            // Through the runner (REGISTRE V-109): a write made while another
+            // transaction is open waits for it to end instead of landing inside
+            // it and being erased by its rollback. Verified by
+            // writesThroughRunner.test.ts - "V-109 c6".
+            const category = await getUseCaseDeps().runInTransaction(() => categoryRepo.create(dto));
             await loadCategories();
 
             // Emit event so other components (like Add Transaction Modal) update
@@ -78,7 +82,9 @@ export function useCategories(): UseCategoriesResult {
      */
     const updateCategory = useCallback(async (dto: UpdateCategoryDTO): Promise<Category> => {
         try {
-            const category = await categoryRepo.updateFromDTO(dto);
+            // Through the runner (REGISTRE V-109), as createCategory. Verified by
+            // writesThroughRunner.test.ts - "V-109 c7".
+            const category = await getUseCaseDeps().runInTransaction(() => categoryRepo.updateFromDTO(dto));
             await loadCategories();
 
             dataEvents.emit('categories');

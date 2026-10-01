@@ -20,10 +20,14 @@
  *     interval is refused, naming the missing reference.
  *
  * The catch-up is the engine's own per-occurrence path (retryRule): each
- * occurrence is its own database transaction, and nothing here opens one, so
- * no runner call is ever nested (REGISTRE V-106). The rule is read again after
- * the catch-up, inside updateFromDTO and pauseRule, so the save cannot write a
- * stale lastGeneratedIndex, lastGeneratedDate or scheduleVersion.
+ * occurrence is its own database transaction. The save runs after it, in a
+ * transaction of its own (REGISTRE V-109), never inside one of the catch-up's,
+ * so no runner call is ever nested (REGISTRE V-106). The rule is read again in
+ * that transaction, inside updateFromDTO and pauseRule, so the save cannot
+ * write a stale lastGeneratedIndex, lastGeneratedDate or scheduleVersion, and
+ * a save made while another transaction is open - a restore - waits for it to
+ * end instead of being erased by its rollback. Verified by
+ * writesThroughRunner.test.ts - "V-109 c12" and "V-109 c2".
  *
  * Resume needs no catch-up and lives on the repository: resumeRule.
  *
@@ -66,6 +70,15 @@ async function missingReferences(
     return missing;
 }
 
+/** The save of an edit: the rule is read again and written in one transaction. */
+function saveEdit(
+    deps: RecurringEngineDeps,
+    dto: UpdateRecurringTransactionDTO,
+    now: Date,
+): Promise<RecurringTransaction> {
+    return deps.runInTransaction(() => deps.recurringRepo.updateFromDTO(dto, now));
+}
+
 /**
  * Edit a rule going forward. `now` is the moment of the edit: the catch-up
  * runs up to its local day and the new state starts after it.
@@ -85,7 +98,7 @@ export async function editRecurringRule(
     const rule = await getRule(deps, dto.id);
 
     if (rule.isPaused) {
-        return deps.recurringRepo.updateFromDTO(dto, now);
+        return saveEdit(deps, dto, now);
     }
 
     const missing = await missingReferences(deps, rule);
@@ -96,7 +109,7 @@ export async function editRecurringRule(
         if (reschedules) {
             throw new RecurringRuleReferenceMissingError(missing);
         }
-        return deps.recurringRepo.updateFromDTO(dto, now);
+        return saveEdit(deps, dto, now);
     }
 
     const due = computeDueOccurrences(rule, startOfDay(now));
@@ -111,7 +124,7 @@ export async function editRecurringRule(
         }
     }
 
-    return deps.recurringRepo.updateFromDTO(dto, now);
+    return saveEdit(deps, dto, now);
 }
 
 /**
@@ -143,9 +156,12 @@ export async function pauseRecurringRule(
         }
     }
 
-    const fresh = await getRule(deps, id);
-    const done = fresh.lastGeneratedIndex ?? deriveLastGeneratedIndex(fresh);
-    const unrecorded = due.filter((occurrence) => occurrence.index > done).map((occurrence) => occurrence.date);
+    // After the catch-up, the rule is read again and paused in one transaction.
+    return deps.runInTransaction(async () => {
+        const fresh = await getRule(deps, id);
+        const done = fresh.lastGeneratedIndex ?? deriveLastGeneratedIndex(fresh);
+        const unrecorded = due.filter((occurrence) => occurrence.index > done).map((occurrence) => occurrence.date);
 
-    return { rule: await deps.recurringRepo.pauseRule(id), unrecorded };
+        return { rule: await deps.recurringRepo.pauseRule(id), unrecorded };
+    });
 }

@@ -82,7 +82,7 @@ describe('recurring engine reference pre-flight', () => {
     }
 
     beforeEach(async () => {
-        db = await createTestDb();
+        db = await createTestDb({ writeGuard: true });
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
@@ -96,22 +96,22 @@ describe('recurring engine reference pre-flight', () => {
             db.runInTransaction(work),
         );
 
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-live',
             name: 'Live Wallet',
             balance: 1000000,
             type: WalletType.CASH,
             createdAt: monthStart(6),
-        });
-        await categoryRepo.save({
+        }));
+        await db.runInTransaction(() => categoryRepo.save({
             id: 'cat-live',
             name: 'Live Category',
             type: CategoryType.EXPENSE,
-        });
+        }));
     });
 
     it('refuses an expense rule whose category no longer exists, writing nothing', async () => {
-        await recurringRepo.save(dueRule({ categoryId: 'cat-deleted' }));
+        await db.runInTransaction(() => recurringRepo.save(dueRule({ categoryId: 'cat-deleted' })));
 
         const result = await processRecurringRules(deps());
 
@@ -124,9 +124,9 @@ describe('recurring engine reference pre-flight', () => {
     });
 
     it('refuses an income rule whose category no longer exists, writing nothing', async () => {
-        await recurringRepo.save(
+        await db.runInTransaction(() => recurringRepo.save(
             dueRule({ type: TransactionType.INCOME, categoryId: 'cat-deleted' }),
-        );
+        ));
 
         const result = await processRecurringRules(deps());
 
@@ -137,9 +137,9 @@ describe('recurring engine reference pre-flight', () => {
     });
 
     it('refuses an income rule whose wallet no longer exists before opening a write', async () => {
-        await recurringRepo.save(
+        await db.runInTransaction(() => recurringRepo.save(
             dueRule({ type: TransactionType.INCOME, walletId: 'w-deleted' }),
-        );
+        ));
 
         const result = await processRecurringRules(deps());
 
@@ -153,7 +153,7 @@ describe('recurring engine reference pre-flight', () => {
     });
 
     it('refuses an expense rule whose wallet no longer exists before opening a write', async () => {
-        await recurringRepo.save(dueRule({ walletId: 'w-deleted' }));
+        await db.runInTransaction(() => recurringRepo.save(dueRule({ walletId: 'w-deleted' })));
 
         const result = await processRecurringRules(deps());
 
@@ -163,17 +163,17 @@ describe('recurring engine reference pre-flight', () => {
     });
 
     it('checks references before funds - a rule pointing nowhere is not a funding problem', async () => {
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-broke',
             name: 'Empty Cash',
             balance: 0,
             type: WalletType.CASH,
             createdAt: monthStart(6),
-        });
+        }));
 
-        await recurringRepo.save(
+        await db.runInTransaction(() => recurringRepo.save(
             dueRule({ walletId: 'w-broke', categoryId: 'cat-deleted' }),
-        );
+        ));
 
         const result = await processRecurringRules(deps());
 
@@ -187,7 +187,7 @@ describe('recurring engine reference pre-flight', () => {
 
     it('leaves the watermark unadvanced when a reference is broken', async () => {
         const rule = dueRule({ categoryId: 'cat-deleted' });
-        await recurringRepo.save(rule);
+        await db.runInTransaction(() => recurringRepo.save(rule));
 
         await processRecurringRules(deps());
 
@@ -202,14 +202,14 @@ describe('recurring engine reference pre-flight', () => {
         // Watermark already at this month: nothing is due, so a rule whose
         // references are both gone must not be reported. The pre-flight runs
         // after the "nothing due" early return, not before it.
-        await recurringRepo.save(
+        await db.runInTransaction(() => recurringRepo.save(
             dueRule({
                 startDate: monthStart(1),
                 lastGeneratedDate: monthStart(0),
                 walletId: 'w-deleted',
                 categoryId: 'cat-deleted',
             }),
-        );
+        ));
 
         const result = await processRecurringRules(deps());
 
@@ -219,7 +219,7 @@ describe('recurring engine reference pre-flight', () => {
     });
 
     it('still generates normally when both references resolve', async () => {
-        await recurringRepo.save(dueRule());
+        await db.runInTransaction(() => recurringRepo.save(dueRule()));
 
         const result = await processRecurringRules(deps());
 

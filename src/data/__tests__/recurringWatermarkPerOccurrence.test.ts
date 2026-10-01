@@ -80,7 +80,7 @@ describe('the watermark advances once per generated occurrence', () => {
     }
 
     beforeEach(async () => {
-        db = await createTestDb();
+        db = await createTestDb({ writeGuard: true });
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
@@ -88,19 +88,19 @@ describe('the watermark advances once per generated occurrence', () => {
 
         // Balance far above 5 * 1000, so the funds guard never fires: this test
         // is about the watermark, not about the all-or-nothing pricing.
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-live',
             name: 'Live Wallet',
             balance: 1000000,
             type: WalletType.CASH,
             createdAt: monthStart(6),
-        });
-        await categoryRepo.save({
+        }));
+        await db.runInTransaction(() => categoryRepo.save({
             id: 'cat-live',
             name: 'Live Category',
             type: CategoryType.EXPENSE,
-        });
-        await recurringRepo.save(FIVE_DUE_RULE);
+        }));
+        await db.runInTransaction(() => recurringRepo.save(FIVE_DUE_RULE));
 
         dueDates = computeDueDates(FIVE_DUE_RULE, new Date());
         expect(dueDates).toHaveLength(5);
