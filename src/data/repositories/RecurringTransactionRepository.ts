@@ -395,12 +395,19 @@ export class RecurringTransactionRepository
      * runs: two concurrent engine runs write each occurrence once").
      * lastGeneratedDate is still written, as the day of that occurrence, so
      * older readers and backups keep their meaning.
+     *
+     * `scheduleVersion` is the version the occurrence was numbered under. A
+     * number only means something in its own numbering, so a row saved under
+     * another version since is left as it is (REGISTRE V-115). The engine
+     * checks the stored rule before writing anyway; this keeps the write
+     * itself from crossing numberings. Verified by
+     * recurringStaleEngineCopy.test.ts - "a. S1...".
      */
-    async recordGeneratedOccurrence(id: string, index: number, date: Date): Promise<void> {
+    async recordGeneratedOccurrence(id: string, scheduleVersion: number, index: number, date: Date): Promise<void> {
         const { rowsAffected } = await this.db.execute(
             `UPDATE recurring_rules SET last_generated_index = ?, last_generated_date = ?
-             WHERE id = ? AND (last_generated_index IS NULL OR last_generated_index < ?)`,
-            [index, date.toISOString(), id, index],
+             WHERE id = ? AND schedule_version = ? AND (last_generated_index IS NULL OR last_generated_index < ?)`,
+            [index, date.toISOString(), id, scheduleVersion, index],
         );
         if (rowsAffected === 0 && !(await sqlExists(this.db, recurringMapper, id))) {
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Recurring rule with id ${id} not found`);
