@@ -14,7 +14,8 @@
  * in the order the responder system calls them: onStartShouldSetResponder (a
  * press is dropped when it returns false, as for a disabled control on a
  * device), then onResponderGrant, then onResponderRelease, which calls
- * onPress.
+ * onPress. pressEachInOneBatch does the same with one press on each of
+ * several controls, in order.
  */
 
 import { act } from '@testing-library/react-native';
@@ -78,6 +79,16 @@ export function pressTwiceInOneBatch(element: RenderedNode): void {
     act(() => {
         deliverPress(pressable);
         deliverPress(pressable);
+    });
+}
+
+/** One press on each control holding an element, in order, with no render in between. */
+export function pressEachInOneBatch(...elements: RenderedNode[]): void {
+    const pressables = elements.map(findPressable);
+    act(() => {
+        for (const pressable of pressables) {
+            deliverPress(pressable);
+        }
     });
 }
 
