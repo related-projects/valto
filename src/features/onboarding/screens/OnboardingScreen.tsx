@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../../domain/constants/currencies';
 import { WalletType } from '../../../domain/entities';
 import { useFormatting } from '../../../hooks/useFormatting';
+import { useSubmitLock } from '../../../hooks/useSubmitLock';
 import { useTheme } from '../../../theme/theme';
 import { getButtonA11y } from '../../../utils/accessibility';
 import { useOnboarding } from '../hooks/useOnboarding';
@@ -95,12 +96,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         await selectCurrency(currency);
     };
 
-    const handleCreateWallet = async () => {
+    // A press made while a save is running is ignored (REGISTRE V-123).
+    const handleCreateWallet = useSubmitLock(async () => {
         const name = walletName.trim() || t('onboarding.walletNamePlaceholder');
         const balance = parseAmount(initialBalance) ?? 0;
         const balanceCents = normalizeAmount(balance);
         await createWallet(name, walletType, balanceCents);
-    };
+    });
 
     const handleComplete = async () => {
         // Only dismiss onboarding once the flag actually reached storage.

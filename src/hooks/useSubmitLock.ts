@@ -3,7 +3,7 @@
  *
  * Wraps a submit handler so that a press made while an earlier one is still
  * running does nothing (REGISTRE V-112, V-120, V-121, V-122; Owner decision of
- * 01/10, pass 67).
+ * 01/10, pass 67. REGISTRE V-123; Owner decision of 01/10, pass 68).
  *
  * A submit control's `disabled` prop comes from state, and state reaches the
  * touchable only once React has committed: a second press delivered in the
@@ -12,8 +12,9 @@
  * so that second call returns at once. It is released when the submit settles,
  * whichever way it ends: success, a refused input, a refusal from a use case,
  * or a thrown error. Verified by AddTransactionModal.submitLock.test.tsx,
- * TransferModal.submitLock.test.tsx, AddWalletModal.submitLock.test.tsx and
- * RecurringRulesScreen.submitLock.test.tsx.
+ * TransferModal.submitLock.test.tsx, AddWalletModal.submitLock.test.tsx,
+ * RecurringRulesScreen.submitLock.test.tsx and
+ * OnboardingScreen.submitLock.test.tsx.
  */
 
 import { useRef } from 'react';
