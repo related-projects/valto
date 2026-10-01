@@ -259,13 +259,14 @@ describe('V-98 c. unique occurrence key (process zone; CI: UTC, Africa/Lagos, Am
 });
 
 /**
- * A rule edit that changes the schedule must not make things worse than the
- * unfixed engine did in a constant zone. The expectation below IS the unfixed
- * behaviour - new-schedule occurrences strictly after the old watermark's day,
- * up to today - so this is a non-regression control: it cannot fail on the
- * unfixed code by construction. Correcting that behaviour is V-105.
+ * A rule edit that changes the schedule applies going forward (REGISTRE V-105,
+ * Owner decision 1): the new schedule generates only occurrences strictly
+ * after the local day of the edit. Nothing is pending at the moment of these
+ * edits, so the catch-up that precedes an edit in the app has nothing to do
+ * and the repository's updateFromDTO is the whole edit. The edit-with-backlog,
+ * zone-change and pause cases are in recurringEditPauseForward.test.ts.
  */
-describe('V-98 e. control: schedule edits in a constant zone (process zone; CI: UTC, Africa/Lagos, America/New_York)', () => {
+describe('V-98 e. schedule edits in a constant zone apply going forward (process zone; CI: UTC, Africa/Lagos, America/New_York)', () => {
     async function newDatesAfter(description: string, known: Set<string>): Promise<number[]> {
         return (await rowsOf(description))
             .filter((t) => !known.has(t.id))
@@ -273,7 +274,7 @@ describe('V-98 e. control: schedule edits in a constant zone (process zone; CI: 
             .sort((a, b) => a - b);
     }
 
-    it('control (non-regression): an interval 1 -> 2 edit emits what the unfixed engine emits', async () => {
+    it('control: an interval 1 -> 2 edit made on 15 Mar continues on the first new-schedule date after it', async () => {
         pinClock(localNoon(2026, 2, 15).getTime());
         // 10 Jan, 10 Feb, 10 Mar.
         const rule = await createExpenseRule('Club', 1000, localNoon(2026, 0, 10), RecurrenceFrequency.MONTHLY, 1);
@@ -285,13 +286,13 @@ describe('V-98 e. control: schedule edits in a constant zone (process zone; CI: 
         pinClock(localNoon(2026, 6, 15).getTime());
         const result = await processRecurringRules(depsOver(db));
 
-        // New schedule: 10 Jan, 10 Mar, 10 May, 10 Jul. After 10 Mar: May, Jul.
+        // New schedule: 10 Jan, 10 Mar, 10 May, 10 Jul. After the edit day, 15 Mar: May, Jul.
         expect(result.errors).toEqual([]);
         expect(await newDatesAfter('Club', known)).toEqual([localDay(2026, 4, 10), localDay(2026, 6, 10)]);
         expect(await balance()).toBe(OPENING_BALANCE - 5 * 1000);
     });
 
-    it('control (non-regression): an interval 2 -> 1 edit emits what the unfixed engine emits', async () => {
+    it('control: an interval 2 -> 1 edit made on 15 Mar continues on the first new-schedule date after it', async () => {
         pinClock(localNoon(2026, 2, 15).getTime());
         // 10 Jan, 10 Mar.
         const rule = await createExpenseRule('Gym', 1000, localNoon(2026, 0, 10), RecurrenceFrequency.MONTHLY, 2);
@@ -303,13 +304,13 @@ describe('V-98 e. control: schedule edits in a constant zone (process zone; CI: 
         pinClock(localNoon(2026, 4, 15).getTime());
         const result = await processRecurringRules(depsOver(db));
 
-        // New schedule: every 10th from 10 Jan. After 10 Mar: Apr, May.
+        // New schedule: every 10th from 10 Jan. After the edit day, 15 Mar: Apr, May.
         expect(result.errors).toEqual([]);
         expect(await newDatesAfter('Gym', known)).toEqual([localDay(2026, 3, 10), localDay(2026, 4, 10)]);
         expect(await balance()).toBe(OPENING_BALANCE - 4 * 1000);
     });
 
-    it('control (non-regression): a monthly -> weekly edit emits what the unfixed engine emits', async () => {
+    it('a monthly -> weekly edit made on 15 Mar generates no weekly date on or before 15 Mar', async () => {
         pinClock(localNoon(2026, 2, 15).getTime());
         // 10 Jan, 10 Feb, 10 Mar.
         const rule = await createExpenseRule('Lessons', 1000, localNoon(2026, 0, 10), RecurrenceFrequency.MONTHLY, 1);
@@ -321,14 +322,14 @@ describe('V-98 e. control: schedule edits in a constant zone (process zone; CI: 
         pinClock(localNoon(2026, 2, 31).getTime());
         const result = await processRecurringRules(depsOver(db));
 
-        // New schedule: every 7 days from 10 Jan. After 10 Mar: 14, 21, 28 Mar.
+        // New schedule: every 7 days from 10 Jan. After the edit day, 15 Mar: 21, 28 Mar.
+        // 14 Mar is on the new schedule but before the edit, so it is not generated.
         expect(result.errors).toEqual([]);
         expect(await newDatesAfter('Lessons', known)).toEqual([
-            localDay(2026, 2, 14),
             localDay(2026, 2, 21),
             localDay(2026, 2, 28),
         ]);
-        expect(await balance()).toBe(OPENING_BALANCE - 6 * 1000);
+        expect(await balance()).toBe(OPENING_BALANCE - 5 * 1000);
     });
 });
 

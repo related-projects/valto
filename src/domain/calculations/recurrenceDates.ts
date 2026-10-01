@@ -108,21 +108,70 @@ function walkOccurrences(
  * migrationV7OccurrenceKey.test.ts - "migration v7: backfills each index so the first run
  * emits exactly what the unfixed engine would have".
  *
- * Used where a rule has no number yet: the v7 backfill, a restore from a file written before
- * it, and a schedule edit (against the new schedule).
+ * Used where a rule has no number yet: the v7 backfill and a restore from a file written
+ * before it.
  */
 export function deriveLastGeneratedIndex(rule: RecurringTransaction): number {
-    const fence = startOfDay(rule.lastGeneratedDate).getTime();
+    return lastOccurrenceIndexOnOrBefore(rule, rule.lastGeneratedDate);
+}
+
+/** The number of the last occurrence whose local day is on or before the local day of `day`; -1 when none. */
+export function lastOccurrenceIndexOnOrBefore(rule: RecurringTransaction, day: Date): number {
+    const fence = startOfDay(day).getTime();
+    return lastOccurrenceIndexWhile(rule, (date) => date.getTime() <= fence);
+}
+
+/** The number of the last occurrence whose local day is strictly before the local day of `day`; -1 when none. */
+export function lastOccurrenceIndexBefore(rule: RecurringTransaction, day: Date): number {
+    const fence = startOfDay(day).getTime();
+    return lastOccurrenceIndexWhile(rule, (date) => date.getTime() < fence);
+}
+
+function lastOccurrenceIndexWhile(rule: RecurringTransaction, keepGoing: (date: Date) => boolean): number {
     let last = -1;
+    walkOccurrences(rule, keepGoing, (index) => {
+        last = index;
+        return true;
+    });
+    return last;
+}
+
+/** The local day of occurrence `index`, or null when the walk does not reach it. */
+export function occurrenceDate(rule: RecurringTransaction, index: number): Date | null {
+    let found = null as Date | null;
     walkOccurrences(
         rule,
-        (date) => date.getTime() <= fence,
-        (index) => {
-            last = index;
-            return true;
+        () => true,
+        (i, date) => {
+            if (i !== index) return true;
+            found = new Date(date);
+            return false;
         },
     );
-    return last;
+    return found;
+}
+
+/**
+ * The last local day already settled for a rule, in the current zone: no occurrence of its
+ * schedule on or before this day may be generated again (REGISTRE V-105). The later of:
+ *
+ *  - the day of occurrence lastGeneratedIndex. Read from the number, not from an instant, so a
+ *    zone change cannot move it a day earlier: lastGeneratedDate is a local midnight of the zone
+ *    that wrote it, and a zone further west reads it as the day before. Verified by
+ *    recurringEditPauseForward.test.ts - "a1." to "a4.";
+ *  - the local day of lastGeneratedDate, the last occurrence actually written. After a
+ *    renumbering the number can name an earlier day of the new schedule than the last debit.
+ *    Verified by recurringEditPauseForward.test.ts - "control: a paused rule edited twice on its
+ *    due day (1 -> 2 -> 1) and resumed that day debits that day once".
+ *
+ * For a rule that has generated nothing, lastGeneratedDate is one interval before startDate, so
+ * no occurrence falls on or before the day returned.
+ */
+export function lastSettledDay(rule: RecurringTransaction): Date {
+    const index = rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule);
+    const watermark = startOfDay(rule.lastGeneratedDate);
+    const byIndex = index >= 0 ? occurrenceDate(rule, index) : null;
+    return byIndex !== null && byIndex.getTime() > watermark.getTime() ? byIndex : watermark;
 }
 
 /** One occurrence of a rule: its number from startDate, and its local day. */

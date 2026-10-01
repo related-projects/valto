@@ -15,7 +15,14 @@ import {
     UpdateRecurringTransactionDTO,
 } from '../../domain/entities/RecurringTransaction';
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
-import { addMonthsClamped, deriveLastGeneratedIndex, startOfDay } from '../../domain/calculations/recurrenceDates';
+import {
+    addMonthsClamped,
+    deriveLastGeneratedIndex,
+    lastOccurrenceIndexBefore,
+    lastOccurrenceIndexOnOrBefore,
+    lastSettledDay,
+    startOfDay,
+} from '../../domain/calculations/recurrenceDates';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import {
     recurringMapper,
@@ -210,7 +217,12 @@ export class RecurringTransactionRepository
         return this.save(rule);
     }
 
-    async updateFromDTO(dto: UpdateRecurringTransactionDTO): Promise<RecurringTransaction> {
+    /**
+     * Save an edit. `now` is the moment of the edit; its local day is where a
+     * new schedule starts from. The app edits through editRecurringRule, which
+     * records what is due under the stored rule before calling this.
+     */
+    async updateFromDTO(dto: UpdateRecurringTransactionDTO, now: Date = new Date()): Promise<RecurringTransaction> {
         const existing = await this.getById(dto.id);
         if (!existing) {
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Recurring rule with id ${dto.id} not found`);
@@ -228,29 +240,36 @@ export class RecurringTransactionRepository
             interval: dto.interval ?? existing.interval,
         };
 
-        return this.update(this.renumberIfRescheduled(existing, updated));
+        return this.update(this.renumberIfRescheduled(existing, updated, now));
     }
 
     /**
-     * Keep the occurrence key meaningful across an edit of the schedule.
+     * Keep the occurrence key meaningful across an edit of the schedule, and
+     * make the edit apply going forward (REGISTRE V-105, Owner decisions 1 and 4).
      *
      * Occurrence numbers count from startDate along one schedule. Once the
      * frequency or the interval changes (startDate cannot be edited today, but
      * is compared too), number k names a different day than it did, so:
      *  - scheduleVersion is incremented: the new schedule's keys can then
-     *    never collide with a row the old schedule already wrote, which would
-     *    have silently swallowed a new occurrence as "already generated";
-     *  - lastGeneratedIndex is re-derived against the NEW schedule from
-     *    lastGeneratedDate, in the current zone - the same reading the engine
-     *    gave the watermark before the key existed, so in a constant zone an
-     *    edit emits exactly what it emitted then. What that behaviour should be
-     *    is V-105; this only keeps the key from making it worse.
-     * Verified by recurringOccurrenceKey.test.ts - the three "control
-     * (non-regression)" edit cases.
+     *    never collide with a row the old schedule already wrote;
+     *  - lastGeneratedIndex becomes the last occurrence of the NEW schedule on
+     *    or before a fence day, read in the current zone:
+     *     - active rule: the later of the edit day and lastSettledDay. Everything
+     *       due under the stored rule has been recorded first (editRecurringRule),
+     *       so the new schedule starts strictly after the edit day and never on a
+     *       day already debited. Verified by recurringEditPauseForward.test.ts -
+     *       "e. monthly -> weekly edit saved on 20 Sep...", "b1." and "a1." to
+     *       "a4.", and recurringOccurrenceKey.test.ts - "V-98 e";
+     *     - paused rule: lastSettledDay alone. Nothing is due while paused, and
+     *       resumeRule moves the number to the resume day. Verified by
+     *       recurringEditPauseForward.test.ts - "k. paused on 20 Sep, edited...".
+     * The number changes numbering with the version; within one version it
+     * never decreases.
      */
     private renumberIfRescheduled(
         existing: RecurringTransaction,
         updated: RecurringTransaction,
+        now: Date,
     ): RecurringTransaction {
         const rescheduled =
             updated.frequency !== existing.frequency ||
@@ -258,13 +277,21 @@ export class RecurringTransactionRepository
             updated.startDate.getTime() !== existing.startDate.getTime();
         if (!rescheduled) return updated;
 
+        const settled = lastSettledDay(existing);
+        const editDay = startOfDay(now);
+        const fence = existing.isPaused || settled.getTime() > editDay.getTime() ? settled : editDay;
+
         return {
             ...updated,
             scheduleVersion: (existing.scheduleVersion ?? 0) + 1,
-            lastGeneratedIndex: deriveLastGeneratedIndex(updated),
+            lastGeneratedIndex: lastOccurrenceIndexOnOrBefore(updated, fence),
         };
     }
 
+    /**
+     * Set the paused flag, nothing else. The app pauses through
+     * pauseRecurringRule, which first records what is due (REGISTRE V-105).
+     */
     async pauseRule(id: string): Promise<RecurringTransaction> {
         const rule = await this.getById(id);
         if (!rule) {
@@ -273,12 +300,30 @@ export class RecurringTransactionRepository
         return this.update({ ...rule, isPaused: true });
     }
 
-    async resumeRule(id: string): Promise<RecurringTransaction> {
+    /**
+     * Resume a paused rule without catching up its paused period (REGISTRE
+     * V-105, Owner decisions 3 and 6): nothing was due while it was paused,
+     * and the next occurrence is the first schedule date on or after the local
+     * day of the resume. The number only moves forward, so an occurrence
+     * already generated on the resume day is not generated again. This holds
+     * for a rule paused before 1.1.3 as well - an accepted exception to policy
+     * no. 10. Verified by recurringEditPauseForward.test.ts - "g.", "h.",
+     * "control: l." and "policy no. 10 exception (REGISTRE V-105, Owner
+     * decision 6)...".
+     */
+    async resumeRule(id: string, now: Date = new Date()): Promise<RecurringTransaction> {
         const rule = await this.getById(id);
         if (!rule) {
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Recurring rule with id ${id} not found`);
         }
-        return this.update({ ...rule, isPaused: false });
+        if (!rule.isPaused) return rule;
+
+        const stored = rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule);
+        return this.update({
+            ...rule,
+            isPaused: false,
+            lastGeneratedIndex: Math.max(stored, lastOccurrenceIndexBefore(rule, now)),
+        });
     }
 
     /**
