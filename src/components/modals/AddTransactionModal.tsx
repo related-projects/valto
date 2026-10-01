@@ -21,6 +21,7 @@ import { TransactionType } from '../../domain/entities';
 import { InsufficientFundsError } from '../../domain/useCases';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
+import { useSubmitLock } from '../../hooks/useSubmitLock';
 import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useWallets } from '../../hooks/useWallets';
@@ -173,7 +174,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         return d.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    const handleSave = async () => {
+    // A press made while a save is running is ignored (REGISTRE V-112).
+    const handleSave = useSubmitLock(async () => {
         // Single input->storage conversion point (major units -> integer minor units).
         const parsedAmount = parseAmountToCentsResult(amount);
 
@@ -254,7 +256,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         } finally {
             setSaving(false);
         }
-    };
+    });
 
     // ── Render ────────────────────────────────────────────────────────
 
