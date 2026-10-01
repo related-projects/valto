@@ -137,13 +137,13 @@ let inner: SqlDatabase;
 beforeEach(async () => {
     jest.clearAllMocks();
     await AsyncStorage.clear();
-    inner = await createTestDb();
-    await inner.execute(
+    inner = await createTestDb({ writeGuard: true });
+    await inner.runInTransaction(() => inner.execute(
         `INSERT INTO wallets (id, name, balance, opening_balance, type, color, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [WALLET_ID, 'Cash', OPENING_BALANCE, OPENING_BALANCE, 'cash', null, ISO],
-    );
-    await inner.execute(`INSERT INTO categories (id, name, type) VALUES (?, ?, ?)`, ['food', 'Food', 'expense']);
+    ));
+    await inner.runInTransaction(() => inner.execute(`INSERT INTO categories (id, name, type) VALUES (?, ?, ?)`, ['food', 'Food', 'expense']));
 });
 
 afterEach(() => {

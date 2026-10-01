@@ -30,10 +30,24 @@ export interface SqlDatabase {
     /**
      * Run `work` inside a single atomic transaction.
      * COMMIT if it resolves, ROLLBACK (and rethrow) if it throws.
-     * Re-entrant: nested calls use SAVEPOINTs so a transactional use case
-     * invoked inside another transaction stays safe.
+     *
+     * One transaction at a time per connection (REGISTRE V-106): a call made
+     * while another transaction is open waits until that transaction's COMMIT
+     * or ROLLBACK has settled, then runs as its own top-level transaction.
+     * Nested calls are not supported: one made in the callback's synchronous
+     * prefix throws NestedTransactionError; one made after an await is not
+     * detected and never settles. See transaction.ts, verified by
+     * transactionExclusive.test.ts - "V-106 b1", "V-106 b2" - and
+     * transactionConcurrency.test.ts - "V-106 e1".
      */
     runInTransaction<T>(work: () => Promise<T>): Promise<T>;
+
+    /**
+     * Start refusing SQL writes made with no transaction open, in development
+     * and tests (REGISTRE V-109, see writeGuard.ts). Called once the boot
+     * migrations have completed. Verified by writeGuard.test.ts - "V-109 d1".
+     */
+    armWriteGuard?(): void;
 
     /**
      * Absolute on-disk path of the backing database file, when the driver can

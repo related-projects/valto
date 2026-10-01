@@ -8,10 +8,10 @@ import { CreateWalletDTO, Wallet } from '../entities';
 import type { UseCaseDeps } from './types';
 
 export async function createWallet(
-    deps: Pick<UseCaseDeps, 'walletRepo' | 'eventBus'>,
+    deps: Pick<UseCaseDeps, 'walletRepo' | 'eventBus' | 'runInTransaction'>,
     input: CreateWalletDTO,
 ): Promise<Wallet> {
-    const { walletRepo, eventBus } = deps;
+    const { walletRepo, eventBus, runInTransaction } = deps;
 
     // ── Validation ────────────────────────────────────────────────────
 
@@ -25,7 +25,11 @@ export async function createWallet(
 
     // ── Execute ───────────────────────────────────────────────────────
 
-    const wallet = await walletRepo.create(input);
+    // Through the runner (REGISTRE V-109): a wallet created while another
+    // transaction is open - a restore - waits for it to end instead of landing
+    // inside it and being erased by its rollback. Verified by
+    // writesThroughRunner.test.ts - "V-109 a".
+    const wallet = await runInTransaction(() => walletRepo.create(input));
 
     eventBus.emit('wallets');
 

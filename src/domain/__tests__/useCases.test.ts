@@ -45,7 +45,7 @@ function getDeps() {
 }
 
 beforeEach(async () => {
-    repos = await createMockRepositories();
+    repos = await createMockRepositories({ writeGuard: true });
     ({ transactionRepo, walletRepo, categoryRepo, budgetRepo, recurringRepo, eventBus } = repos);
 });
 
@@ -57,7 +57,7 @@ beforeEach(async () => {
  * exists, a wider set than the engine's getActiveRules.
  */
 async function createLiveRule(walletId: string, categoryId: string) {
-    return recurringRepo.create({
+    return repos.runInTransaction(() => recurringRepo.create({
         type: TransactionType.EXPENSE,
         amount: 5000,
         walletId,
@@ -66,14 +66,14 @@ async function createLiveRule(walletId: string, categoryId: string) {
         startDate: new Date(),
         frequency: RecurrenceFrequency.MONTHLY,
         interval: 1,
-    });
+    }));
 }
 
 // ─── createTransaction ──────────────────────────────────────────────
 
 describe('createTransaction', () => {
     it('debits wallet for expense', async () => {
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
         const txn = await createTransaction(getDeps(), {
             type: TransactionType.EXPENSE,
@@ -93,7 +93,7 @@ describe('createTransaction', () => {
         // UI converts input -> cents once via normalizeAmount; the domain stores
         // those cents verbatim. Passing 1575 (== $15.75 normalized) must stay
         // 1575, never become 157500.
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
         const txn = await createTransaction(getDeps(), {
             type: TransactionType.EXPENSE,
@@ -109,7 +109,7 @@ describe('createTransaction', () => {
     });
 
     it('credits wallet for income', async () => {
-        const wallet = await walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
         await createTransaction(getDeps(), {
             type: TransactionType.INCOME,
@@ -128,7 +128,7 @@ describe('createTransaction', () => {
 
 describe('deleteTransaction', () => {
     it('reverts wallet balance on expense deletion', async () => {
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
         // Create an expense (debits wallet to 80000)
         const txn = await createTransaction(getDeps(), {
@@ -152,7 +152,7 @@ describe('deleteTransaction', () => {
     });
 
     it('reverts wallet balance on income deletion', async () => {
-        const wallet = await walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
         const txn = await createTransaction(getDeps(), {
             type: TransactionType.INCOME,
@@ -176,8 +176,8 @@ describe('deleteTransaction', () => {
     // only safe answer is to refuse.
     describe('transfer legs', () => {
         async function makeTransfer() {
-            const source = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
-            const dest = await walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+            const source = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
+            const dest = await repos.runInTransaction(() => walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
             await transferFunds(getDeps(), {
                 fromWalletId: source.id,
@@ -230,8 +230,8 @@ describe('deleteTransaction', () => {
 
 describe('transferFunds', () => {
     it('updates both wallet balances and creates ledger entries', async () => {
-        const source = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
-        const dest = await walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+        const source = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
         await transferFunds(getDeps(), {
             fromWalletId: source.id,
@@ -252,8 +252,8 @@ describe('transferFunds', () => {
     });
 
     it('rejects transfer with insufficient balance', async () => {
-        const source = await walletRepo.create({ name: 'Cash', balance: 10000, type: WalletType.CASH });
-        const dest = await walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+        const source = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 10000, type: WalletType.CASH }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
         await expect(
             transferFunds(getDeps(), { fromWalletId: source.id, toWalletId: dest.id, amount: 50000 })
@@ -261,7 +261,7 @@ describe('transferFunds', () => {
     });
 
     it('rejects same-wallet transfer', async () => {
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
         await expect(
             transferFunds(getDeps(), { fromWalletId: wallet.id, toWalletId: wallet.id, amount: 5000 })
@@ -269,8 +269,8 @@ describe('transferFunds', () => {
     });
 
     it('rejects zero amount', async () => {
-        const source = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
-        const dest = await walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+        const source = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
         await expect(
             transferFunds(getDeps(), { fromWalletId: source.id, toWalletId: dest.id, amount: 0 })
@@ -315,18 +315,18 @@ describe('deleteCategory', () => {
      * happy path it is named for.
      */
     it('deletes a category with no references', async () => {
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Unused',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'close',
-        });
-        await categoryRepo.create({
+        }));
+        await repos.runInTransaction(() => categoryRepo.create({
             name: 'Kept',
             type: CategoryType.EXPENSE,
             color: '#00FF00',
             icon: 'cart',
-        });
+        }));
 
         await deleteCategory(getDeps(), cat.id);
 
@@ -337,43 +337,43 @@ describe('deleteCategory', () => {
     });
 
     it('rejects deletion when transactions reference the category', async () => {
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Food',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'restaurant',
-        });
+        }));
 
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
-        await transactionRepo.create({
+        await repos.runInTransaction(() => transactionRepo.create({
             type: TransactionType.EXPENSE,
             amount: 5000,
             categoryId: cat.id,
             walletId: wallet.id,
             date: new Date(),
-        });
+        }));
 
         await expect(deleteCategory(getDeps(), cat.id)).rejects.toThrow('Cannot delete category');
     });
 
     it('rejects deletion when a budget references the category', async () => {
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Budgeted',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'wallet',
-        });
-        await categoryRepo.create({
+        }));
+        await repos.runInTransaction(() => categoryRepo.create({
             name: 'Kept',
             type: CategoryType.EXPENSE,
             color: '#00FF00',
             icon: 'cart',
-        });
+        }));
 
         // No transaction anywhere: the transaction check passes, and only the
         // budget check stands between this delete and a dangling category_id.
-        await budgetRepo.create({ categoryId: cat.id, month: '2026-09', limitAmount: 50000 });
+        await repos.runInTransaction(() => budgetRepo.create({ categoryId: cat.id, month: '2026-09', limitAmount: 50000 }));
 
         await expect(deleteCategory(getDeps(), cat.id)).rejects.toThrow(
             'Cannot delete category. It is used in 1 budgets.',
@@ -383,12 +383,12 @@ describe('deleteCategory', () => {
     });
 
     it('rejects deletion of the last category, even with nothing referencing it', async () => {
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Only',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'close',
-        });
+        }));
 
         await expect(deleteCategory(getDeps(), cat.id)).rejects.toThrow(
             'At least one category is required',
@@ -399,20 +399,20 @@ describe('deleteCategory', () => {
     });
 
     it('rejects deletion when a live recurring rule references the category', async () => {
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Subscriptions',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'repeat',
-        });
-        await categoryRepo.create({
+        }));
+        await repos.runInTransaction(() => categoryRepo.create({
             name: 'Kept',
             type: CategoryType.EXPENSE,
             color: '#00FF00',
             icon: 'cart',
-        });
+        }));
 
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
         // No transaction and no budget: the two existing reference checks both
         // pass, so only the rule check can refuse this.
@@ -431,22 +431,22 @@ describe('deleteCategory', () => {
     });
 
     it('rejects deletion when the only rule referencing the category is paused', async () => {
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Dormant',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'repeat',
-        });
-        await categoryRepo.create({
+        }));
+        await repos.runInTransaction(() => categoryRepo.create({
             name: 'Kept',
             type: CategoryType.EXPENSE,
             color: '#00FF00',
             icon: 'cart',
-        });
+        }));
 
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
         const rule = await createLiveRule(wallet.id, cat.id);
-        await recurringRepo.pauseRule(rule.id);
+        await repos.runInTransaction(() => recurringRepo.pauseRule(rule.id));
 
         // is_paused says WHEN a rule runs, not whether it exists. A paused rule
         // is still a standing order, and resuming it must not resume it into a
@@ -462,8 +462,8 @@ describe('deleteCategory', () => {
 
 describe('deleteWallet', () => {
     it('deletes a wallet when another one remains', async () => {
-        const doomed = await walletRepo.create({ name: 'Doomed', balance: 1000, type: WalletType.CASH });
-        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+        const doomed = await repos.runInTransaction(() => walletRepo.create({ name: 'Doomed', balance: 1000, type: WalletType.CASH }));
+        await repos.runInTransaction(() => walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK }));
 
         await deleteWallet(getDeps(), doomed.id);
 
@@ -474,7 +474,7 @@ describe('deleteWallet', () => {
     });
 
     it('refuses to delete the last wallet', async () => {
-        const only = await walletRepo.create({ name: 'Only', balance: 1000, type: WalletType.CASH });
+        const only = await repos.runInTransaction(() => walletRepo.create({ name: 'Only', balance: 1000, type: WalletType.CASH }));
 
         await expect(deleteWallet(getDeps(), only.id)).rejects.toThrow(LastWalletError);
 
@@ -483,7 +483,7 @@ describe('deleteWallet', () => {
     });
 
     it('raises a typed error so the UI can tell the refusal from a storage failure', async () => {
-        const only = await walletRepo.create({ name: 'Only', balance: 0, type: WalletType.CASH });
+        const only = await repos.runInTransaction(() => walletRepo.create({ name: 'Only', balance: 0, type: WalletType.CASH }));
 
         // A message-string match would pass against a bare `new Error` re-wrap;
         // the code is what survives being rethrown through the hook.
@@ -495,15 +495,15 @@ describe('deleteWallet', () => {
     });
 
     it('rejects deletion when a live recurring rule references the wallet', async () => {
-        const doomed = await walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH });
-        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+        const doomed = await repos.runInTransaction(() => walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH }));
+        await repos.runInTransaction(() => walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK }));
 
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Rent',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'home',
-        });
+        }));
 
         await createLiveRule(doomed.id, cat.id);
 
@@ -519,16 +519,16 @@ describe('deleteWallet', () => {
     });
 
     it('still deletes a wallet that holds transactions - only rules block', async () => {
-        const doomed = await walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH });
-        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+        const doomed = await repos.runInTransaction(() => walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH }));
+        await repos.runInTransaction(() => walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK }));
 
-        await transactionRepo.create({
+        await repos.runInTransaction(() => transactionRepo.create({
             type: TransactionType.EXPENSE,
             amount: 5000,
             categoryId: 'food',
             walletId: doomed.id,
             date: new Date(),
-        });
+        }));
 
         // The asymmetry is the point: a past transaction may lose its wallet,
         // a standing order may not.
@@ -538,18 +538,18 @@ describe('deleteWallet', () => {
     });
 
     it('rejects deletion when the only rule referencing the wallet is paused', async () => {
-        const doomed = await walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH });
-        await walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK });
+        const doomed = await repos.runInTransaction(() => walletRepo.create({ name: 'Doomed', balance: 100000, type: WalletType.CASH }));
+        await repos.runInTransaction(() => walletRepo.create({ name: 'Kept', balance: 2000, type: WalletType.BANK }));
 
-        const cat = await categoryRepo.create({
+        const cat = await repos.runInTransaction(() => categoryRepo.create({
             name: 'Rent',
             type: CategoryType.EXPENSE,
             color: '#FF0000',
             icon: 'home',
-        });
+        }));
 
         const rule = await createLiveRule(doomed.id, cat.id);
-        await recurringRepo.pauseRule(rule.id);
+        await repos.runInTransaction(() => recurringRepo.pauseRule(rule.id));
 
         // See the category twin above: pausing is not an escape hatch.
         const error = await deleteWallet(getDeps(), doomed.id).catch((e: unknown) => e);

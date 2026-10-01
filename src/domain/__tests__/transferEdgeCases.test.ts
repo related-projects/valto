@@ -19,16 +19,16 @@ describe('transferFunds edge cases', () => {
     let eventBus: MockRepositoryBundle['eventBus'];
 
     beforeEach(async () => {
-        repos = await createMockRepositories();
+        repos = await createMockRepositories({ writeGuard: true });
         ({ walletRepo, transactionRepo, eventBus } = repos);
     });
 
     const deps = () => ({ transactionRepo, walletRepo, eventBus, runInTransaction: repos.runInTransaction });
 
     it('rejects transfer to same wallet', async () => {
-        const wallet = await walletRepo.create({
+        const wallet = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 100000, type: WalletType.CASH,
-        });
+        }));
 
         await expect(
             transferFunds(deps(), {
@@ -60,9 +60,9 @@ describe('transferFunds edge cases', () => {
     });
 
     it('rejects non-existent source wallet', async () => {
-        const dest = await walletRepo.create({
+        const dest = await repos.runInTransaction(() => walletRepo.create({
             name: 'Bank', balance: 50000, type: WalletType.BANK,
-        });
+        }));
 
         await expect(
             transferFunds(deps(), {
@@ -74,9 +74,9 @@ describe('transferFunds edge cases', () => {
     });
 
     it('rejects non-existent destination wallet', async () => {
-        const source = await walletRepo.create({
+        const source = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 100000, type: WalletType.CASH,
-        });
+        }));
 
         await expect(
             transferFunds(deps(), {
@@ -88,12 +88,12 @@ describe('transferFunds edge cases', () => {
     });
 
     it('rejects insufficient balance', async () => {
-        const source = await walletRepo.create({
+        const source = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 5000, type: WalletType.CASH,
-        });
-        const dest = await walletRepo.create({
+        }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({
             name: 'Bank', balance: 0, type: WalletType.BANK,
-        });
+        }));
 
         await expect(
             transferFunds(deps(), {
@@ -105,12 +105,12 @@ describe('transferFunds edge cases', () => {
     });
 
     it('rejects insufficient balance with a typed INSUFFICIENT_FUNDS error', async () => {
-        const source = await walletRepo.create({
+        const source = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 5000, type: WalletType.CASH,
-        });
-        const dest = await walletRepo.create({
+        }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({
             name: 'Bank', balance: 0, type: WalletType.BANK,
-        });
+        }));
 
         const error = await transferFunds(deps(), {
             fromWalletId: source.id,
@@ -127,12 +127,12 @@ describe('transferFunds edge cases', () => {
     });
 
     it('creates paired double-entry transfer records', async () => {
-        const source = await walletRepo.create({
+        const source = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 100000, type: WalletType.CASH,
-        });
-        const dest = await walletRepo.create({
+        }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({
             name: 'Bank', balance: 50000, type: WalletType.BANK,
-        });
+        }));
 
         await transferFunds(deps(), {
             fromWalletId: source.id,
@@ -158,12 +158,12 @@ describe('transferFunds edge cases', () => {
     });
 
     it('updates both wallet balances correctly', async () => {
-        const source = await walletRepo.create({
+        const source = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 100000, type: WalletType.CASH,
-        });
-        const dest = await walletRepo.create({
+        }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({
             name: 'Bank', balance: 50000, type: WalletType.BANK,
-        });
+        }));
 
         await transferFunds(deps(), {
             fromWalletId: source.id,
@@ -179,12 +179,12 @@ describe('transferFunds edge cases', () => {
     });
 
     it('emits wallets and transactions events on success', async () => {
-        const source = await walletRepo.create({
+        const source = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 100000, type: WalletType.CASH,
-        });
-        const dest = await walletRepo.create({
+        }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({
             name: 'Bank', balance: 50000, type: WalletType.BANK,
-        });
+        }));
 
         await transferFunds(deps(), {
             fromWalletId: source.id,
@@ -196,12 +196,12 @@ describe('transferFunds edge cases', () => {
     });
 
     it('transfer of exact balance succeeds', async () => {
-        const source = await walletRepo.create({
+        const source = await repos.runInTransaction(() => walletRepo.create({
             name: 'Cash', balance: 50000, type: WalletType.CASH,
-        });
-        const dest = await walletRepo.create({
+        }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({
             name: 'Bank', balance: 0, type: WalletType.BANK,
-        });
+        }));
 
         await expect(
             transferFunds(deps(), {

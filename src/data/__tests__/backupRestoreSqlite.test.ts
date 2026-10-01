@@ -127,31 +127,31 @@ const v1Snapshot = (): BackupSnapshot => {
  * one recurring rule - one row in every table a snapshot can own.
  */
 async function seedPreRestoreState(db: SqlDatabase) {
-    await db.execute(
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO wallets (id, name, balance, opening_balance, type, color, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ['w-old', 'Old Wallet', 4200, 4200, 'cash', null, ISO],
-    );
-    await db.execute(
+    ));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO categories (id, name, type) VALUES (?, ?, ?)`,
         ['cat-old', 'Old Category', 'expense'],
-    );
-    await db.execute(
+    ));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO transactions (id, type, amount, category_id, wallet_id, date, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ['tx-old', 'expense', 900, 'cat-old', 'w-old', ISO, ISO],
-    );
-    await db.execute(
+    ));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO budgets (id, category_id, month, limit_amount, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         ['b-old', 'cat-old', '2025-12', 1000, ISO, ISO],
-    );
-    await db.execute(
+    ));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO recurring_rules
             (id, type, amount, wallet_id, category_id, start_date, frequency, interval_count, last_generated_date, is_paused, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ['rr-old', 'expense', 3000, 'w-old', 'cat-old', '2030-01-01T00:00:00.000Z', 'monthly', 1, '2029-12-01T00:00:00.000Z', 0, ISO],
-    );
+    ));
 }
 
 let db: SqlDatabase;
@@ -159,7 +159,7 @@ let db: SqlDatabase;
 beforeEach(async () => {
     jest.clearAllMocks();
     await AsyncStorage.clear();
-    db = await createTestDb();
+    db = await createTestDb({ writeGuard: true });
     __setDatabaseForTests(db);
 });
 

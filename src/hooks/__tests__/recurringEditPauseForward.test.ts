@@ -166,7 +166,7 @@ async function runEngine() {
  */
 async function seedRent(walletId = BANK, interval = 1): Promise<string> {
     pinAt(2026, 9, 20);
-    const rule = await mockRecurringRepo.create({
+    const rule = await mockDb.runInTransaction(() => mockRecurringRepo.create({
         type: TransactionType.EXPENSE,
         amount: 1000,
         walletId,
@@ -175,7 +175,7 @@ async function seedRent(walletId = BANK, interval = 1): Promise<string> {
         startDate: localDate(2026, 1, 15),
         frequency: RecurrenceFrequency.MONTHLY,
         interval,
-    });
+    }));
     await runEngine();
     return rule.id;
 }
@@ -190,20 +190,20 @@ async function simulateWriterZone(hoursEast: number): Promise<void> {
     const shift = (iso: unknown) => new Date(new Date(String(iso)).getTime() - hoursEast * HOUR_MS).toISOString();
     const { rows: rules } = await mockDb.execute('SELECT id, last_generated_date FROM recurring_rules');
     for (const r of rules) {
-        await mockDb.execute('UPDATE recurring_rules SET last_generated_date = ? WHERE id = ?', [
+        await mockDb.runInTransaction(() => mockDb.execute('UPDATE recurring_rules SET last_generated_date = ? WHERE id = ?', [
             shift(r.last_generated_date),
             r.id,
-        ]);
+        ]));
     }
     const { rows: txs } = await mockDb.execute('SELECT id, date FROM transactions');
     for (const t of txs) {
-        await mockDb.execute('UPDATE transactions SET date = ? WHERE id = ?', [shift(t.date), t.id]);
+        await mockDb.runInTransaction(() => mockDb.execute('UPDATE transactions SET date = ? WHERE id = ?', [shift(t.date), t.id]));
     }
 }
 
 /** A wallet gone without passing the deletion guard, as a v1 restore leaves it. */
 async function orphanWallet(walletId: string): Promise<void> {
-    await mockDb.execute('DELETE FROM wallets WHERE id = ?', [walletId]);
+    await mockDb.runInTransaction(() => mockDb.execute('DELETE FROM wallets WHERE id = ?', [walletId]));
 }
 
 async function mountHook() {
@@ -241,18 +241,18 @@ async function resumeRule(result: HookResult, id: string) {
 const days = (rows: Row[]) => rows.map((r) => r.day);
 
 beforeEach(async () => {
-    mockDb = await createTestDb();
+    mockDb = await createTestDb({ writeGuard: true });
     mockRecurringRepo = new RecurringTransactionRepository(mockDb);
     mockWalletRepo = new WalletRepository(mockDb);
     mockCategoryRepo = new CategoryRepository(mockDb);
     mockTransactionRepo = new TransactionRepository(mockDb);
 
-    await mockWalletRepo.save({ id: BANK, name: 'Bank', balance: 10000000, type: WalletType.BANK, createdAt: new Date(2025, 0, 1) });
+    await mockDb.runInTransaction(() => mockWalletRepo.save({ id: BANK, name: 'Bank', balance: 10000000, type: WalletType.BANK, createdAt: new Date(2025, 0, 1) }));
     // Cash is guarded by the funds check; 9500 covers the nine occurrences up
     // to 15 Sep and leaves 500, short of the 1000 due on 15 Oct.
-    await mockWalletRepo.save({ id: CASH, name: 'Cash', balance: 9500, type: WalletType.CASH, createdAt: new Date(2025, 0, 1) });
-    await mockWalletRepo.save({ id: OTHER, name: 'Other', balance: 10000000, type: WalletType.BANK, createdAt: new Date(2025, 0, 1) });
-    await mockCategoryRepo.save({ id: CATEGORY, name: 'Bills', type: CategoryType.EXPENSE });
+    await mockDb.runInTransaction(() => mockWalletRepo.save({ id: CASH, name: 'Cash', balance: 9500, type: WalletType.CASH, createdAt: new Date(2025, 0, 1) }));
+    await mockDb.runInTransaction(() => mockWalletRepo.save({ id: OTHER, name: 'Other', balance: 10000000, type: WalletType.BANK, createdAt: new Date(2025, 0, 1) }));
+    await mockDb.runInTransaction(() => mockCategoryRepo.save({ id: CATEGORY, name: 'Bills', type: CategoryType.EXPENSE }));
 });
 
 afterEach(() => {
@@ -298,7 +298,7 @@ describe('V-105 edit after a zone change (process zone; run under TZ=UTC, Africa
         // Created at 21:00 on 15 Jan in the writer zone: 02:00 on 16 Jan here,
         // so the process zone reads the rule as anchored on the 16th.
         const writerStart = new Date(localDate(2026, 1, 15, 21, 0).getTime() + 5 * HOUR_MS);
-        await mockDb.execute('UPDATE recurring_rules SET start_date = ? WHERE id = ?', [writerStart.toISOString(), id]);
+        await mockDb.runInTransaction(() => mockDb.execute('UPDATE recurring_rules SET start_date = ? WHERE id = ?', [writerStart.toISOString(), id]));
         const before = await ledger();
 
         pinAt(2026, 10, 1);
@@ -583,7 +583,7 @@ describe('V-105 pause and resume (process zone; run under TZ=UTC, Africa/Lagos, 
         const id = await seedRent();
         const before = await ledger();
         // The pause as 1.1.2 wrote it: the flag only, nothing caught up.
-        await mockRecurringRepo.pauseRule(id);
+        await mockDb.runInTransaction(() => mockRecurringRepo.pauseRule(id));
 
         pinAt(2026, 11, 20);
         const result = await mountHook();

@@ -9,7 +9,7 @@
  * It NEVER overwrites existing user data, making it safe to call on every app launch.
  */
 
-import { getCategoryRepository } from '../../core/di';
+import { getCategoryRepository, getUseCaseDeps } from '../../core/di';
 import { asyncStorageAdapter } from '../storage';
 import { StorageKeys } from '../storage/StorageKeys';
 import { defaultCategories } from './seedData';
@@ -67,16 +67,22 @@ export async function initializeSeedData(): Promise<SeedResult> {
 
         const categoryRepo = getCategoryRepository();
 
-        // Create default categories
+        // Create default categories, in one transaction through the runner
+        // (REGISTRE V-109): seeding while another transaction is open waits for
+        // it to end, so its rollback can never erase some of the defaults after
+        // the flag below says they are there. Verified by
+        // writesThroughRunner.test.ts - "V-109 c14".
         let categoriesCreated = 0;
-        for (const categoryDTO of defaultCategories) {
-            try {
-                await categoryRepo.create(categoryDTO);
-                categoriesCreated++;
-            } catch (error) {
-                console.error('Failed to create default category:', categoryDTO.name, error);
+        await getUseCaseDeps().runInTransaction(async () => {
+            for (const categoryDTO of defaultCategories) {
+                try {
+                    await categoryRepo.create(categoryDTO);
+                    categoriesCreated++;
+                } catch (error) {
+                    console.error('Failed to create default category:', categoryDTO.name, error);
+                }
             }
-        }
+        });
 
         // Mark as initialized
         await markSeedInitialized();

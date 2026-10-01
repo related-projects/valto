@@ -22,11 +22,24 @@
  * settled, and also when BEGIN, COMMIT or ROLLBACK themselves throw. Verified
  * by the three control tests in transactionExclusive.test.ts ("control: BEGIN
  * throws...", "control: COMMIT throws...", "control: ROLLBACK throws...").
+ *
+ * The runner also reports whether a transaction is open on its connection
+ * (isTransactionOpen), from the moment BEGIN is issued until COMMIT or
+ * ROLLBACK has settled. The write guard reads it (REGISTRE V-109, see
+ * writeGuard.ts). Verified by writeGuard.test.ts - "V-109 d1" and "control:
+ * after the boot migrations, a write inside runInTransaction commits".
  */
 
 import type { SqlQueryResult } from './SqlDatabase';
 
 type Execute = (sql: string, params?: unknown[]) => Promise<SqlQueryResult>;
+
+/** runInTransaction, plus whether a transaction is open on the connection. */
+export interface TransactionRunner {
+    <T>(work: () => Promise<T>): Promise<T>;
+    /** True from the moment BEGIN is issued until COMMIT or ROLLBACK has settled. */
+    isTransactionOpen(): boolean;
+}
 
 /**
  * runInTransaction was called from inside a running transaction callback.
@@ -44,35 +57,44 @@ export class NestedTransactionError extends Error {
 
 const ignore = () => undefined;
 
-export function createTransactionRunner(execute: Execute) {
+export function createTransactionRunner(execute: Execute): TransactionRunner {
     // Lock tail: settles once the last queued transaction has fully ended -
     // COMMIT or ROLLBACK settled, or BEGIN failed. Never rejects.
     let tail: Promise<void> = Promise.resolve();
     // True only while a callback is executing synchronously, up to its first
     // await. See the guard in runInTransaction.
     let inCallbackPrefix = false;
+    // True from the moment BEGIN is issued until COMMIT or ROLLBACK has
+    // settled, or BEGIN has failed. Only one transaction runs at a time, so
+    // one flag is enough.
+    let open = false;
 
     async function runExclusive<T>(work: () => Promise<T>): Promise<T> {
-        await execute('BEGIN');
+        open = true;
         try {
-            let pending: Promise<T>;
-            inCallbackPrefix = true;
+            await execute('BEGIN');
             try {
-                pending = work();
-            } finally {
-                inCallbackPrefix = false;
+                let pending: Promise<T>;
+                inCallbackPrefix = true;
+                try {
+                    pending = work();
+                } finally {
+                    inCallbackPrefix = false;
+                }
+                const result = await pending;
+                await execute('COMMIT');
+                return result;
+            } catch (error) {
+                // A ROLLBACK that throws propagates its own error, as before.
+                await execute('ROLLBACK');
+                throw error;
             }
-            const result = await pending;
-            await execute('COMMIT');
-            return result;
-        } catch (error) {
-            // A ROLLBACK that throws propagates its own error, as before.
-            await execute('ROLLBACK');
-            throw error;
+        } finally {
+            open = false;
         }
     }
 
-    return function runInTransaction<T>(work: () => Promise<T>): Promise<T> {
+    function runInTransaction<T>(work: () => Promise<T>): Promise<T> {
         // Nested calls are not supported (REGISTRE V-106). A call made while a
         // callback is still executing synchronously - before its first await -
         // can only come from inside that callback, since nothing else runs
@@ -91,5 +113,7 @@ export function createTransactionRunner(execute: Execute) {
         const run = tail.then(() => runExclusive(work));
         tail = run.then(ignore, ignore);
         return run;
-    };
+    }
+
+    return Object.assign(runInTransaction, { isTransactionOpen: () => open });
 }

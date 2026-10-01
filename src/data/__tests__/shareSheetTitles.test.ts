@@ -85,7 +85,7 @@ beforeAll(async () => {
 beforeEach(async () => {
     jest.clearAllMocks();
     container.reset();
-    __setDatabaseForTests(await createTestDb());
+    __setDatabaseForTests(await createTestDb({ writeGuard: true }));
     const actual = jest.requireActual('../services/settingsService');
     mockedLoadSettings.mockResolvedValue({
         ...actual.getDefaultSettings(),

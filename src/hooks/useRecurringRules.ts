@@ -67,7 +67,11 @@ export function useRecurringRules() {
 
     const createRule = useCallback(
         async (dto: CreateRecurringTransactionDTO) => {
-            const rule = await repo.create(dto);
+            // Through the runner (REGISTRE V-109): a write made while another
+            // transaction is open - a restore - waits for it to end instead of
+            // landing inside it and being erased by its rollback. Verified by
+            // writesThroughRunner.test.ts - "V-109 c1".
+            const rule = await getUseCaseDeps().runInTransaction(() => repo.create(dto));
             dataEvents.emit('recurringRules');
             return rule;
         },
@@ -88,7 +92,11 @@ export function useRecurringRules() {
 
     const deleteRule = useCallback(
         async (id: string) => {
-            await repo.delete(id);
+            // Through the runner (REGISTRE V-109): a delete made during this
+            // rule's own catch-up waits for the open occurrence to commit, so
+            // that occurrence's rollback can never bring the rule back.
+            // Verified by writesThroughRunner.test.ts - "V-109 b".
+            await getUseCaseDeps().runInTransaction(() => repo.delete(id));
             dataEvents.emit('recurringRules');
         },
         [repo],
@@ -105,7 +113,9 @@ export function useRecurringRules() {
 
     const resumeRule = useCallback(
         async (id: string) => {
-            await repo.resumeRule(id);
+            // Through the runner (REGISTRE V-109), as createRule. Verified by
+            // writesThroughRunner.test.ts - "V-109 c3".
+            await getUseCaseDeps().runInTransaction(() => repo.resumeRule(id));
             dataEvents.emit('recurringRules');
         },
         [repo],

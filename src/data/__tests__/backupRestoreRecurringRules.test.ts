@@ -125,16 +125,16 @@ const RULE_WITHOUT_END: RecurringTransaction = {
 
 /** The wallet and categories both fixtures point at. */
 async function seedLedger(database: SqlDatabase) {
-    await new WalletRepository(database).save({
+    await db.runInTransaction(() => new WalletRepository(database).save({
         id: 'w-cash',
         name: 'Cash',
         balance: 100000,
         type: WalletType.CASH,
         createdAt: new Date(ISO),
-    });
+    }));
     const categories = new CategoryRepository(database);
-    await categories.save({ id: 'food', name: 'Food', type: CategoryType.EXPENSE });
-    await categories.save({ id: 'salary', name: 'Salary', type: CategoryType.INCOME });
+    await db.runInTransaction(() => categories.save({ id: 'food', name: 'Food', type: CategoryType.EXPENSE }));
+    await db.runInTransaction(() => categories.save({ id: 'salary', name: 'Salary', type: CategoryType.INCOME }));
 }
 
 /**
@@ -191,7 +191,7 @@ beforeEach(async () => {
     jest.clearAllMocks();
     mockWrittenBackups.length = 0;
     await AsyncStorage.clear();
-    db = await createTestDb();
+    db = await createTestDb({ writeGuard: true });
     __setDatabaseForTests(db);
     // The backup producer and the post-restore catch-up both go through the DI
     // container, which caches a repository over whichever connection was live
@@ -209,8 +209,8 @@ afterEach(() => {
 describe('a recurring rule survives the backup file', () => {
     it('round-trips every field, with and without an endDate', async () => {
         await seedLedger(db);
-        await rules.save(RULE_WITH_END);
-        await rules.save(RULE_WITHOUT_END);
+        await db.runInTransaction(() => rules.save(RULE_WITH_END));
+        await db.runInTransaction(() => rules.save(RULE_WITHOUT_END));
 
         await createAndShareBackup();
 
@@ -221,7 +221,7 @@ describe('a recurring rule survives the backup file', () => {
 
         // Cleared first, so nothing can pass by having survived rather than by
         // having been put back.
-        await db.execute('DELETE FROM recurring_rules');
+        await db.runInTransaction(() => db.execute('DELETE FROM recurring_rules'));
         expect(await rules.getAll()).toHaveLength(0);
 
         await restoreFromSnapshot(file);
@@ -245,7 +245,7 @@ describe('a recurring rule survives the backup file', () => {
 
     it('replaces the live rules with the ones the v2 file carries', async () => {
         await seedLedger(db);
-        await rules.save({ ...RULE_WITH_END, id: 'rr-stale', description: 'Gone after restore' });
+        await db.runInTransaction(() => rules.save({ ...RULE_WITH_END, id: 'rr-stale', description: 'Gone after restore' }));
 
         await restoreFromSnapshot(v2Snapshot());
 
@@ -262,8 +262,8 @@ describe('a v1 file does not delete the live recurring rules', () => {
         expect(CURRENT_SCHEMA_VERSION).toBeGreaterThan(1);
 
         await seedLedger(db);
-        await rules.save(RULE_WITH_END);
-        await rules.save(RULE_WITHOUT_END);
+        await db.runInTransaction(() => rules.save(RULE_WITH_END));
+        await db.runInTransaction(() => rules.save(RULE_WITHOUT_END));
 
         await restoreFromSnapshot(v1Snapshot());
 
@@ -275,7 +275,7 @@ describe('a v1 file does not delete the live recurring rules', () => {
 describe('a v2 file with a rule pointing nowhere is refused', () => {
     it('rejects the file and leaves the pre-restore data untouched', async () => {
         await seedLedger(db);
-        await rules.save(RULE_WITH_END);
+        await db.runInTransaction(() => rules.save(RULE_WITH_END));
 
         const bad = v2Snapshot();
         bad.data.recurringRules = [
@@ -318,7 +318,7 @@ describe('the post-restore reference report', () => {
         expect(CURRENT_SCHEMA_VERSION).toBeGreaterThan(1);
 
         await seedLedger(db);
-        await rules.save(RULE_WITH_END);
+        await db.runInTransaction(() => rules.save(RULE_WITH_END));
 
         // The v1 file carries a different wallet, so the surviving rule is left
         // pointing at one the restore has just deleted.

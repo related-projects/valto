@@ -105,7 +105,7 @@ beforeEach(async () => {
     jest.clearAllMocks();
     mockWrittenBackups.length = 0;
     await AsyncStorage.clear();
-    db = await createTestDb();
+    db = await createTestDb({ writeGuard: true });
     __setDatabaseForTests(db);
     // The backup producer, the restore and the post-restore catch-up all reach
     // their repositories through the DI container, which caches one over
@@ -132,7 +132,7 @@ describe('a backup carrying a transfer', () => {
             type: WalletType.BANK,
         });
 
-        await new CategoryRepository(db).create({ name: 'Food', type: CategoryType.EXPENSE });
+        await db.runInTransaction(() => new CategoryRepository(db).create({ name: 'Food', type: CategoryType.EXPENSE }));
 
         await transferFunds(deps(), {
             fromWalletId: source.id,
@@ -229,8 +229,8 @@ describe('every file the app writes, the app restores', () => {
         });
 
         const categories = new CategoryRepository(db);
-        const food = await categories.create({ name: 'Food', type: CategoryType.EXPENSE });
-        const salary = await categories.create({ name: 'Salary', type: CategoryType.INCOME });
+        const food = await db.runInTransaction(() => categories.create({ name: 'Food', type: CategoryType.EXPENSE }));
+        const salary = await db.runInTransaction(() => categories.create({ name: 'Salary', type: CategoryType.INCOME }));
 
         // -- One of every transaction shape the app can record --------------
         await createTransaction(deps(), {
@@ -254,14 +254,14 @@ describe('every file the app writes, the app restores', () => {
         });
 
         // -- A budget and a standing order ----------------------------------
-        await new BudgetRepository(db).create({
+        await db.runInTransaction(() => new BudgetRepository(db).create({
             categoryId: food.id,
             month: '2026-03',
             limitAmount: 60000,
-        });
+        }));
         // Starts in 2030 so the post-restore catch-up has nothing due: this
         // test is about the format, not about the recurring engine.
-        await new RecurringTransactionRepository(db).create({
+        await db.runInTransaction(() => new RecurringTransactionRepository(db).create({
             type: TransactionType.EXPENSE,
             amount: 4500,
             walletId: cash.id,
@@ -270,7 +270,7 @@ describe('every file the app writes, the app restores', () => {
             startDate: new Date('2030-01-15T00:00:00.000Z'),
             frequency: RecurrenceFrequency.MONTHLY,
             interval: 1,
-        });
+        }));
 
         const wallets = new WalletRepository(db);
         const before = await wallets.auditBalances();

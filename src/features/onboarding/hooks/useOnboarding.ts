@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { container } from '../../../core/di/container';
+import { container, getUseCaseDeps } from '../../../core/di/container';
 import { dataEvents } from '../../../core/events/dataEvents';
 import { lockCurrency, setOnboardingCurrency, updateSetting } from '../../../data/services/settingsService';
 import type { CurrencyDefinition } from '../../../domain/constants/currencies';
@@ -86,11 +86,15 @@ export function useOnboarding(): UseOnboardingResult {
         setLoading(true);
         setErrorKey(null);
         try {
-            await container.walletRepository.create({
-                name,
-                type: type as any,
-                balance: balanceCents,
-            });
+            // Through the runner (REGISTRE V-109), as every write. Verified by
+            // writesThroughRunner.test.ts - "V-109 c13".
+            await getUseCaseDeps().runInTransaction(() =>
+                container.walletRepository.create({
+                    name,
+                    type: type as any,
+                    balance: balanceCents,
+                }),
+            );
             dataEvents.emit('wallets');
             next();
         } catch {

@@ -33,6 +33,10 @@ jest.mock('../../core/di', () => ({
         new (require('../repositories/WalletRepository').WalletRepository)((global as any).__testSeedDb),
     getCategoryRepository: () =>
         new (require('../repositories/CategoryRepository').CategoryRepository)((global as any).__testSeedDb),
+    // The seed writes through the runner (REGISTRE V-109).
+    getUseCaseDeps: () => ({
+        runInTransaction: (work: () => Promise<unknown>) => (global as any).__testSeedDb.runInTransaction(work),
+    }),
     getTransactionRepository: () => ({
         getAll: jest.fn().mockResolvedValue([]),
     }),
@@ -43,7 +47,7 @@ import { initializeSeedData, resetSeedFlag } from '../seed/seedService';
 describe('Seed Service', () => {
     beforeEach(async () => {
         // Fresh in-memory SQLite per test + clear the KV seed flag.
-        (global as any).__testSeedDb = await createTestDb();
+        (global as any).__testSeedDb = await createTestDb({ writeGuard: true });
         await (global as any).__testSeedStorage.clear();
     });
 

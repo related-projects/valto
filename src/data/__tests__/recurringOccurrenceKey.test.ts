@@ -71,7 +71,7 @@ function createExpenseRule(
     frequency: RecurrenceFrequency,
     interval = 1,
 ) {
-    return recurringRepo.create({
+    return db.runInTransaction(() => recurringRepo.create({
         type: TransactionType.EXPENSE,
         amount,
         walletId: WALLET_ID,
@@ -80,7 +80,7 @@ function createExpenseRule(
         startDate,
         frequency,
         interval,
-    });
+    }));
 }
 
 /** Every ledger row a rule produced; the rule's description is the row's note. */
@@ -103,37 +103,37 @@ async function simulateWriterZoneEast(hours: number): Promise<void> {
 
     const { rows: rules } = await db.execute('SELECT id, last_generated_date FROM recurring_rules');
     for (const r of rules) {
-        await db.execute('UPDATE recurring_rules SET last_generated_date = ? WHERE id = ?', [
+        await db.runInTransaction(() => db.execute('UPDATE recurring_rules SET last_generated_date = ? WHERE id = ?', [
             shift(r.last_generated_date),
             r.id,
-        ]);
+        ]));
     }
     const { rows: txs } = await db.execute('SELECT id, date FROM transactions');
     for (const t of txs) {
-        await db.execute('UPDATE transactions SET date = ? WHERE id = ?', [shift(t.date), t.id]);
+        await db.runInTransaction(() => db.execute('UPDATE transactions SET date = ? WHERE id = ?', [shift(t.date), t.id]));
     }
 }
 
 beforeEach(async () => {
-    db = await createTestDb();
+    db = await createTestDb({ writeGuard: true });
     recurringRepo = new RecurringTransactionRepository(db);
     transactionRepo = new TransactionRepository(db);
     walletRepo = new WalletRepository(db);
 
     // A bank wallet: the funds guard covers cash and mobile only, and this
     // suite is about how often an occurrence is written, not about pricing.
-    await walletRepo.save({
+    await db.runInTransaction(() => walletRepo.save({
         id: WALLET_ID,
         name: 'Main',
         balance: OPENING_BALANCE,
         type: WalletType.BANK,
         createdAt: new Date(2025, 0, 1),
-    });
-    await new CategoryRepository(db).save({
+    }));
+    await db.runInTransaction(() => new CategoryRepository(db).save({
         id: CATEGORY_ID,
         name: 'Bills',
         type: CategoryType.EXPENSE,
-    });
+    }));
 });
 
 afterEach(() => {
@@ -207,14 +207,16 @@ describe('V-98 c. unique occurrence key (process zone; CI: UTC, Africa/Lagos, Am
 
     it('unique key: the database refuses a second row for the same rule, schedule version and occurrence', async () => {
         const key = { recurringRuleId: 'rule-x', recurringScheduleVersion: 0, recurringOccurrenceIndex: 3 };
-        await sqlInsert(db, transactionMapper, keyedRow('tx-1', key));
+        await db.runInTransaction(() => sqlInsert(db, transactionMapper, keyedRow('tx-1', key)));
 
         // Matched on the message, not with toThrow: better-sqlite3 registers its
         // error constructor once per process (lib/database.js, isInitialized),
         // so in a jest worker that loaded it for an earlier file the error's
         // prototype belongs to that file's realm, and toThrow does not
         // recognise it as an Error.
-        await expect(sqlInsert(db, transactionMapper, keyedRow('tx-2', key))).rejects.toHaveProperty(
+        await expect(
+            db.runInTransaction(() => sqlInsert(db, transactionMapper, keyedRow('tx-2', key))),
+        ).rejects.toHaveProperty(
             'message',
             expect.stringMatching(/UNIQUE constraint failed/),
         );
@@ -222,8 +224,8 @@ describe('V-98 c. unique occurrence key (process zone; CI: UTC, Africa/Lagos, Am
     });
 
     it('control: rows without a recurring key are not constrained by the index', async () => {
-        await sqlInsert(db, transactionMapper, keyedRow('tx-1'));
-        await sqlInsert(db, transactionMapper, keyedRow('tx-2'));
+        await db.runInTransaction(() => sqlInsert(db, transactionMapper, keyedRow('tx-1')));
+        await db.runInTransaction(() => sqlInsert(db, transactionMapper, keyedRow('tx-2')));
 
         expect(await transactionRepo.getAll()).toHaveLength(2);
     });
@@ -235,16 +237,18 @@ describe('V-98 c. unique occurrence key (process zone; CI: UTC, Africa/Lagos, Am
 
         // The ledger already holds occurrence 0 of this rule under its key,
         // while the rule's own record still says nothing was generated.
-        await sqlInsert(
-            db,
-            transactionMapper,
-            keyedRow('already-there', {
-                amount: 1000,
-                note: 'Phone',
-                recurringRuleId: rule.id,
-                recurringScheduleVersion: 0,
-                recurringOccurrenceIndex: 0,
-            }),
+        await db.runInTransaction(() =>
+            sqlInsert(
+                db,
+                transactionMapper,
+                keyedRow('already-there', {
+                    amount: 1000,
+                    note: 'Phone',
+                    recurringRuleId: rule.id,
+                    recurringScheduleVersion: 0,
+                    recurringOccurrenceIndex: 0,
+                }),
+            ),
         );
         const before = await balance();
 
@@ -282,7 +286,7 @@ describe('V-98 e. schedule edits in a constant zone apply going forward (process
         const known = new Set((await rowsOf('Club')).map((t) => t.id));
         expect(known.size).toBe(3);
 
-        await recurringRepo.updateFromDTO({ id: rule.id, interval: 2 });
+        await db.runInTransaction(() => recurringRepo.updateFromDTO({ id: rule.id, interval: 2 }));
         pinClock(localNoon(2026, 6, 15).getTime());
         const result = await processRecurringRules(depsOver(db));
 
@@ -300,7 +304,7 @@ describe('V-98 e. schedule edits in a constant zone apply going forward (process
         const known = new Set((await rowsOf('Gym')).map((t) => t.id));
         expect(known.size).toBe(2);
 
-        await recurringRepo.updateFromDTO({ id: rule.id, interval: 1 });
+        await db.runInTransaction(() => recurringRepo.updateFromDTO({ id: rule.id, interval: 1 }));
         pinClock(localNoon(2026, 4, 15).getTime());
         const result = await processRecurringRules(depsOver(db));
 
@@ -318,7 +322,7 @@ describe('V-98 e. schedule edits in a constant zone apply going forward (process
         const known = new Set((await rowsOf('Lessons')).map((t) => t.id));
         expect(known.size).toBe(3);
 
-        await recurringRepo.updateFromDTO({ id: rule.id, frequency: RecurrenceFrequency.WEEKLY });
+        await db.runInTransaction(() => recurringRepo.updateFromDTO({ id: rule.id, frequency: RecurrenceFrequency.WEEKLY }));
         pinClock(localNoon(2026, 2, 31).getTime());
         const result = await processRecurringRules(depsOver(db));
 

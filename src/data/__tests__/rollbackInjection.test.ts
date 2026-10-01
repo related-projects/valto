@@ -20,10 +20,10 @@ import { WalletRepository } from '../repositories/WalletRepository';
 
 describe('atomic rollback under fault injection', () => {
     it('transferFunds: failing the 2nd write rolls back the whole transfer', async () => {
-        const base = await createTestDb();
+        const base = await createTestDb({ writeGuard: true });
         const seed = new WalletRepository(base);
-        const source = await seed.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
-        const dest = await seed.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+        const source = await base.runInTransaction(() => seed.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
+        const dest = await base.runInTransaction(() => seed.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
         // Fail the 2nd `UPDATE wallets` - i.e. the destination balance update,
         // the second write of the transfer (after the source debit).
@@ -56,9 +56,9 @@ describe('atomic rollback under fault injection', () => {
     });
 
     it('createTransaction: failing the balance update persists no transaction', async () => {
-        const base = await createTestDb();
+        const base = await createTestDb({ writeGuard: true });
         const seed = new WalletRepository(base);
-        const wallet = await seed.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await base.runInTransaction(() => seed.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
         // createTransaction inserts the row, then updates the balance - fail the
         // 1st `UPDATE wallets`.
@@ -95,9 +95,9 @@ describe('atomic rollback under fault injection', () => {
 
     it('successful createTransaction keeps stored balance == recomputed ledger', async () => {
         // Sanity counterpart: the happy path must leave zero drift too.
-        const db = await createTestDb();
+        const db = await createTestDb({ writeGuard: true });
         const walletRepo = new WalletRepository(db);
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+        const wallet = await db.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
         await createTransaction(
             {

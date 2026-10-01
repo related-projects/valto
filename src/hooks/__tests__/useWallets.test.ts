@@ -52,18 +52,18 @@ import { useWallets } from '../useWallets';
 
 describe('useWallets', () => {
     beforeEach(async () => {
-        mockDb = await createTestDb();
+        mockDb = await createTestDb({ writeGuard: true });
         mockWalletRepo = new WalletRepository(mockDb);
         mockTransactionRepo = new TransactionRepository(mockDb);
     });
 
     it('loads wallets on mount', async () => {
         // Pre-seed a wallet
-        await mockWalletRepo.create({
+        await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Cash',
             balance: 50000,
             type: WalletType.CASH,
-        });
+        }));
 
         const { result } = renderHook(() => useWallets());
 
@@ -98,8 +98,8 @@ describe('useWallets', () => {
     });
 
     it('getTotalBalance returns correct sum', async () => {
-        await mockWalletRepo.create({ name: 'Cash', balance: 50000, type: WalletType.CASH });
-        await mockWalletRepo.create({ name: 'Bank', balance: 150000, type: WalletType.BANK });
+        await mockDb.runInTransaction(() => mockWalletRepo.create({ name: 'Cash', balance: 50000, type: WalletType.CASH }));
+        await mockDb.runInTransaction(() => mockWalletRepo.create({ name: 'Bank', balance: 150000, type: WalletType.BANK }));
 
         const { result } = renderHook(() => useWallets());
 
@@ -111,8 +111,8 @@ describe('useWallets', () => {
     });
 
     it('transferBetweenWallets updates both balances', async () => {
-        const source = await mockWalletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
-        const dest = await mockWalletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK });
+        const source = await mockDb.runInTransaction(() => mockWalletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
+        const dest = await mockDb.runInTransaction(() => mockWalletRepo.create({ name: 'Bank', balance: 50000, type: WalletType.BANK }));
 
         const { result } = renderHook(() => useWallets());
 
@@ -231,11 +231,11 @@ describe('useWallets', () => {
     // (walletEditGuard.test.ts), so the rule is reached through the stored
     // balance: an overdrawn bank wallet can still be edited.
     it('updateWallet allows editing an overdrawn bank wallet', async () => {
-        const bank = await mockWalletRepo.create({
+        const bank = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Bank',
             balance: -5000,
             type: WalletType.BANK,
-        });
+        }));
 
         const { result } = renderHook(() => useWallets());
 
@@ -255,11 +255,11 @@ describe('useWallets', () => {
     // The counterpart: the domain rule that DOES still refuse, so the test
     // above cannot be read as "negative balances are now unchecked".
     it('updateWallet still refuses turning an overdrawn wallet into a cash wallet', async () => {
-        const bank = await mockWalletRepo.create({
+        const bank = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Bank',
             balance: -5000,
             type: WalletType.BANK,
-        });
+        }));
 
         const { result } = renderHook(() => useWallets());
 

@@ -30,6 +30,9 @@ jest.mock('../../../core/di/container', () => ({
             return { create: jest.fn().mockResolvedValue({ id: 'w1' }) };
         },
     },
+    // No database here: the wallet create runs through the runner (REGISTRE
+    // V-109), which this suite does not exercise.
+    getUseCaseDeps: () => ({ runInTransaction: (work: () => Promise<unknown>) => work() }),
 }));
 
 jest.mock('react-i18next', () => ({
