@@ -16,6 +16,11 @@
  * transaction. Verified by recurringOccurrenceKey.test.ts - "zone shift...",
  * "interrupted run..." and "unique key...".
  *
+ * A rule changed while it is processed (REGISTRE V-115): rules are read with
+ * no transaction open, so each occurrence's transaction reads its rule again
+ * and writes only while it is unchanged; otherwise the rule is processed again
+ * from the stored row. See generateForRule.
+ *
  * Insufficient Funds Handling:
  * Expense rules targeting cash/mobile wallets are pre-checked before
  * transaction creation. If the wallet cannot cover the total cost of
@@ -30,7 +35,7 @@ import type { RecurringTransactionRepository } from '../repositories/RecurringTr
 import type { TransactionRepository } from '../repositories/TransactionRepository';
 import type { WalletRepository } from '../repositories/WalletRepository';
 import type { EventBus, RunInTransaction } from '../../domain/useCases/types';
-import { computeDueOccurrences, startOfDay } from '../../domain/calculations/recurrenceDates';
+import { computeDueOccurrences, deriveLastGeneratedIndex, startOfDay } from '../../domain/calculations/recurrenceDates';
 import { checkInsufficientFunds } from '../../domain/recurring';
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -152,8 +157,82 @@ export async function retryRule(
 }
 
 /**
- * Generate all missing transactions for a single rule.
- * Returns the number of transactions generated and any skip info.
+ * Most times one rule may be found changed - and processed again from the
+ * stored rule - in one run (REGISTRE V-115). Past it, the rule is left to the
+ * next run. A change here is a save made while the rule was being processed,
+ * so more than a few in one run is not expected; the bound only keeps a rule
+ * that never stops changing from holding the run. Another run moving the same
+ * rule forward is not counted: see compareWithStored.
+ */
+const MAX_RULE_RESTARTS = 3;
+
+/**
+ * Generate all missing transactions for a single rule, up to the local day of
+ * `now`. Returns the number of transactions generated and any skip info.
+ *
+ * `rule` is a copy read with no transaction open, and anything may be saved
+ * between that read and a write (REGISTRE V-115): an edit, a pause, a delete,
+ * another run. Each occurrence's transaction therefore reads the stored rule
+ * before it writes, and writes only while it still matches the copy
+ * (generateFromCopy). When it does not, nothing is written in that
+ * transaction, and the rule is processed again from the stored rule, for the
+ * same day and with its pre-checks - or not at all when it has been deleted
+ * or paused. Past MAX_RULE_RESTARTS this throws, and processRecurringRules
+ * reports the rule among its errors; what is still due stays due for the next
+ * run.
+ *
+ * Unchecked, a copy read before a schedule change wrote its occurrence number,
+ * counted in the old numbering, into the new one - every occurrence up to it
+ * was skipped - and across midnight wrote an occurrence of the old schedule
+ * after the edit day, a day the new schedule then debited again. Verified by
+ * recurringStaleEngineCopy.test.ts - "a. S1...", "b. S2...", "c. a rule
+ * paused..." and "bound: ...".
+ */
+async function generateForRule(
+    deps: RecurringEngineDeps,
+    rule: RecurringTransaction,
+    now: Date = new Date(),
+): Promise<GenerateResult> {
+    const today = startOfDay(now);
+    let copy = rule;
+    let generated = 0;
+    let restarts = 0;
+
+    for (;;) {
+        const pass = await generateFromCopy(deps, copy, today);
+        generated += pass.generated;
+        if (pass.skipped) return { generated, skipped: pass.skipped };
+        if (!pass.changed) return { generated };
+
+        const { stored, advancedOnly } = pass.changed;
+        if (stored === null || stored.isPaused) return { generated };
+        if (!advancedOnly) {
+            restarts++;
+            if (restarts > MAX_RULE_RESTARTS) {
+                throw new Error(`Rule ${rule.id} changed while it was being processed; left to the next run`);
+            }
+            console.info(`[RecurringEngine] Rule ${rule.id} changed since it was read; processing it again`);
+        }
+        copy = stored;
+    }
+}
+
+/** The stored rule, when it no longer matches the copy being processed. */
+interface RuleChange {
+    /** Read inside the occurrence's transaction; null when the rule was deleted. */
+    stored: RecurringTransaction | null;
+    /** Only its last generated number is ahead: another run generated those occurrences. */
+    advancedOnly: boolean;
+}
+
+/** One pass over a copy of a rule: what it generated, and why it stopped early. */
+interface CopyPass extends GenerateResult {
+    changed?: RuleChange;
+}
+
+/**
+ * Generate what is due for one copy of a rule, stopping at the first
+ * occurrence whose transaction finds the stored rule different from it.
  *
  * Pre-checks, in order, and only once something is actually due:
  *  1. Reference integrity - the rule's wallet and category must both still
@@ -162,12 +241,11 @@ export async function retryRule(
  *     verifies the wallet can cover the total cost of all pending dues
  *     BEFORE creating any transactions (all-or-nothing). Skips, does not throw.
  */
-async function generateForRule(
+async function generateFromCopy(
     deps: RecurringEngineDeps,
     rule: RecurringTransaction,
-    now: Date = new Date(),
-): Promise<GenerateResult> {
-    const today = startOfDay(now);
+    today: Date,
+): Promise<CopyPass> {
     const dueOccurrences = computeDueOccurrences(rule, today);
     const dueDates = dueOccurrences.map((occurrence) => occurrence.date);
 
@@ -258,10 +336,17 @@ async function generateForRule(
     // nothing is written, nothing is debited, no error is raised, and the
     // rule's number still moves past it. Verified by the same file - "unique
     // key: the engine treats a key conflict as already generated...".
+    //
+    // Each transaction first reads the stored rule (REGISTRE V-115) and
+    // writes only if it still matches `expected` - the copy, as this pass's
+    // own commits have moved its number. Nothing else can change the row
+    // while the transaction is open, so the occurrence, its key and the
+    // rule's number are written from the rule as it is stored.
     const scheduleVersion = rule.scheduleVersion ?? 0;
     // The expression createTransaction uses, which generated these rows before.
     const balanceAdjustment = rule.type === TransactionType.EXPENSE ? -rule.amount : rule.amount;
     let generated = 0;
+    let expected = rule;
 
     for (const occurrence of dueOccurrences) {
         const dto: CreateTransactionDTO = {
@@ -273,7 +358,13 @@ async function generateForRule(
             note: rule.description,
         };
 
-        const written = await deps.runInTransaction(async () => {
+        const outcome = await deps.runInTransaction(async (): Promise<{ written: boolean; changed?: RuleChange }> => {
+            const stored = await deps.recurringRepo.getById(rule.id);
+            const match = compareWithStored(expected, stored);
+            if (match !== 'same') {
+                return { written: false, changed: { stored, advancedOnly: match === 'advanced' } };
+            }
+
             const row = await deps.transactionRepo.createRecurringOccurrence(dto, {
                 ruleId: rule.id,
                 scheduleVersion,
@@ -282,18 +373,73 @@ async function generateForRule(
             if (row) {
                 await deps.walletRepo.updateBalance(rule.walletId, balanceAdjustment);
             }
-            await deps.recurringRepo.recordGeneratedOccurrence(rule.id, occurrence.index, occurrence.date);
-            return row;
+            await deps.recurringRepo.recordGeneratedOccurrence(rule.id, scheduleVersion, occurrence.index, occurrence.date);
+            return { written: row !== null };
         });
 
-        if (written) {
+        if (outcome.changed) {
+            return { generated, changed: outcome.changed };
+        }
+        if (outcome.written) {
             generated++;
             // After commit, as createTransaction does.
             deps.eventBus.emitMultiple(['transactions', 'wallets']);
         }
+        expected = { ...expected, lastGeneratedIndex: occurrence.index, lastGeneratedDate: occurrence.date };
     }
 
     return { generated };
+}
+
+/** How the stored rule compares with the copy an occurrence was computed from. */
+type StoredMatch = 'same' | 'advanced' | 'changed';
+
+/**
+ * Compare the stored rule with `expected` on every field that decides what is
+ * generated and where (REGISTRE V-115):
+ *  - scheduleVersion, frequency, interval, startDate: the numbering and the
+ *    days of the occurrences;
+ *  - endDate, endOccurrenceIndex: the last occurrence;
+ *  - isPaused: whether anything is due at all;
+ *  - type, amount, walletId, categoryId: what is debited or credited, and
+ *    where;
+ *  - description: the generated transaction's note;
+ *  - the last generated number, as computeDueOccurrences reads it.
+ * Left out: id (the row is read by it), createdAt (never read by generation)
+ * and lastGeneratedDate, which generation reads only for a rule with no
+ * number - the number compared here is derived from it in that case.
+ *
+ * 'advanced' is a stored number ahead of `expected` with every other field
+ * equal: another run, or an edit's catch-up, generated those occurrences.
+ * The rule is processed again from the stored row, but that is not counted
+ * against MAX_RULE_RESTARTS: the number only rises, and each such pass leaves
+ * fewer occurrences due, so it cannot repeat for ever. Verified by
+ * recurringStaleEngineCopy.test.ts - "control: two overlapping runs...".
+ */
+function compareWithStored(expected: RecurringTransaction, stored: RecurringTransaction | null): StoredMatch {
+    if (stored === null || !sameGenerationInputs(expected, stored)) return 'changed';
+
+    const expectedIndex = expected.lastGeneratedIndex ?? deriveLastGeneratedIndex(expected);
+    const storedIndex = stored.lastGeneratedIndex ?? deriveLastGeneratedIndex(stored);
+    if (storedIndex === expectedIndex) return 'same';
+    return storedIndex > expectedIndex ? 'advanced' : 'changed';
+}
+
+function sameGenerationInputs(a: RecurringTransaction, b: RecurringTransaction): boolean {
+    return (
+        (a.scheduleVersion ?? 0) === (b.scheduleVersion ?? 0) &&
+        a.frequency === b.frequency &&
+        a.interval === b.interval &&
+        a.startDate.getTime() === b.startDate.getTime() &&
+        a.endDate?.getTime() === b.endDate?.getTime() &&
+        a.endOccurrenceIndex === b.endOccurrenceIndex &&
+        a.isPaused === b.isPaused &&
+        a.type === b.type &&
+        a.amount === b.amount &&
+        a.walletId === b.walletId &&
+        a.categoryId === b.categoryId &&
+        a.description === b.description
+    );
 }
 
 // --- Date computation -------------------------------------------------
