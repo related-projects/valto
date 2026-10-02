@@ -211,12 +211,74 @@ export function endOccurrenceIndexOf(rule: RecurringTransaction): number | null 
     return rule.endOccurrenceIndex ?? deriveEndOccurrenceIndex({ ...rule, endDate: rule.endDate });
 }
 
+// --- The end day ------------------------------------------------------
+
+const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** The local calendar day of `d` in the current zone, as 'YYYY-MM-DD'. */
+export function localDayKey(d: Date): string {
+    const pad = (n: number, width: number) => String(n).padStart(width, '0');
+    return `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1, 2)}-${pad(d.getDate(), 2)}`;
+}
+
+/**
+ * Local midnight of a 'YYYY-MM-DD' day in the current zone, or null when `key` is not a
+ * real calendar day. Uses setFullYear rather than the `new Date(y, m, d)` constructor, as
+ * daysInMonth does, because that constructor maps years 0-99 onto 1900-1999.
+ */
+export function dayOfKey(key: string): Date | null {
+    const match = DAY_KEY.exec(key);
+    if (!match) return null;
+    const day = new Date(0);
+    day.setFullYear(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    day.setHours(0, 0, 0, 0);
+    return localDayKey(day) === key ? day : null;
+}
+
+/** Whether `value` is a 'YYYY-MM-DD' calendar day. */
+export function isDayKey(value: unknown): value is string {
+    return typeof value === 'string' && dayOfKey(value) !== null;
+}
+
+/**
+ * The end day of a rule that may not carry one yet (REGISTRE V-103, Owner decision D11,
+ * pass 75): the day it carries, or else the local day of its end date in the current zone,
+ * which is when and where that day is fixed for it. Undefined when the rule has no end.
+ *
+ * Used where a rule arrives without a day: migration v9, a restore from a file written
+ * before the day existed, and the v5 import. Verified by migrationV9EndDay.test.ts -
+ * "V-103 A3." and "V-103 A4 (v5).", and backupRestoreEndDay.test.ts - "V-103 A4 b.".
+ */
+export function endDayOf(rule: RecurringTransaction): string | undefined {
+    if (!rule.endDate) return undefined;
+    return isDayKey(rule.endDay) ? rule.endDay : localDayKey(rule.endDate);
+}
+
+/**
+ * The end day for a rule as an edit saves it: kept when the form re-sends the end date
+ * unchanged - it sends it with every edit (RecurringRuleForm.tsx:164) - and taken from the
+ * new end date in the current zone when the user chooses another one; none when the end is
+ * cleared. Verified by recurringEndDay.test.ts - "control: an end-date edit by the user
+ * replaces the stored day...".
+ */
+export function endDayForEdit(
+    existing: RecurringTransaction,
+    updated: RecurringTransaction,
+): string | undefined {
+    if (!updated.endDate) return undefined;
+    const sameEnd = existing.endDate !== undefined && existing.endDate.getTime() === updated.endDate.getTime();
+    return sameEnd ? endDayOf(existing) : localDayKey(updated.endDate);
+}
+
 /**
  * The end number for a rule as an edit saves it: kept when neither the end date nor the
- * schedule changes - the form sends the end date with every edit (RecurringRuleForm.tsx:164),
- * and an end that was not chosen again must not be read again in a zone the device may have
- * moved to - and derived from the end date in the current zone otherwise. A schedule change
- * renumbers every occurrence, so the end has to be read again in the new numbering.
+ * schedule changes, and otherwise derived from the end day (endDayForEdit) - never from the
+ * end date read in a zone the device may have moved to. A schedule change renumbers every
+ * occurrence, so the end is found again in the new numbering, from the calendar day the
+ * user chose (REGISTRE V-103, Owner decision D11, pass 75). When the end date changes, the
+ * day is the new end's local day, which is what the end date gave before. Verified by
+ * recurringEndScheduleEditZone.test.ts - "V-103 r." and recurringEndDay.test.ts -
+ * "V-103 A1." and "V-103 A2.".
  */
 export function endOccurrenceIndexForEdit(
     existing: RecurringTransaction,
@@ -231,7 +293,10 @@ export function endOccurrenceIndexForEdit(
     if (sameEnd && sameSchedule && existing.endOccurrenceIndex !== undefined) {
         return existing.endOccurrenceIndex;
     }
-    return deriveEndOccurrenceIndex({ ...updated, endDate: updated.endDate });
+    const endDay = dayOfKey(endDayForEdit(existing, updated) ?? '');
+    return endDay
+        ? lastOccurrenceIndexOnOrBefore(updated, endDay)
+        : deriveEndOccurrenceIndex({ ...updated, endDate: updated.endDate });
 }
 
 /**

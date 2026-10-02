@@ -53,6 +53,9 @@ jest.mock('../../../hooks/useFormatting', () => {
             normalizeAmount: (v: number) => normalizeAmount(v, mockDecimals),
             amountPlaceholder: amountPlaceholder(mockDecimals, mockProfile),
             decimals: mockDecimals,
+            // The wallet step reads the number format from the settings and
+            // the exponent from the currency selected (REGISTRE V-124, pass 75).
+            settings: { decimalSeparator: mockProfile },
         }),
     };
 });

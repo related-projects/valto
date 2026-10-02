@@ -19,12 +19,14 @@ import {
     addMonthsClamped,
     deriveEndOccurrenceIndex,
     deriveLastGeneratedIndex,
+    endDayForEdit,
     endOccurrenceIndexForEdit,
     endOccurrenceIndexOf,
     hasOccurrencesLeft,
     lastOccurrenceIndexBefore,
     lastOccurrenceIndexOnOrBefore,
     lastSettledDay,
+    localDayKey,
     startOfDay,
 } from '../../domain/calculations/recurrenceDates';
 import { ValidationError } from '../../domain/validators/ValidationError';
@@ -205,6 +207,9 @@ export class RecurringTransactionRepository
             description: dto.description,
             startDate: dto.startDate,
             endDate: dto.endDate,
+            // The end day the user chose, in this zone (REGISTRE V-103, Owner
+            // decision D11); a later schedule change finds the end from it.
+            endDay: dto.endDate ? localDayKey(dto.endDate) : undefined,
             frequency: dto.frequency,
             interval: dto.interval,
             // Watermark one interval before startDate so the first generation includes startDate.
@@ -250,6 +255,7 @@ export class RecurringTransactionRepository
         };
         const updated: RecurringTransaction = {
             ...merged,
+            endDay: endDayForEdit(existing, merged),
             endOccurrenceIndex: endOccurrenceIndexForEdit(existing, merged),
         };
 
@@ -317,10 +323,13 @@ export class RecurringTransactionRepository
      *       resumeRule moves the number to the resume day. Verified by
      *       recurringEditPauseForward.test.ts - "k. paused on 20 Sep, edited...".
      * The number changes numbering with the version; within one version it
-     * never decreases. The end number is read again in the new numbering
-     * (endOccurrenceIndexForEdit, applied by updateFromDTO before this);
-     * verified by recurringEndOccurrenceIndex.test.ts - "control: monthly ->
-     * weekly edit on 20 Oct of a rule ending 30 Nov...".
+     * never decreases. The end number is found again in the new numbering,
+     * from the end day the user chose (endOccurrenceIndexForEdit, applied by
+     * updateFromDTO before this; REGISTRE V-103, Owner decision D11); verified
+     * by recurringEndOccurrenceIndex.test.ts - "control: monthly -> weekly
+     * edit on 20 Oct of a rule ending 30 Nov...", recurringEndScheduleEditZone
+     * .test.ts - "V-103 r." and recurringEndDay.test.ts - "V-103 A1." and
+     * "V-103 A2.".
      */
     private renumberIfRescheduled(
         existing: RecurringTransaction,

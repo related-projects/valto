@@ -17,6 +17,7 @@
  * still-KV settings/security/seed data.
  */
 
+import { endDayOf } from '../../domain/calculations/recurrenceDates';
 import { deserializeBudget, SerializableBudget } from '../../domain/entities/Budget';
 import { deserializeCategory, SerializableCategory } from '../../domain/entities/Category';
 import {
@@ -37,7 +38,7 @@ import {
     sqlInsert,
     transactionMapper,
 } from '../storage/sql/mappers';
-import { applyEndOccurrenceSchema, applyOccurrenceKeySchema } from '../storage/sql/schema';
+import { applyEndDaySchema, applyEndOccurrenceSchema, applyOccurrenceKeySchema } from '../storage/sql/schema';
 import { StorageKeys } from '../storage/StorageKeys';
 import type { Migration } from './migrationRunner';
 
@@ -69,14 +70,15 @@ export const v5_import_from_asyncstorage: Migration = {
         ).map(deserializeRecurringTransaction);
 
         // The inserts below go through the CURRENT mappers, which write the
-        // occurrence-key columns migration v7 adds and the end column v8 adds.
-        // A database left at version 4 - an earlier v5 failed and is being
-        // retried - still has the v4 baseline tables, so those columns must
-        // exist first. Idempotent. Verified by migrationV7OccurrenceKey.test.ts
-        // - "control (non-regression): v5 still imports into tables created by
-        // the v4 baseline".
+        // occurrence-key columns migration v7 adds, the end column v8 adds and
+        // the end-day column v9 adds. A database left at version 4 - an earlier
+        // v5 failed and is being retried - still has the v4 baseline tables, so
+        // those columns must exist first. Idempotent. Verified by
+        // migrationV7OccurrenceKey.test.ts - "control (non-regression): v5
+        // still imports into tables created by the v4 baseline".
         await applyOccurrenceKeySchema(db);
         await applyEndOccurrenceSchema(db);
+        await applyEndDaySchema(db);
 
         // Wallets need an explicit opening_balance, so insert them directly.
         for (const w of wallets) {
@@ -104,7 +106,11 @@ export const v5_import_from_asyncstorage: Migration = {
         for (const c of categories) await sqlInsert(db, categoryMapper, c, true);
         for (const t of transactions) await sqlInsert(db, transactionMapper, t, true);
         for (const b of budgets) await sqlInsert(db, budgetMapper, b, true);
-        for (const r of recurring) await sqlInsert(db, recurringMapper, r, true);
+        // An imported rule with an end gets its end day as a restore gives it:
+        // the local day of its end date, in the zone the import runs in
+        // (REGISTRE V-103, Owner decision D11). Verified by
+        // migrationV9EndDay.test.ts - "V-103 A4 (v5).".
+        for (const r of recurring) await sqlInsert(db, recurringMapper, { ...r, endDay: endDayOf(r) }, true);
 
         // Audit every migrated wallet against its ledger. This is the real
         // runtime entry point for the balance-auditing code (recompute/audit

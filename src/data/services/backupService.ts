@@ -35,7 +35,7 @@ import {
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
-import { deriveEndOccurrenceIndex, deriveLastGeneratedIndex } from '../../domain/calculations/recurrenceDates';
+import { deriveEndOccurrenceIndex, deriveLastGeneratedIndex, endDayOf } from '../../domain/calculations/recurrenceDates';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
@@ -515,6 +515,12 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     // backupRestoreEndOccurrenceIndex.test.ts - "backup: a file without the
     // number still restores..." and "V-103 restore: a file restored 7 h east
     // of its writer...".
+    //
+    // And for the end day the user chose (REGISTRE V-103, Owner decision D11):
+    // a file that carries it keeps it, and one written before it existed gets
+    // the local day of the end date in the restoring zone - what migration v9
+    // would give it. Verified by backupRestoreEndDay.test.ts - "V-103 A4 a."
+    // and "V-103 A4 b.".
     const recurringRules = carriesRules
         ? snapshot.data.recurringRules
             .map(deserializeRecurringTransaction)
@@ -528,6 +534,7 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
                 endOccurrenceIndex: !rule.endDate
                     ? undefined
                     : rule.endOccurrenceIndex ?? deriveEndOccurrenceIndex({ ...rule, endDate: rule.endDate }),
+                endDay: endDayOf(rule),
             }))
         : [];
 

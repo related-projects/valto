@@ -167,7 +167,7 @@ describe('V-114 migration v8 on a v7 database (process zone; CI: UTC, Africa/Lag
 
         await runMigrations();
 
-        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(8);
+        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(9);
         expect(await columnNames(db)).toContain('end_occurrence_index');
         const { rows } = await db.execute('SELECT id, end_occurrence_index FROM recurring_rules ORDER BY id');
         expect(rows).toEqual([
@@ -187,7 +187,7 @@ describe('V-114 migration v8 on a v7 database (process zone; CI: UTC, Africa/Lag
 
         await runMigrations();
 
-        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(8);
+        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(9);
         expect(await allRules(db)).toEqual(before);
     });
 });
