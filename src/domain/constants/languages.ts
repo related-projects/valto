@@ -43,7 +43,7 @@ const SUPPORTED_CODES = new Set(SUPPORTED_LANGUAGES.map(l => l.code));
  * also being handed English.
  *
  * The five that are absent (zh, ar, hi, bn, ur) are partial: ar, hi, bn and ur
- * carry 71 of en.json's 558 keys and zh carries 89. The rest falls back to
+ * carry 71 of en.json's 595 keys and zh carries 89. The rest falls back to
  * English key by key, so a screen in one of them is part translated and part
  * English - including the onboarding flow, which those bundles do not cover at
  * all.
