@@ -1,3 +1,4 @@
+import { RestoreWaitScreen } from "@/src/components/restore/RestoreWaitScreen";
 import { SecurityGate } from "@/src/components/security/SecurityGate";
 import { container, getUseCaseDeps } from "@/src/core/di/container";
 import { ErrorBoundary } from "@/src/core/error/ErrorBoundary";
@@ -300,6 +301,11 @@ function RootLayout() {
             <RootNavigator />
           )}
         </SecurityProvider>
+        {/* Above SecurityProvider, not inside the navigator: a restore keeps
+            running when the app locks itself and SecurityGate unmounts every
+            screen, and the wait screen has to stay up until it settles
+            (REGISTRE V-119, V-106; see RestoreWaitScreen). */}
+        <RestoreWaitScreen />
       </ThemeProvider>
     </ErrorBoundary>
   );

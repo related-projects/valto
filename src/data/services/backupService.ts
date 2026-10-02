@@ -349,16 +349,32 @@ export function validateSnapshot(data: unknown): ValidationResult {
 /**
  * Create a full backup snapshot of all app data.
  * Module-private - consumed only by createAndShareBackup below.
+ *
+ * The five tables are read inside ONE runInTransaction (REGISTRE V-119 b, Owner
+ * decision 2, pass 74). Read with plain SELECTs, they went straight to the
+ * shared connection: a backup started while a restore held its transaction open
+ * read the restore's uncommitted rows, and a restore then refused left a file
+ * carrying rows the database no longer had. Through the runner the reads wait
+ * for any open transaction to commit or roll back, and see one committed state.
+ * Verified by backupDuringRestore.test.ts - "V-119 b" and "control: a backup
+ * with no restore running...".
+ *
+ * The settings are key-value storage, not SQL, so the transaction does not
+ * isolate them. They are read in the same callback, while the backup holds
+ * the queue; a restore writes them only after its own commit, and the restore
+ * wait screen keeps a backup from being started while one runs.
  */
 async function createBackupSnapshot(): Promise<BackupSnapshot> {
-    const [wallets, transactions, categories, budgets, recurringRules, settings] = await Promise.all([
-        getWalletRepository().getAll(),
-        getTransactionRepository().getAll(),
-        getCategoryRepository().getAll(),
-        getBudgetRepository().getAll(),
-        getRecurringTransactionRepository().getAll(),
-        loadSettings(),
-    ]);
+    const [wallets, transactions, categories, budgets, recurringRules, settings] = await getDb().runInTransaction(() =>
+        Promise.all([
+            getWalletRepository().getAll(),
+            getTransactionRepository().getAll(),
+            getCategoryRepository().getAll(),
+            getBudgetRepository().getAll(),
+            getRecurringTransactionRepository().getAll(),
+            loadSettings(),
+        ]),
+    );
 
     return {
         version: CURRENT_SCHEMA_VERSION,
