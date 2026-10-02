@@ -31,14 +31,21 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../../domain/constants/currencies';
+import { getCurrencyByCode, SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../../domain/constants/currencies';
+import { DEFAULT_NUMBER_FORMAT } from '../../../domain/constants/numberFormats';
 import { WalletType } from '../../../domain/entities';
 import { useFormatting } from '../../../hooks/useFormatting';
 import { useSubmitLock } from '../../../hooks/useSubmitLock';
 import { useTheme } from '../../../theme/theme';
 import { getButtonA11y } from '../../../utils/accessibility';
 import { amountRefusalMessage } from '../../../utils/amountRefusalMessage';
-import type { AmountRefusalCause, AmountResult } from '../../../utils/normalizeAmount';
+import { amountPlaceholder } from '../../../utils/amountPlaceholder';
+import {
+    normalizeAmount,
+    parseAmountInputResult,
+    type AmountRefusalCause,
+    type AmountResult,
+} from '../../../utils/normalizeAmount';
 import { useOnboarding } from '../hooks/useOnboarding';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -60,7 +67,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
-    const { parseAmountResult, normalizeAmount, amountPlaceholder, decimals } = useFormatting();
+    const { decimals, settings } = useFormatting();
     const {
         step,
         next,
@@ -70,7 +77,20 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         complete,
         loading,
         errorKey,
+        selectedCurrency,
     } = useOnboarding();
+
+    // The wallet step parses, converts and shows its opening balance with the
+    // currency just selected, not with the one useFormatting last loaded: the
+    // settings reload that the selection starts is not awaited
+    // (useOnboarding.ts selectCurrency), so a press can come before it lands
+    // (REGISTRE V-124, Owner decision 5, pass 75). The number format does not
+    // change with the currency; it is read as useFormatting reads it. Verified
+    // by OnboardingScreen.currencyReload.test.tsx and
+    // OnboardingScreen.selectedCurrency.test.tsx - "V-124 B1.".
+    const walletDecimals = selectedCurrency ? getCurrencyByCode(selectedCurrency).decimals : decimals;
+    const numberFormat = settings?.decimalSeparator ?? DEFAULT_NUMBER_FORMAT;
+    const walletPlaceholder = amountPlaceholder(walletDecimals, numberFormat);
 
     // Currency search
     const [currencySearch, setCurrencySearch] = useState('');
@@ -112,14 +132,14 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         // instead of becoming a zero balance (REGISTRE V-124). A negative
         // balance parses, and is still left to the repository.
         const parsedBalance: AmountResult = initialBalance
-            ? parseAmountResult(initialBalance)
+            ? parseAmountInputResult(initialBalance, numberFormat, walletDecimals)
             : { ok: true, value: 0 };
         if (!parsedBalance.ok) {
             setBalanceRefusal(parsedBalance.cause);
             return;
         }
 
-        const balanceCents = normalizeAmount(parsedBalance.value);
+        const balanceCents = normalizeAmount(parsedBalance.value, walletDecimals);
         await createWallet(name, walletType, balanceCents);
     });
 
@@ -369,14 +389,14 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     marginBottom: spacing.xl,
                     ...shadows.card,
                 }}
-                placeholder={amountPlaceholder}
+                placeholder={walletPlaceholder}
                 placeholderTextColor={colors.mutedForeground}
                 value={initialBalance}
                 onChangeText={text => {
                     setInitialBalance(text);
                     setBalanceRefusal(null);
                 }}
-                keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
+                keyboardType={walletDecimals === 0 ? "number-pad" : "decimal-pad"}
                 testID="onboarding_wallet_balance"
             />
 
@@ -384,7 +404,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             {renderError(
                 'onboarding_wallet_error',
                 balanceRefusal
-                    ? amountRefusalMessage(balanceRefusal, t, 'modals.addWallet.invalidBalanceMessage', amountPlaceholder)
+                    ? amountRefusalMessage(balanceRefusal, t, 'modals.addWallet.invalidBalanceMessage', walletPlaceholder)
                     : null,
             )}
 

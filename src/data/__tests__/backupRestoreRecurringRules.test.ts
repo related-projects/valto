@@ -100,6 +100,10 @@ const RULE_WITH_END: RecurringTransaction = {
     // Every other month from 15 Jan 2030 (0) to 15 Jan 2031 (6), the end day.
     // Both instants are midnight UTC, so the number is the same in any zone.
     endOccurrenceIndex: 6,
+    // The end day as create() stores it in a UTC zone. Carried explicitly: a
+    // rule without it is given the local day of endDate on restore, which is
+    // 14 Jan under America/New_York (REGISTRE V-103, pass 75).
+    endDay: '2031-01-15',
     frequency: RecurrenceFrequency.MONTHLY,
     interval: 2,
     lastGeneratedDate: new Date('2029-11-15T00:00:00.000Z'),

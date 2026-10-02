@@ -4,7 +4,8 @@
  * Single source of truth for the relational financial schema.
  * Consumed by:
  *  - migration v4 (creates the schema in the app's encrypted DB),
- *  - migrations v5 and v7 (applyOccurrenceKeySchema only), and
+ *  - migrations v5 and v7 (applyOccurrenceKeySchema only), v5 and v8
+ *    (applyEndOccurrenceSchema only), v5 and v9 (applyEndDaySchema only), and
  *  - tests/helpers/createTestDb (creates the same schema in-memory).
  *
  * Conventions:
@@ -139,6 +140,21 @@ export async function applyEndOccurrenceSchema(db: SqlDatabase): Promise<void> {
     }
 }
 
+/**
+ * The calendar day of a rule's end, 'YYYY-MM-DD' (REGISTRE V-103, Owner
+ * decision D11, pass 75), added by migration v9. NULL when the rule has no end.
+ *
+ * Applied the same way as the end number: by migration v9 to existing
+ * databases, and by applySchema - so by v4 - to new ones, whose v5 import
+ * already writes this column through the mappers. Idempotent.
+ */
+export async function applyEndDaySchema(db: SqlDatabase): Promise<void> {
+    const { rows } = await db.execute('PRAGMA table_info(recurring_rules)');
+    if (!rows.some((row) => row.name === 'end_day')) {
+        await db.execute('ALTER TABLE recurring_rules ADD COLUMN end_day TEXT');
+    }
+}
+
 /** Apply the full schema to a database (idempotent). */
 export async function applySchema(db: SqlDatabase): Promise<void> {
     for (const stmt of SCHEMA_STATEMENTS) {
@@ -146,4 +162,5 @@ export async function applySchema(db: SqlDatabase): Promise<void> {
     }
     await applyOccurrenceKeySchema(db);
     await applyEndOccurrenceSchema(db);
+    await applyEndDaySchema(db);
 }

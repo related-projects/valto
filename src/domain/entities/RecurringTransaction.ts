@@ -62,6 +62,17 @@ export interface RecurringTransaction {
      */
     readonly endOccurrenceIndex?: number;
 
+    /**
+     * The calendar day of the end, 'YYYY-MM-DD', as the user chose it: the
+     * local day of endDate in the zone the device was in when the end was set
+     * (REGISTRE V-103, Owner decision D11, pass 75). A schedule change finds
+     * endOccurrenceIndex again from this day, so a zone change cannot move it.
+     * Absent when the rule has no end, and on a rule that predates it - a file
+     * restored from an older backup, or a row not yet migrated - until it is
+     * taken from endDate; see endDayOf.
+     */
+    readonly endDay?: string;
+
     /** How often to generate (daily, weekly, monthly, yearly) */
     readonly frequency: RecurrenceFrequency;
 
@@ -143,6 +154,8 @@ export interface SerializableRecurringTransaction {
     endDate?: string;
     /** Absent in files written before REGISTRE V-114, and when the rule has no end. */
     endOccurrenceIndex?: number;
+    /** Absent in files written before REGISTRE V-103 (pass 75), and when the rule has no end. */
+    endDay?: string;
     frequency: RecurrenceFrequency;
     interval: number;
     lastGeneratedDate: string;
