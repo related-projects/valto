@@ -46,20 +46,20 @@ import { useTransactions } from '../useTransactions';
 
 describe('useTransactions', () => {
     beforeEach(async () => {
-        mockDb = await createTestDb();
+        mockDb = await createTestDb({ writeGuard: true });
         mockWalletRepo = new WalletRepository(mockDb);
         mockTransactionRepo = new TransactionRepository(mockDb);
     });
 
     it('loads transactions on mount', async () => {
         // Pre-seed
-        await mockTransactionRepo.create({
+        await mockDb.runInTransaction(() => mockTransactionRepo.create({
             type: TransactionType.EXPENSE,
             amount: 5000,
             categoryId: 'food',
             walletId: 'w1',
             date: new Date('2026-03-10'),
-        });
+        }));
 
         const { result } = renderHook(() => useTransactions());
 
@@ -73,11 +73,11 @@ describe('useTransactions', () => {
 
     it('createTransaction updates list and adjusts wallet balance', async () => {
         // Create a wallet first
-        const wallet = await mockWalletRepo.create({
+        const wallet = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Cash',
             balance: 100000,
             type: WalletType.CASH,
-        });
+        }));
 
         const { result } = renderHook(() => useTransactions());
 
@@ -106,11 +106,11 @@ describe('useTransactions', () => {
     });
 
     it('createTransaction credits wallet for income', async () => {
-        const wallet = await mockWalletRepo.create({
+        const wallet = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Bank',
             balance: 50000,
             type: WalletType.BANK,
-        });
+        }));
 
         const { result } = renderHook(() => useTransactions());
 
@@ -133,23 +133,23 @@ describe('useTransactions', () => {
     });
 
     it('deleteTransaction reverts wallet balance', async () => {
-        const wallet = await mockWalletRepo.create({
+        const wallet = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Cash',
             balance: 100000,
             type: WalletType.CASH,
-        });
+        }));
 
         // Create expense
-        const tx = await mockTransactionRepo.create({
+        const tx = await mockDb.runInTransaction(() => mockTransactionRepo.create({
             type: TransactionType.EXPENSE,
             amount: 20000,
             categoryId: 'food',
             walletId: wallet.id,
             date: new Date('2026-03-10'),
-        });
+        }));
 
         // Simulate what the hook does: debit wallet
-        await mockWalletRepo.updateBalance(wallet.id, -20000);
+        await mockDb.runInTransaction(() => mockWalletRepo.updateBalance(wallet.id, -20000));
 
         const { result } = renderHook(() => useTransactions());
 
@@ -178,11 +178,11 @@ describe('useTransactions', () => {
     // site.
 
     it('createTransaction preserves the typed error class', async () => {
-        const wallet = await mockWalletRepo.create({
+        const wallet = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Cash',
             balance: 100000,
             type: WalletType.CASH,
-        });
+        }));
 
         const { result } = renderHook(() => useTransactions());
 
@@ -211,22 +211,22 @@ describe('useTransactions', () => {
     });
 
     it('deleteTransaction preserves the typed error class', async () => {
-        const wallet = await mockWalletRepo.create({
+        const wallet = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Cash',
             balance: 100000,
             type: WalletType.CASH,
-        });
+        }));
 
         // A transfer leg: deleteTransaction refuses it with a typed error before
         // anything is written. This is the case the re-wrap flattened, and the
         // reason no caller could tell a refusal from a storage failure.
-        const leg = await mockTransactionRepo.create({
+        const leg = await mockDb.runInTransaction(() => mockTransactionRepo.create({
             type: TransactionType.TRANSFER,
             amount: 5000,
             categoryId: 'transfer-category',
             walletId: wallet.id,
             date: new Date(),
-        });
+        }));
 
         const { result } = renderHook(() => useTransactions());
 

@@ -122,3 +122,88 @@ export class BudgetMonthClosedError extends Error {
         this.name = 'BudgetMonthClosedError';
     }
 }
+
+/**
+ * Raised when a recurring rule edit is refused because the debits already due
+ * under the stored rule could not be recorded first (REGISTRE V-105, Owner
+ * decision 2): the funds guard refused the catch-up that runs before the edit.
+ *
+ * An edit applies going forward, so what was due before it has to be in the
+ * ledger, with the old values, before the new values are saved. When the
+ * wallet cannot cover that catch-up, nothing is generated and nothing is
+ * saved. The dates and amounts travel on the error so the screen can name
+ * the refusal; no rule or wallet id is carried. Verified by
+ * recurringEditPauseForward.test.ts - "f. a funds refusal of the pre-edit
+ * catch-up refuses the edit..." and RecurringRulesScreen.v105Messages.test.tsx
+ * - "f. the screen names the funds refusal of an edit".
+ */
+export class RecurringCatchUpRefusedError extends Error {
+    readonly code = 'RECURRING_CATCH_UP_REFUSED' as const;
+
+    constructor(
+        readonly dueDates: readonly Date[],
+        readonly totalCost: number,
+        readonly availableBalance: number,
+    ) {
+        super('Rule edit refused: the debits due before it could not be recorded');
+        this.name = 'RecurringCatchUpRefusedError';
+    }
+}
+
+/** A reference a recurring rule points at, without a constraint behind it. */
+export type RecurringRuleReference = 'wallet' | 'category';
+
+/**
+ * Raised when an edit would change the schedule of a rule whose wallet or
+ * category no longer exists (REGISTRE V-105, Owner decision 8).
+ *
+ * Such a rule cannot record what is due under its stored schedule, so an edit
+ * that leaves the schedule alone is saved without a catch-up and keeps those
+ * occurrences due, to be generated once the reference is repaired. Changing
+ * the frequency or the interval in that state would lose them with the old
+ * schedule, so it is refused and the missing reference is named: the user
+ * repairs first and changes the schedule in a second edit. Verified by
+ * recurringEditPauseForward.test.ts - "o. decision 8 guard..." and
+ * RecurringRulesScreen.v105Messages.test.tsx - "o. the screen names the
+ * missing wallet...".
+ */
+export class RecurringRuleReferenceMissingError extends Error {
+    readonly code = 'RECURRING_RULE_REFERENCE_MISSING' as const;
+
+    constructor(readonly missing: readonly RecurringRuleReference[]) {
+        super(`Rule schedule edit refused: missing ${missing.join(' and ')}`);
+        this.name = 'RecurringRuleReferenceMissingError';
+    }
+}
+
+/**
+ * Raised when an edit of a rule whose wallet or category no longer exists
+ * would leave a debit already due out of the ledger for good (REGISTRE V-118,
+ * Owner decision 3 of 01/10, pass 71, extending V-105 decision 8):
+ *
+ *  - the edit places the end before an occurrence that is due and not yet
+ *    recorded; or
+ *  - the edit reopens an ended rule (clears the end or moves it later) while
+ *    an occurrence before the old end is still due (Owner answer of 01/10):
+ *    reopening skips the time the rule was ended, and that cannot be done
+ *    without skipping the due occurrence too.
+ *
+ * Such a rule cannot record what is due before the edit, so nothing is
+ * generated and nothing is saved. The user repairs the reference first,
+ * keeping the end, then changes the end in a second edit, which records what
+ * is due before it applies. The missing references and the due dates travel
+ * on the error so the screen can name the refusal. Verified by
+ * recurringEndOccurrenceIndex.test.ts - "V-118 b.", "V-118 c." and
+ * "Decision 4 c.", and RecurringRulesScreen.v118Messages.test.tsx.
+ */
+export class RecurringEndDateEditRefusedError extends Error {
+    readonly code = 'RECURRING_END_DATE_EDIT_REFUSED' as const;
+
+    constructor(
+        readonly missing: readonly RecurringRuleReference[],
+        readonly dueDates: readonly Date[],
+    ) {
+        super(`Rule end date edit refused: missing ${missing.join(' and ')}, debits still due`);
+        this.name = 'RecurringEndDateEditRefusedError';
+    }
+}

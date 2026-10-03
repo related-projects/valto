@@ -18,7 +18,7 @@ import { TransactionType } from '../entities/Transaction';
 import { WalletType, type Wallet } from '../entities/Wallet';
 import type { Category } from '../entities/Category';
 import type { RecurringTransaction } from '../entities/RecurringTransaction';
-import { computeDueDates, startOfDay } from '../calculations/recurrenceDates';
+import { computeDueDates, hasOccurrencesLeft, startOfDay } from '../calculations/recurrenceDates';
 
 /**
  * What a rule is doing right now.
@@ -91,8 +91,15 @@ export function checkInsufficientFunds(
  * Kept as one definition rather than two so the precedence between PAUSED and
  * EXPIRED cannot drift between the two call paths.
  *
- * A rule is active THROUGH the end of its endDate day, matching the engine's
- * whole-day arithmetic - see getActiveRules.
+ * A rule is EXPIRED once its end day has passed AND it has generated its last
+ * occurrence. One that still has an occurrence to generate is not ended: it is
+ * running, or failing, and the status says which (REGISTRE V-114, Owner
+ * decision 1). The end day only decides when a finished rule starts reading
+ * "Ended", as before. Verified by recurringEndOccurrenceIndex.test.ts -
+ * "V-114 c. funds...", "V-114 c. missing reference...", "control: a rule that
+ * generated everything up to an end that has passed is Ended" and "control: a
+ * rule that generated its last occurrence but whose end is still ahead stays
+ * Active".
  */
 export function deriveScheduleStatus(
     rule: RecurringTransaction,
@@ -100,7 +107,11 @@ export function deriveScheduleStatus(
 ): RecurringRuleStatus.PAUSED | RecurringRuleStatus.EXPIRED | null {
     if (rule.isPaused) return RecurringRuleStatus.PAUSED;
 
-    if (rule.endDate && startOfDay(rule.endDate).getTime() < startOfDay(today).getTime()) {
+    if (
+        rule.endDate &&
+        startOfDay(rule.endDate).getTime() < startOfDay(today).getTime() &&
+        !hasOccurrencesLeft(rule)
+    ) {
         return RecurringRuleStatus.EXPIRED;
     }
 
@@ -112,8 +123,8 @@ export function deriveScheduleStatus(
  *
  * Precedence, highest first:
  *   PAUSED   - the user turned it off. Nothing else about it is worth saying.
- *   EXPIRED  - it reached the end it was given. Not a fault, never presented
- *              as one.
+ *   EXPIRED  - it reached the end it was given and generated everything up
+ *              to it. Not a fault, never presented as one.
  *   MISSING_REFERENCE - its wallet or its category is gone. Checked before
  *              funds, for the same reason the engine checks it first: a rule
  *              pointing nowhere is not a funding problem, and telling the user

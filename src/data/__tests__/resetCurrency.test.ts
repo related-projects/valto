@@ -25,6 +25,10 @@ jest.mock('../storage/AsyncStorageAdapter', () => {
 jest.mock('../../core/di', () => ({
     getWalletRepository: () => new (require('../repositories/WalletRepository').WalletRepository)((global as any).__testDb),
     getCategoryRepository: () => new (require('../repositories/CategoryRepository').CategoryRepository)((global as any).__testDb),
+    // The re-seed and the initial wallet write through the runner (REGISTRE V-109).
+    getUseCaseDeps: () => ({
+        runInTransaction: (work: () => Promise<unknown>) => (global as any).__testDb.runInTransaction(work),
+    }),
     getTransactionRepository: () => ({ getAll: jest.fn().mockResolvedValue([]) }),
 }));
 
@@ -60,41 +64,41 @@ async function countRows(db: SqlDatabase, table: string): Promise<number> {
 }
 
 async function seedFinancialData(db: SqlDatabase) {
-    const wallet = await new WalletRepository(db).create({
+    const wallet = await db.runInTransaction(() => new WalletRepository(db).create({
         name: 'Custom Wallet',
         balance: 5000,
         type: WalletType.CASH,
         color: '#111111',
-    });
-    const category = await new CategoryRepository(db).create({
+    }));
+    const category = await db.runInTransaction(() => new CategoryRepository(db).create({
         name: 'Custom Category',
         type: CategoryType.EXPENSE,
         icon: 'star',
         color: '#222222',
-    });
+    }));
     const now = new Date().toISOString();
-    await db.execute(
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO transactions (id, type, amount, category_id, wallet_id, date, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ['tx-1', 'expense', 1200, category.id, wallet.id, now, now],
-    );
-    await db.execute(
+    ));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO budgets (id, category_id, month, limit_amount, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         ['bg-1', category.id, '2026-07', 50000, now, now],
-    );
-    await db.execute(
+    ));
+    await db.runInTransaction(() => db.execute(
         `INSERT INTO recurring_rules
             (id, type, amount, wallet_id, category_id, start_date, frequency, interval_count, last_generated_date, is_paused, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ['rr-1', 'expense', 3000, wallet.id, category.id, now, 'monthly', 1, now, 0, now],
-    );
+    ));
     return { wallet, category };
 }
 
 describe('resetFinancialDataForCurrencyReset', () => {
     beforeEach(async () => {
-        const db = await createTestDb();
+        const db = await createTestDb({ writeGuard: true });
         (global as any).__testDb = db;
         (global as any).__resetDb = db;
         await (global as any).__kv.clear();

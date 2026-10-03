@@ -3,7 +3,9 @@
  *
  * Single source of truth for the relational financial schema.
  * Consumed by:
- *  - migration v4 (creates the schema in the app's encrypted DB), and
+ *  - migration v4 (creates the schema in the app's encrypted DB),
+ *  - migrations v5 and v7 (applyOccurrenceKeySchema only), v5 and v8
+ *    (applyEndOccurrenceSchema only), v5 and v9 (applyEndDaySchema only), and
  *  - tests/helpers/createTestDb (creates the same schema in-memory).
  *
  * Conventions:
@@ -84,9 +86,81 @@ export const SCHEMA_STATEMENTS: string[] = [
     `CREATE INDEX IF NOT EXISTS idx_budgets_month         ON budgets (month)`,
 ];
 
+/**
+ * The recurring occurrence key (REGISTRE V-98), added by migration v7.
+ *
+ * A rule records the number of its last generated occurrence, and each
+ * transaction it generates carries (rule, schedule version, occurrence number)
+ * under a partial unique index: the database itself refuses a second row for
+ * the same occurrence, whatever zone wrote the first one. Rows that no rule
+ * generated keep a NULL key and are not constrained. Verified by
+ * recurringOccurrenceKey.test.ts - "unique key: the database refuses a second
+ * row..." and "control: rows without a recurring key are not constrained...".
+ *
+ * Kept apart from SCHEMA_STATEMENTS, which stays the v4..v6 baseline, and
+ * idempotent: it is applied by migration v7 to existing databases, and by
+ * applySchema - so by v4 - to new ones, whose v5 import already writes these
+ * columns through the mappers.
+ */
+const OCCURRENCE_KEY_COLUMNS: readonly { table: string; column: string; definition: string }[] = [
+    { table: 'recurring_rules', column: 'last_generated_index', definition: 'INTEGER' },
+    { table: 'recurring_rules', column: 'schedule_version', definition: 'INTEGER NOT NULL DEFAULT 0' },
+    { table: 'transactions', column: 'recurring_rule_id', definition: 'TEXT' },
+    { table: 'transactions', column: 'recurring_schedule_version', definition: 'INTEGER' },
+    { table: 'transactions', column: 'recurring_occurrence_index', definition: 'INTEGER' },
+];
+
+/** Add the occurrence-key columns that are missing, then the unique index. Idempotent. */
+export async function applyOccurrenceKeySchema(db: SqlDatabase): Promise<void> {
+    for (const { table, column, definition } of OCCURRENCE_KEY_COLUMNS) {
+        const { rows } = await db.execute(`PRAGMA table_info(${table})`);
+        if (!rows.some((row) => row.name === column)) {
+            await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+        }
+    }
+    await db.execute(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_recurring_occurrence
+            ON transactions (recurring_rule_id, recurring_schedule_version, recurring_occurrence_index)
+            WHERE recurring_rule_id IS NOT NULL`,
+    );
+}
+
+/**
+ * The number of a rule's last occurrence (REGISTRE V-114, V-103), added by
+ * migration v8. NULL when the rule has no end.
+ *
+ * Applied the same way as the occurrence key: by migration v8 to existing
+ * databases, and by applySchema - so by v4 - to new ones, whose v5 import
+ * already writes this column through the mappers. Idempotent.
+ */
+export async function applyEndOccurrenceSchema(db: SqlDatabase): Promise<void> {
+    const { rows } = await db.execute('PRAGMA table_info(recurring_rules)');
+    if (!rows.some((row) => row.name === 'end_occurrence_index')) {
+        await db.execute('ALTER TABLE recurring_rules ADD COLUMN end_occurrence_index INTEGER');
+    }
+}
+
+/**
+ * The calendar day of a rule's end, 'YYYY-MM-DD' (REGISTRE V-103, Owner
+ * decision D11, pass 75), added by migration v9. NULL when the rule has no end.
+ *
+ * Applied the same way as the end number: by migration v9 to existing
+ * databases, and by applySchema - so by v4 - to new ones, whose v5 import
+ * already writes this column through the mappers. Idempotent.
+ */
+export async function applyEndDaySchema(db: SqlDatabase): Promise<void> {
+    const { rows } = await db.execute('PRAGMA table_info(recurring_rules)');
+    if (!rows.some((row) => row.name === 'end_day')) {
+        await db.execute('ALTER TABLE recurring_rules ADD COLUMN end_day TEXT');
+    }
+}
+
 /** Apply the full schema to a database (idempotent). */
 export async function applySchema(db: SqlDatabase): Promise<void> {
     for (const stmt of SCHEMA_STATEMENTS) {
         await db.execute(stmt);
     }
+    await applyOccurrenceKeySchema(db);
+    await applyEndOccurrenceSchema(db);
+    await applyEndDaySchema(db);
 }

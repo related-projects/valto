@@ -55,7 +55,7 @@ import { useCategories } from '../useCategories';
 
 describe('useCategories', () => {
     beforeEach(async () => {
-        mockDb = await createTestDb();
+        mockDb = await createTestDb({ writeGuard: true });
         mockCategoryRepo = new CategoryRepository(mockDb);
         mockTransactionRepo = new TransactionRepository(mockDb);
         mockWalletRepo = new WalletRepository(mockDb);
@@ -64,12 +64,12 @@ describe('useCategories', () => {
     });
 
     it('loads categories on mount', async () => {
-        await mockCategoryRepo.create({
+        await mockDb.runInTransaction(() => mockCategoryRepo.create({
             name: 'Food',
             type: CategoryType.EXPENSE,
             icon: '🍔',
             color: '#FF5722',
-        });
+        }));
 
         const { result } = renderHook(() => useCategories());
 
@@ -103,9 +103,9 @@ describe('useCategories', () => {
     });
 
     it('separates expense and income categories', async () => {
-        await mockCategoryRepo.create({ name: 'Food', type: CategoryType.EXPENSE });
-        await mockCategoryRepo.create({ name: 'Transport', type: CategoryType.EXPENSE });
-        await mockCategoryRepo.create({ name: 'Salary', type: CategoryType.INCOME });
+        await mockDb.runInTransaction(() => mockCategoryRepo.create({ name: 'Food', type: CategoryType.EXPENSE }));
+        await mockDb.runInTransaction(() => mockCategoryRepo.create({ name: 'Transport', type: CategoryType.EXPENSE }));
+        await mockDb.runInTransaction(() => mockCategoryRepo.create({ name: 'Salary', type: CategoryType.INCOME }));
 
         const { result } = renderHook(() => useCategories());
 
@@ -119,10 +119,10 @@ describe('useCategories', () => {
     });
 
     it('updates category', async () => {
-        const created = await mockCategoryRepo.create({
+        const created = await mockDb.runInTransaction(() => mockCategoryRepo.create({
             name: 'Food',
             type: CategoryType.EXPENSE,
-        });
+        }));
 
         const { result } = renderHook(() => useCategories());
 
@@ -144,18 +144,18 @@ describe('useCategories', () => {
     // use case, so a single-category fixture would exercise the floor rather
     // than the delete this test is named for.
     it('deletes unreferenced category', async () => {
-        const created = await mockCategoryRepo.create({
+        const created = await mockDb.runInTransaction(() => mockCategoryRepo.create({
             name: 'Unused',
             type: CategoryType.EXPENSE,
             icon: '🗑️',
             color: '#999999',
-        });
-        await mockCategoryRepo.create({
+        }));
+        await mockDb.runInTransaction(() => mockCategoryRepo.create({
             name: 'Kept',
             type: CategoryType.EXPENSE,
             icon: '🛒',
             color: '#00FF00',
-        });
+        }));
 
         const { result } = renderHook(() => useCategories());
 
@@ -174,12 +174,12 @@ describe('useCategories', () => {
     });
 
     it('deleteCategory hands back the exact error instance it caught', async () => {
-        const cat = await mockCategoryRepo.create({
+        const cat = await mockDb.runInTransaction(() => mockCategoryRepo.create({
             name: 'Food',
             type: CategoryType.EXPENSE,
             icon: '🍔',
             color: '#FF5722',
-        });
+        }));
 
         // A sentinel the test holds a reference to, thrown from below the hook.
         // Identity is the whole point: the re-wrap this pass removed produced a
@@ -270,28 +270,28 @@ describe('useCategories', () => {
     });
 
     it('deleteCategory preserves the typed error class and its rule count', async () => {
-        const cat = await mockCategoryRepo.create({
+        const cat = await mockDb.runInTransaction(() => mockCategoryRepo.create({
             name: 'Subscriptions',
             type: CategoryType.EXPENSE,
             icon: 'tv',
             color: '#3F51B5',
-        });
+        }));
         // A second category, so the use case's "at least one category" floor is
         // not what refuses the delete.
-        await mockCategoryRepo.create({
+        await mockDb.runInTransaction(() => mockCategoryRepo.create({
             name: 'Kept',
             type: CategoryType.EXPENSE,
             icon: 'cart',
             color: '#00FF00',
-        });
+        }));
 
-        const wallet = await mockWalletRepo.create({
+        const wallet = await mockDb.runInTransaction(() => mockWalletRepo.create({
             name: 'Cash',
             balance: 100000,
             type: WalletType.CASH,
-        });
+        }));
 
-        await mockRecurringRepo.create({
+        await mockDb.runInTransaction(() => mockRecurringRepo.create({
             type: TransactionType.EXPENSE,
             amount: 1200,
             walletId: wallet.id,
@@ -299,7 +299,7 @@ describe('useCategories', () => {
             startDate: new Date(2026, 0, 1),
             frequency: RecurrenceFrequency.MONTHLY,
             interval: 1,
-        });
+        }));
 
         const { result } = renderHook(() => useCategories());
 

@@ -43,17 +43,17 @@ describe('the engine refuses through the extracted funds check', () => {
     let categoryRepo: CategoryRepository;
 
     beforeEach(async () => {
-        db = await createTestDb();
+        db = await createTestDb({ writeGuard: true });
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
         categoryRepo = new CategoryRepository(db);
 
-        await categoryRepo.save({
+        await db.runInTransaction(() => categoryRepo.save({
             id: 'cat-1',
             name: 'Test Category',
             type: CategoryType.EXPENSE,
-        });
+        }));
     });
 
     function rule(overrides: Partial<RecurringTransaction> = {}): RecurringTransaction {
@@ -92,10 +92,10 @@ describe('the engine refuses through the extracted funds check', () => {
             type: WalletType.CASH,
             createdAt: monthStart(6),
         };
-        await walletRepo.save(wallet);
+        await db.runInTransaction(() => walletRepo.save(wallet));
 
         const pending = rule();
-        await recurringRepo.save(pending);
+        await db.runInTransaction(() => recurringRepo.save(pending));
 
         const expected = checkInsufficientFunds(
             pending,
@@ -129,12 +129,12 @@ describe('the engine refuses through the extracted funds check', () => {
         ];
 
         for (const testCase of cases) {
-            db = await createTestDb();
+            db = await createTestDb({ writeGuard: true });
             recurringRepo = new RecurringTransactionRepository(db);
             transactionRepo = new TransactionRepository(db);
             walletRepo = new WalletRepository(db);
             categoryRepo = new CategoryRepository(db);
-            await categoryRepo.save({ id: 'cat-1', name: 'Test Category', type: CategoryType.EXPENSE });
+            await db.runInTransaction(() => categoryRepo.save({ id: 'cat-1', name: 'Test Category', type: CategoryType.EXPENSE }));
 
             const wallet = {
                 id: 'w-1',
@@ -143,10 +143,10 @@ describe('the engine refuses through the extracted funds check', () => {
                 type: testCase.type,
                 createdAt: monthStart(6),
             };
-            await walletRepo.save(wallet);
+            await db.runInTransaction(() => walletRepo.save(wallet));
 
             const pending = rule({ type: testCase.ruleType });
-            await recurringRepo.save(pending);
+            await db.runInTransaction(() => recurringRepo.save(pending));
 
             expect(
                 checkInsufficientFunds(pending, wallet, computeDueDates(pending, new Date())),
@@ -166,10 +166,10 @@ describe('the engine refuses through the extracted funds check', () => {
             type: WalletType.MOBILE,
             createdAt: monthStart(6),
         };
-        await walletRepo.save(wallet);
+        await db.runInTransaction(() => walletRepo.save(wallet));
 
         const pending = rule();
-        await recurringRepo.save(pending);
+        await db.runInTransaction(() => recurringRepo.save(pending));
 
         const expected = checkInsufficientFunds(
             pending,

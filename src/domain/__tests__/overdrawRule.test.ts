@@ -30,7 +30,7 @@ describe('overdraw DOMAIN RULE', () => {
     let eventBus: MockRepositoryBundle['eventBus'];
 
     beforeEach(async () => {
-        repos = await createMockRepositories();
+        repos = await createMockRepositories({ writeGuard: true });
         ({ walletRepo, transactionRepo, eventBus } = repos);
     });
 
@@ -38,7 +38,7 @@ describe('overdraw DOMAIN RULE', () => {
 
     // (a) EXPENSE - overdraw allowed, ledger integrity preserved even negative.
     it('allows an expense to overdraw a wallet into a negative balance (by design)', async () => {
-        const wallet = await walletRepo.create({ name: 'Cash', balance: 5000, type: WalletType.CASH });
+        const wallet = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 5000, type: WalletType.CASH }));
 
         // Spend more than the wallet holds - this is a real outflow and must succeed.
         await expect(
@@ -61,8 +61,8 @@ describe('overdraw DOMAIN RULE', () => {
 
     // (b) TRANSFER - the mirror: bounded by source balance, no partial writes.
     it('rejects a transfer that exceeds the source balance (the asymmetry)', async () => {
-        const source = await walletRepo.create({ name: 'Cash', balance: 5000, type: WalletType.CASH });
-        const dest = await walletRepo.create({ name: 'Bank', balance: 0, type: WalletType.BANK });
+        const source = await repos.runInTransaction(() => walletRepo.create({ name: 'Cash', balance: 5000, type: WalletType.CASH }));
+        const dest = await repos.runInTransaction(() => walletRepo.create({ name: 'Bank', balance: 0, type: WalletType.BANK }));
 
         const error = await transferFunds(deps(), {
             fromWalletId: source.id,

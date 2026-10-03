@@ -35,6 +35,7 @@ import {
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
+import { deriveEndOccurrenceIndex, deriveLastGeneratedIndex, endDayOf } from '../../domain/calculations/recurrenceDates';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
@@ -348,16 +349,32 @@ export function validateSnapshot(data: unknown): ValidationResult {
 /**
  * Create a full backup snapshot of all app data.
  * Module-private - consumed only by createAndShareBackup below.
+ *
+ * The five tables are read inside ONE runInTransaction (REGISTRE V-119 b, Owner
+ * decision 2, pass 74). Read with plain SELECTs, they went straight to the
+ * shared connection: a backup started while a restore held its transaction open
+ * read the restore's uncommitted rows, and a restore then refused left a file
+ * carrying rows the database no longer had. Through the runner the reads wait
+ * for any open transaction to commit or roll back, and see one committed state.
+ * Verified by backupDuringRestore.test.ts - "V-119 b" and "control: a backup
+ * with no restore running...".
+ *
+ * The settings are key-value storage, not SQL, so the transaction does not
+ * isolate them. They are read in the same callback, while the backup holds
+ * the queue; a restore writes them only after its own commit, and the restore
+ * wait screen keeps a backup from being started while one runs.
  */
 async function createBackupSnapshot(): Promise<BackupSnapshot> {
-    const [wallets, transactions, categories, budgets, recurringRules, settings] = await Promise.all([
-        getWalletRepository().getAll(),
-        getTransactionRepository().getAll(),
-        getCategoryRepository().getAll(),
-        getBudgetRepository().getAll(),
-        getRecurringTransactionRepository().getAll(),
-        loadSettings(),
-    ]);
+    const [wallets, transactions, categories, budgets, recurringRules, settings] = await getDb().runInTransaction(() =>
+        Promise.all([
+            getWalletRepository().getAll(),
+            getTransactionRepository().getAll(),
+            getCategoryRepository().getAll(),
+            getBudgetRepository().getAll(),
+            getRecurringTransactionRepository().getAll(),
+            loadSettings(),
+        ]),
+    );
 
     return {
         version: CURRENT_SCHEMA_VERSION,
@@ -482,8 +499,43 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     const transactions = snapshot.data.transactions.map(deserializeTransaction);
     const categories = snapshot.data.categories.map(deserializeCategory);
     const budgets = snapshot.data.budgets.map(deserializeBudget);
+    // A file written before the occurrence key existed carries no number for
+    // its rules. Each gets the one the v7 backfill would give it, derived from
+    // its watermark in the zone the restore runs in, and it is stored with the
+    // rule - so a later zone change no longer moves it. Verified by
+    // backupRestoreOccurrenceKey.test.ts - "restore: a file without the
+    // occurrence key still restores, each rule getting the backfill index".
+    //
+    // The same goes for the number of a rule's last occurrence (REGISTRE
+    // V-114, V-103): a file written before it carries none, and each rule with
+    // an end gets the one its end date gives in the restoring zone - what the
+    // v8 backfill would give it. A file that carries it keeps the writer's, so
+    // a restore in another zone neither adds nor loses an occurrence. A rule
+    // without an end keeps none. Verified by
+    // backupRestoreEndOccurrenceIndex.test.ts - "backup: a file without the
+    // number still restores..." and "V-103 restore: a file restored 7 h east
+    // of its writer...".
+    //
+    // And for the end day the user chose (REGISTRE V-103, Owner decision D11):
+    // a file that carries it keeps it, and one written before it existed gets
+    // the local day of the end date in the restoring zone - what migration v9
+    // would give it. Verified by backupRestoreEndDay.test.ts - "V-103 A4 a."
+    // and "V-103 A4 b.".
     const recurringRules = carriesRules
-        ? snapshot.data.recurringRules.map(deserializeRecurringTransaction)
+        ? snapshot.data.recurringRules
+            .map(deserializeRecurringTransaction)
+            .map((rule) =>
+                rule.lastGeneratedIndex === undefined || rule.lastGeneratedIndex === null
+                    ? { ...rule, lastGeneratedIndex: deriveLastGeneratedIndex(rule) }
+                    : rule,
+            )
+            .map((rule) => ({
+                ...rule,
+                endOccurrenceIndex: !rule.endDate
+                    ? undefined
+                    : rule.endOccurrenceIndex ?? deriveEndOccurrenceIndex({ ...rule, endDate: rule.endDate }),
+                endDay: endDayOf(rule),
+            }))
         : [];
 
     const db = getDb();

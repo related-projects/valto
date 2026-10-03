@@ -70,7 +70,7 @@ describe('restoreFromSnapshot notification reconcile', () => {
         mockCancelScheduledNotification.mockResolvedValue(undefined);
         // The restore writes the ledger to SQLite, so it needs a live connection
         // even for the empty snapshots below.
-        __setDatabaseForTests(await createTestDb());
+        __setDatabaseForTests(await createTestDb({ writeGuard: true }));
     });
 
     afterEach(() => {

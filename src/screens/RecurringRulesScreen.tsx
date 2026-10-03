@@ -23,6 +23,11 @@ import { dataEvents } from '../core/events/dataEvents';
 import { processRecurringRules } from '../data/services/RecurringTransactionEngine';
 import { RecurrenceFrequency, type CreateRecurringTransactionDTO, type RecurringTransaction, type UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
 import { RecurringRuleStatus, isFaultStatus } from '../domain/recurring';
+import {
+    RecurringCatchUpRefusedError,
+    RecurringEndDateEditRefusedError,
+    RecurringRuleReferenceMissingError,
+} from '../domain/useCases/errors';
 import { useFormatting } from '../hooks/useFormatting';
 import { useRecurringRules } from '../hooks/useRecurringRules';
 import { RECURRENCE_UNITS } from '../localization/recurrenceForms';
@@ -186,8 +191,63 @@ export const RecurringRulesScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { rules, statuses, loading, createRule, updateRule, deleteRule, pauseRule, resumeRule } = useRecurringRules();
+    const { formatAmount, formatDate } = useFormatting();
     const [formVisible, setFormVisible] = useState(false);
     const [editingRule, setEditingRule] = useState<RecurringTransaction | undefined>();
+
+    const ruleName = useCallback(
+        (rule: RecurringTransaction | undefined) => rule?.description || t('recurring.defaultDescription'),
+        [t],
+    );
+    const formatDates = useCallback(
+        (dates: readonly Date[]) => dates.map((date) => formatDate(date)).join(', '),
+        [formatDate],
+    );
+
+    /**
+     * The message for an edit refused for a reason the user can act on
+     * (REGISTRE V-105, Owner decisions 2 and 8; V-118, Owner decision 3), or
+     * null for any other failure. Verified by
+     * RecurringRulesScreen.v105Messages.test.tsx - "f." and "o.", and
+     * RecurringRulesScreen.v118Messages.test.tsx.
+     */
+    const editRefusalMessage = useCallback(
+        (error: unknown): string | null => {
+            const name = ruleName(editingRule);
+            if (error instanceof RecurringCatchUpRefusedError) {
+                return t('recurring.editRefusedFundsMessage', {
+                    name,
+                    dates: formatDates(error.dueDates),
+                    needed: formatAmount(error.totalCost),
+                    available: formatAmount(error.availableBalance),
+                });
+            }
+            if (error instanceof RecurringRuleReferenceMissingError) {
+                const wallet = error.missing.includes('wallet');
+                const category = error.missing.includes('category');
+                const key = wallet && category
+                    ? 'recurring.editRefusedMissingWalletAndCategory'
+                    : wallet
+                        ? 'recurring.editRefusedMissingWallet'
+                        : 'recurring.editRefusedMissingCategory';
+                return t(key, { name });
+            }
+            // REGISTRE V-118, Owner decision 3. Verified by
+            // RecurringRulesScreen.v118Messages.test.tsx.
+            if (error instanceof RecurringEndDateEditRefusedError) {
+                const wallet = error.missing.includes('wallet');
+                const category = error.missing.includes('category');
+                const key = wallet && category
+                    ? 'recurring.editRefusedEndDateMissingWalletAndCategory'
+                    : wallet
+                        ? 'recurring.editRefusedEndDateMissingWallet'
+                        : 'recurring.editRefusedEndDateMissingCategory';
+                return t(key, { name, dates: formatDates(error.dueDates) });
+            }
+            return null;
+        },
+        [editingRule, formatAmount, formatDates, ruleName, t],
+    );
 
     const handleCreate = useCallback(() => {
         setEditingRule(undefined);
@@ -204,12 +264,25 @@ export const RecurringRulesScreen: React.FC = () => {
             if (rule.isPaused) {
                 await resumeRule(rule.id);
             } else {
-                await pauseRule(rule.id);
+                // The pause always applies; what it could not record first is
+                // named (REGISTRE V-105, Owner decision 5). Verified by
+                // RecurringRulesScreen.v105Messages.test.tsx - "j." and
+                // "control: a pause that recorded everything shows no alert".
+                const outcome = await pauseRule(rule.id);
+                if (outcome && outcome.unrecorded.length > 0) {
+                    Alert.alert(
+                        t('recurring.pausedUnrecordedTitle'),
+                        t('recurring.pausedUnrecordedMessage', {
+                            name: ruleName(rule),
+                            dates: formatDates(outcome.unrecorded),
+                        }),
+                    );
+                }
             }
         } catch {
             Alert.alert(t('common.error'), t('recurring.saveFailed'));
         }
-    }, [pauseRule, resumeRule, t]);
+    }, [formatDates, pauseRule, resumeRule, ruleName, t]);
 
     const handleDelete = useCallback((rule: RecurringTransaction) => {
         Alert.alert(
@@ -242,7 +315,18 @@ export const RecurringRulesScreen: React.FC = () => {
         if (isCreate) {
             await createRule(dto);
         } else {
-            await updateRule(dto);
+            try {
+                await updateRule(dto);
+            } catch (error) {
+                // A refusal is named here and the form stays open, nothing
+                // saved; any other failure reaches the form's own alert.
+                // Verified by RecurringRulesScreen.v105Messages.test.tsx -
+                // "f.", "o." and "control: any other edit failure...".
+                const refusal = editRefusalMessage(error);
+                if (refusal === null) throw error;
+                Alert.alert(t('recurring.editRefusedTitle'), refusal);
+                return;
+            }
         }
         setFormVisible(false);
 
@@ -280,7 +364,7 @@ export const RecurringRulesScreen: React.FC = () => {
         } else {
             Alert.alert(t('recurring.ruleUpdated'), t('recurring.ruleUpdatedMessage'));
         }
-    }, [createRule, updateRule, t]);
+    }, [createRule, editRefusalMessage, updateRule, t]);
 
     const renderItem = useCallback(
         ({ item }: { item: RecurringTransaction }) => (

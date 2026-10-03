@@ -32,6 +32,8 @@ const str = (v: unknown): string => String(v);
 const num = (v: unknown): number => (typeof v === 'number' ? v : Number(v));
 const optStr = (v: unknown): string | undefined =>
     v === null || v === undefined ? undefined : String(v);
+const optNum = (v: unknown): number | undefined =>
+    v === null || v === undefined ? undefined : num(v);
 const nullable = (v: unknown): unknown => (v === undefined ? null : v);
 
 // ─── Mappers ────────────────────────────────────────────────────────────
@@ -75,6 +77,9 @@ export const transactionMapper: EntityMapper<Transaction> = {
             date: t.date.toISOString(),
             note: nullable(t.note),
             created_at: t.createdAt.toISOString(),
+            recurring_rule_id: nullable(t.recurringRuleId),
+            recurring_schedule_version: nullable(t.recurringScheduleVersion),
+            recurring_occurrence_index: nullable(t.recurringOccurrenceIndex),
         };
     },
     fromRow(r) {
@@ -87,6 +92,9 @@ export const transactionMapper: EntityMapper<Transaction> = {
             date: new Date(str(r.date)),
             note: optStr(r.note),
             createdAt: new Date(str(r.created_at)),
+            recurringRuleId: optStr(r.recurring_rule_id),
+            recurringScheduleVersion: optNum(r.recurring_schedule_version),
+            recurringOccurrenceIndex: optNum(r.recurring_occurrence_index),
         };
     },
 };
@@ -149,9 +157,13 @@ export const recurringMapper: EntityMapper<RecurringTransaction> = {
             description: nullable(r.description),
             start_date: r.startDate.toISOString(),
             end_date: r.endDate ? r.endDate.toISOString() : null,
+            end_occurrence_index: nullable(r.endOccurrenceIndex),
+            end_day: nullable(r.endDay),
             frequency: r.frequency,
             interval_count: r.interval,
             last_generated_date: r.lastGeneratedDate.toISOString(),
+            last_generated_index: nullable(r.lastGeneratedIndex),
+            schedule_version: r.scheduleVersion ?? 0,
             is_paused: r.isPaused ? 1 : 0,
             created_at: r.createdAt.toISOString(),
         };
@@ -166,9 +178,13 @@ export const recurringMapper: EntityMapper<RecurringTransaction> = {
             description: optStr(row.description),
             startDate: new Date(str(row.start_date)),
             endDate: row.end_date ? new Date(str(row.end_date)) : undefined,
+            endOccurrenceIndex: optNum(row.end_occurrence_index),
+            endDay: optStr(row.end_day),
             frequency: str(row.frequency) as RecurrenceFrequency,
             interval: num(row.interval_count),
             lastGeneratedDate: new Date(str(row.last_generated_date)),
+            lastGeneratedIndex: optNum(row.last_generated_index),
+            scheduleVersion: num(row.schedule_version ?? 0),
             isPaused: num(row.is_paused) === 1,
             createdAt: new Date(str(row.created_at)),
         };

@@ -67,18 +67,20 @@ export function startOfDay(d: Date): Date {
     return result;
 }
 
-/**
- * Compute all due dates for a rule between lastGeneratedDate (exclusive) and today (inclusive).
- * Respects endDate if present.
- */
-export function computeDueDates(
-    rule: RecurringTransaction,
-    today: Date,
-): Date[] {
-    const dates: Date[] = [];
-    const fence = startOfDay(rule.lastGeneratedDate);
-    const end = rule.endDate ? startOfDay(rule.endDate) : null;
+/** Safety limit on how many occurrences a walk visits (~10 years of daily). */
+const MAX_ITERATIONS = 3650;
 
+/**
+ * Walk the rule's occurrences in order - occurrence k, 0-based from startDate - while
+ * `keepGoing(date)` holds, and at most MAX_ITERATIONS of them. The one definition of the
+ * series, shared by deriveLastGeneratedIndex and computeDueOccurrences so the two can never
+ * number an occurrence differently. `visit` returns false to stop early.
+ */
+function walkOccurrences(
+    rule: RecurringTransaction,
+    keepGoing: (date: Date) => boolean,
+    visit: (index: number, date: Date) => boolean,
+): void {
     // Start from the rule's startDate and step forward
     const start = startOfDay(rule.startDate);
     let cursor = start;
@@ -88,28 +90,272 @@ export function computeDueDates(
     // day-31 rule) is clamped for that month only and the series returns to the anchor day.
     const anchorDay = start.getDate();
 
-    // Safety limit to prevent infinite loops
-    const MAX_ITERATIONS = 3650; // ~10 years of daily
-    let iterations = 0;
-
-    const todayFence = startOfDay(today);
-
-    while (cursor.getTime() <= todayFence.getTime() && iterations < MAX_ITERATIONS) {
-        iterations++;
-
-        // Only include dates after the watermark
-        if (cursor.getTime() > fence.getTime()) {
-            // Respect endDate
-            if (end && cursor.getTime() > end.getTime()) {
-                break;
-            }
-            dates.push(new Date(cursor));
-        }
-
+    for (let index = 0; index < MAX_ITERATIONS && keepGoing(cursor); index++) {
+        if (!visit(index, cursor)) return;
         cursor = startOfDay(advanceDate(cursor, rule.frequency, rule.interval, anchorDay));
     }
+}
 
-    return dates;
+/**
+ * The number of the last occurrence whose day is on or before the day of lastGeneratedDate,
+ * both read in the current zone; -1 when there is none.
+ *
+ * This is the interpretation the engine gave the watermark before the occurrence key existed
+ * (register policy no. 10): an occurrence counted as generated when its local day was not
+ * after the watermark's local day. Occurrence days strictly increase with their number, so
+ * "number > this" and "day after the watermark's day" select the same occurrences, and a rule
+ * given this number emits in an unchanged zone exactly what it emitted before. Verified by
+ * migrationV7OccurrenceKey.test.ts - "migration v7: backfills each index so the first run
+ * emits exactly what the unfixed engine would have".
+ *
+ * Used where a rule has no number yet: the v7 backfill and a restore from a file written
+ * before it.
+ */
+export function deriveLastGeneratedIndex(rule: RecurringTransaction): number {
+    return lastOccurrenceIndexOnOrBefore(rule, rule.lastGeneratedDate);
+}
+
+/** The number of the last occurrence whose local day is on or before the local day of `day`; -1 when none. */
+export function lastOccurrenceIndexOnOrBefore(rule: RecurringTransaction, day: Date): number {
+    const fence = startOfDay(day).getTime();
+    return lastOccurrenceIndexWhile(rule, (date) => date.getTime() <= fence);
+}
+
+/** The number of the last occurrence whose local day is strictly before the local day of `day`; -1 when none. */
+export function lastOccurrenceIndexBefore(rule: RecurringTransaction, day: Date): number {
+    const fence = startOfDay(day).getTime();
+    return lastOccurrenceIndexWhile(rule, (date) => date.getTime() < fence);
+}
+
+function lastOccurrenceIndexWhile(rule: RecurringTransaction, keepGoing: (date: Date) => boolean): number {
+    let last = -1;
+    walkOccurrences(rule, keepGoing, (index) => {
+        last = index;
+        return true;
+    });
+    return last;
+}
+
+/** The local day of occurrence `index`, or null when the walk does not reach it. */
+export function occurrenceDate(rule: RecurringTransaction, index: number): Date | null {
+    let found = null as Date | null;
+    walkOccurrences(
+        rule,
+        () => true,
+        (i, date) => {
+            if (i !== index) return true;
+            found = new Date(date);
+            return false;
+        },
+    );
+    return found;
+}
+
+/**
+ * The last local day already settled for a rule, in the current zone: no occurrence of its
+ * schedule on or before this day may be generated again (REGISTRE V-105). The later of:
+ *
+ *  - the day of occurrence lastGeneratedIndex. Read from the number, not from an instant, so a
+ *    zone change cannot move it a day earlier: lastGeneratedDate is a local midnight of the zone
+ *    that wrote it, and a zone further west reads it as the day before. Verified by
+ *    recurringEditPauseForward.test.ts - "a1." to "a4.";
+ *  - the local day of lastGeneratedDate, the last occurrence actually written. After a
+ *    renumbering the number can name an earlier day of the new schedule than the last debit.
+ *    Verified by recurringEditPauseForward.test.ts - "control: a paused rule edited twice on its
+ *    due day (1 -> 2 -> 1) and resumed that day debits that day once".
+ *
+ * For a rule that has generated nothing, lastGeneratedDate is one interval before startDate, so
+ * no occurrence falls on or before the day returned.
+ */
+export function lastSettledDay(rule: RecurringTransaction): Date {
+    const index = rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule);
+    const watermark = startOfDay(rule.lastGeneratedDate);
+    const byIndex = index >= 0 ? occurrenceDate(rule, index) : null;
+    return byIndex !== null && byIndex.getTime() > watermark.getTime() ? byIndex : watermark;
+}
+
+/** One occurrence of a rule: its number from startDate, and its local day. */
+export interface DueOccurrence {
+    index: number;
+    date: Date;
+}
+
+// --- The end of a rule ------------------------------------------------
+
+/**
+ * The number of a rule's last occurrence read from its end date in the current zone: the last
+ * occurrence whose local day is on or before the local day of endDate, as the end was read
+ * before the number existed. Only meaningful for a rule that has an endDate.
+ *
+ * Used where the end is chosen (create, an edit of the end or of the schedule) and where a
+ * rule has no number yet: the v8 backfill and a restore from a file written before it.
+ * Verified by migrationV8EndOccurrenceIndex.test.ts - "migration v8: each rule with an end gets
+ * the number of its last occurrence...".
+ */
+export function deriveEndOccurrenceIndex(rule: RecurringTransaction & { endDate: Date }): number {
+    return lastOccurrenceIndexOnOrBefore(rule, rule.endDate);
+}
+
+/**
+ * The number of the last occurrence a rule may generate, or null when it has no end
+ * (REGISTRE V-114, V-103, Owner decision 2 of 01/10).
+ *
+ * The end is the number fixed when the end date was chosen, not the end date read in the
+ * current zone, so a zone change no longer adds or loses an occurrence. Verified by
+ * recurringEndOccurrenceIndex.test.ts - "V-103 a." and "V-103 b.". endDate is what says
+ * whether the rule has an end at all; the number is derived from it only for a rule that
+ * does not carry one yet.
+ */
+export function endOccurrenceIndexOf(rule: RecurringTransaction): number | null {
+    if (!rule.endDate) return null;
+    return rule.endOccurrenceIndex ?? deriveEndOccurrenceIndex({ ...rule, endDate: rule.endDate });
+}
+
+// --- The end day ------------------------------------------------------
+
+const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** The local calendar day of `d` in the current zone, as 'YYYY-MM-DD'. */
+export function localDayKey(d: Date): string {
+    const pad = (n: number, width: number) => String(n).padStart(width, '0');
+    return `${pad(d.getFullYear(), 4)}-${pad(d.getMonth() + 1, 2)}-${pad(d.getDate(), 2)}`;
+}
+
+/**
+ * Local midnight of a 'YYYY-MM-DD' day in the current zone, or null when `key` is not a
+ * real calendar day. Uses setFullYear rather than the `new Date(y, m, d)` constructor, as
+ * daysInMonth does, because that constructor maps years 0-99 onto 1900-1999.
+ */
+export function dayOfKey(key: string): Date | null {
+    const match = DAY_KEY.exec(key);
+    if (!match) return null;
+    const day = new Date(0);
+    day.setFullYear(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    day.setHours(0, 0, 0, 0);
+    return localDayKey(day) === key ? day : null;
+}
+
+/** Whether `value` is a 'YYYY-MM-DD' calendar day. */
+export function isDayKey(value: unknown): value is string {
+    return typeof value === 'string' && dayOfKey(value) !== null;
+}
+
+/**
+ * The end day of a rule that may not carry one yet (REGISTRE V-103, Owner decision D11,
+ * pass 75): the day it carries, or else the local day of its end date in the current zone,
+ * which is when and where that day is fixed for it. Undefined when the rule has no end.
+ *
+ * Used where a rule arrives without a day: migration v9, a restore from a file written
+ * before the day existed, and the v5 import. Verified by migrationV9EndDay.test.ts -
+ * "V-103 A3." and "V-103 A4 (v5).", and backupRestoreEndDay.test.ts - "V-103 A4 b.".
+ */
+export function endDayOf(rule: RecurringTransaction): string | undefined {
+    if (!rule.endDate) return undefined;
+    return isDayKey(rule.endDay) ? rule.endDay : localDayKey(rule.endDate);
+}
+
+/**
+ * The end day for a rule as an edit saves it: kept when the form re-sends the end date
+ * unchanged - it sends it with every edit (RecurringRuleForm.tsx:164) - and taken from the
+ * new end date in the current zone when the user chooses another one; none when the end is
+ * cleared. Verified by recurringEndDay.test.ts - "control: an end-date edit by the user
+ * replaces the stored day...".
+ */
+export function endDayForEdit(
+    existing: RecurringTransaction,
+    updated: RecurringTransaction,
+): string | undefined {
+    if (!updated.endDate) return undefined;
+    const sameEnd = existing.endDate !== undefined && existing.endDate.getTime() === updated.endDate.getTime();
+    return sameEnd ? endDayOf(existing) : localDayKey(updated.endDate);
+}
+
+/**
+ * The end number for a rule as an edit saves it: kept when neither the end date nor the
+ * schedule changes, and otherwise derived from the end day (endDayForEdit) - never from the
+ * end date read in a zone the device may have moved to. A schedule change renumbers every
+ * occurrence, so the end is found again in the new numbering, from the calendar day the
+ * user chose (REGISTRE V-103, Owner decision D11, pass 75). When the end date changes, the
+ * day is the new end's local day, which is what the end date gave before. Verified by
+ * recurringEndScheduleEditZone.test.ts - "V-103 r." and recurringEndDay.test.ts -
+ * "V-103 A1." and "V-103 A2.".
+ */
+export function endOccurrenceIndexForEdit(
+    existing: RecurringTransaction,
+    updated: RecurringTransaction,
+): number | undefined {
+    if (!updated.endDate) return undefined;
+    const sameEnd = existing.endDate !== undefined && existing.endDate.getTime() === updated.endDate.getTime();
+    const sameSchedule =
+        existing.frequency === updated.frequency &&
+        existing.interval === updated.interval &&
+        existing.startDate.getTime() === updated.startDate.getTime();
+    if (sameEnd && sameSchedule && existing.endOccurrenceIndex !== undefined) {
+        return existing.endOccurrenceIndex;
+    }
+    const endDay = dayOfKey(endDayForEdit(existing, updated) ?? '');
+    return endDay
+        ? lastOccurrenceIndexOnOrBefore(updated, endDay)
+        : deriveEndOccurrenceIndex({ ...updated, endDate: updated.endDate });
+}
+
+/**
+ * Whether a rule still has an occurrence to generate: it has no end, or its last generated
+ * occurrence is before its last one. A rule whose end day has passed with an occurrence still
+ * due is not finished (REGISTRE V-114, Owner decision 1). Verified by
+ * recurringEndOccurrenceIndex.test.ts - "V-114 a." and "control: a rule that generated
+ * everything up to an end that has passed is Ended".
+ */
+export function hasOccurrencesLeft(rule: RecurringTransaction): boolean {
+    const end = endOccurrenceIndexOf(rule);
+    if (end === null) return true;
+    return (rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule)) < end;
+}
+
+/**
+ * Every occurrence numbered after the rule's last generated one whose day is on or before
+ * today (inclusive), in the current zone, up to the rule's last occurrence when it has an end.
+ *
+ * What was generated is read from lastGeneratedIndex, which no zone moves; lastGeneratedDate
+ * is read only when a rule has no number yet. Verified by recurringOccurrenceKey.test.ts -
+ * "zone shift: after a writer zone 6 h east, a second run writes no occurrence twice...".
+ *
+ * The end is a number too (endOccurrenceIndexOf), and today is no bound on it: an occurrence
+ * due on or before the end is listed even after the end day (REGISTRE V-114, V-103).
+ * Verified by recurringEndOccurrenceIndex.test.ts - "V-114 a." and "V-103 a.".
+ */
+export function computeDueOccurrences(
+    rule: RecurringTransaction,
+    today: Date,
+): DueOccurrence[] {
+    const occurrences: DueOccurrence[] = [];
+    const lastIndex = rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule);
+    const end = endOccurrenceIndexOf(rule);
+    const todayFence = startOfDay(today).getTime();
+
+    walkOccurrences(
+        rule,
+        (date) => date.getTime() <= todayFence,
+        (index, date) => {
+            if (end !== null && index > end) {
+                return false;
+            }
+            if (index > lastIndex) {
+                occurrences.push({ index, date: new Date(date) });
+            }
+            return true;
+        },
+    );
+
+    return occurrences;
+}
+
+/** The days of computeDueOccurrences, for callers that only price or count them. */
+export function computeDueDates(
+    rule: RecurringTransaction,
+    today: Date,
+): Date[] {
+    return computeDueOccurrences(rule, today).map((occurrence) => occurrence.date);
 }
 
 /**

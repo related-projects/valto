@@ -15,6 +15,9 @@ import type { SqlDatabase } from './SqlDatabase';
 
 let instance: SqlDatabase | null = null;
 
+/** Called by closeDatabase once the connection is closed. See onDatabaseClosed. */
+const closeListeners = new Set<() => void>();
+
 /** Open (once) the encrypted production database. Idempotent. */
 export async function initDatabase(): Promise<SqlDatabase> {
     if (!instance) {
@@ -38,10 +41,37 @@ export function getDb(): SqlDatabase {
  * singleton so the next `initDatabase()` re-opens a fresh handle. Used by the
  * corrupted-store recovery flow before the DB file is deleted on disk.
  * Production-safe and idempotent - a no-op when nothing is open.
+ *
+ * Every listener registered with onDatabaseClosed runs afterwards, so whatever
+ * holds an object built over the closed connection can drop it (REGISTRE
+ * V-110).
  */
 export function closeDatabase(): void {
     instance?.close?.();
     instance = null;
+    for (const listener of closeListeners) {
+        listener();
+    }
+}
+
+/**
+ * Run `listener` every time closeDatabase closes the connection. Returns the
+ * unsubscribe.
+ *
+ * The DI container registers here to empty itself (REGISTRE V-110, Owner
+ * decision 3, pass 74): it builds each repository once, over whichever
+ * connection getDb() returned then, and a repository kept across a close sends
+ * every statement to the closed connection while runInTransaction goes to the
+ * next one. A listener rather than a call to the container: the container
+ * imports this module, so calling it from here would be an import cycle.
+ * Verified by containerResetOnClose.test.ts - "V-110" and "V-110 (recovery
+ * reset)".
+ */
+export function onDatabaseClosed(listener: () => void): () => void {
+    closeListeners.add(listener);
+    return () => {
+        closeListeners.delete(listener);
+    };
 }
 
 /**

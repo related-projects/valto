@@ -52,7 +52,7 @@ const mockShare = Sharing.shareAsync as jest.Mock;
 
 beforeEach(async () => {
     container.reset();
-    __setDatabaseForTests(await createTestDb());
+    __setDatabaseForTests(await createTestDb({ writeGuard: true }));
     jest.useFakeTimers({ now: new Date('2026-03-15T12:00:00Z') });
     memoryFiles.clear();
     mockIsAvailable.mockReset().mockResolvedValue(false);

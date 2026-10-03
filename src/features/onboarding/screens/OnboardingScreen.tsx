@@ -13,6 +13,9 @@
  * hook hands over a translation KEY (`errorKey`), never a message, so nothing
  * here can put a developer-facing English string on screen. See
  * OnboardingScreen.test.tsx 'renders the translated key, never the raw error'.
+ * The wallet step's own refusal of an unreadable opening balance (REGISTRE
+ * V-124) is kept as the parser's refusal cause and turned into its sentence
+ * at render through amountRefusalMessage, so it is localized the same way.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -28,11 +31,21 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../../domain/constants/currencies';
+import { getCurrencyByCode, SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../../domain/constants/currencies';
+import { DEFAULT_NUMBER_FORMAT } from '../../../domain/constants/numberFormats';
 import { WalletType } from '../../../domain/entities';
 import { useFormatting } from '../../../hooks/useFormatting';
+import { useSubmitLock } from '../../../hooks/useSubmitLock';
 import { useTheme } from '../../../theme/theme';
 import { getButtonA11y } from '../../../utils/accessibility';
+import { amountRefusalMessage } from '../../../utils/amountRefusalMessage';
+import { amountPlaceholder } from '../../../utils/amountPlaceholder';
+import {
+    normalizeAmount,
+    parseAmountInputResult,
+    type AmountRefusalCause,
+    type AmountResult,
+} from '../../../utils/normalizeAmount';
 import { useOnboarding } from '../hooks/useOnboarding';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -54,7 +67,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
-    const { parseAmount, normalizeAmount, amountPlaceholder, decimals } = useFormatting();
+    const { decimals, settings } = useFormatting();
     const {
         step,
         next,
@@ -64,7 +77,20 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         complete,
         loading,
         errorKey,
+        selectedCurrency,
     } = useOnboarding();
+
+    // The wallet step parses, converts and shows its opening balance with the
+    // currency just selected, not with the one useFormatting last loaded: the
+    // settings reload that the selection starts is not awaited
+    // (useOnboarding.ts selectCurrency), so a press can come before it lands
+    // (REGISTRE V-124, Owner decision 5, pass 75). The number format does not
+    // change with the currency; it is read as useFormatting reads it. Verified
+    // by OnboardingScreen.currencyReload.test.tsx and
+    // OnboardingScreen.selectedCurrency.test.tsx - "V-124 B1.".
+    const walletDecimals = selectedCurrency ? getCurrencyByCode(selectedCurrency).decimals : decimals;
+    const numberFormat = settings?.decimalSeparator ?? DEFAULT_NUMBER_FORMAT;
+    const walletPlaceholder = amountPlaceholder(walletDecimals, numberFormat);
 
     // Currency search
     const [currencySearch, setCurrencySearch] = useState('');
@@ -90,17 +116,32 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     const [walletName, setWalletName] = useState('');
     const [walletType, setWalletType] = useState<WalletType>(WalletType.CASH);
     const [initialBalance, setInitialBalance] = useState('');
+    const [balanceRefusal, setBalanceRefusal] = useState<AmountRefusalCause | null>(null);
 
     const handleCurrencySelect = async (currency: CurrencyDefinition) => {
         await selectCurrency(currency);
     };
 
-    const handleCreateWallet = async () => {
+    // A press made while a save is running is ignored (REGISTRE V-123).
+    const handleCreateWallet = useSubmitLock(async () => {
+        setBalanceRefusal(null);
         const name = walletName.trim() || t('onboarding.walletNamePlaceholder');
-        const balance = parseAmount(initialBalance) ?? 0;
-        const balanceCents = normalizeAmount(balance);
+
+        // An empty field means "start at zero", as in AddWalletModal. Anything
+        // else the parser refuses is refused here, before anything is saved,
+        // instead of becoming a zero balance (REGISTRE V-124). A negative
+        // balance parses, and is still left to the repository.
+        const parsedBalance: AmountResult = initialBalance
+            ? parseAmountInputResult(initialBalance, numberFormat, walletDecimals)
+            : { ok: true, value: 0 };
+        if (!parsedBalance.ok) {
+            setBalanceRefusal(parsedBalance.cause);
+            return;
+        }
+
+        const balanceCents = normalizeAmount(parsedBalance.value, walletDecimals);
         await createWallet(name, walletType, balanceCents);
-    };
+    });
 
     const handleComplete = async () => {
         // Only dismiss onboarding once the flag actually reached storage.
@@ -114,9 +155,12 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     //
     // `errorKey` is a translation key, so this line is localized like every
     // other. It can never carry a repository or storage message: the hook does
-    // not put one there.
-    const renderError = (testID: string) => (
-        errorKey ? (
+    // not put one there. `message`, when given, is a sentence the caller has
+    // already translated and takes the key's place: the wallet step passes its
+    // balance refusal (REGISTRE V-124).
+    const renderError = (testID: string, message?: string | null) => {
+        const text = message ?? (errorKey ? t(errorKey) : null);
+        return text ? (
             <Text
                 testID={testID}
                 style={{
@@ -126,10 +170,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     textAlign: 'center',
                 }}
             >
-                {t(errorKey)}
+                {text}
             </Text>
-        ) : null
-    );
+        ) : null;
+    };
 
     // ─── Step Renderers ───────────────────────────────────────────────
 
@@ -345,16 +389,24 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     marginBottom: spacing.xl,
                     ...shadows.card,
                 }}
-                placeholder={amountPlaceholder}
+                placeholder={walletPlaceholder}
                 placeholderTextColor={colors.mutedForeground}
                 value={initialBalance}
-                onChangeText={setInitialBalance}
-                keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
+                onChangeText={text => {
+                    setInitialBalance(text);
+                    setBalanceRefusal(null);
+                }}
+                keyboardType={walletDecimals === 0 ? "number-pad" : "decimal-pad"}
                 testID="onboarding_wallet_balance"
             />
 
-            {/* Error */}
-            {renderError('onboarding_wallet_error')}
+            {/* Error. The zero key is the wallet form's own; this parser never refuses zero. */}
+            {renderError(
+                'onboarding_wallet_error',
+                balanceRefusal
+                    ? amountRefusalMessage(balanceRefusal, t, 'modals.addWallet.invalidBalanceMessage', walletPlaceholder)
+                    : null,
+            )}
 
             {/* Create Button */}
             <TouchableOpacity

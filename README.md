@@ -130,7 +130,7 @@ src/
 |   |-- repositories/  # SQL implementations of the domain interfaces
 |   |-- services/      # Backup, export, recurring engine, notifications, security...
 |   |-- seed/          # Default categories on first launch
-|   `-- migrations/    # Versioned, idempotent (v1...v6)
+|   `-- migrations/    # Versioned, idempotent (v1...v9)
 |-- features/          # Self-contained feature modules (onboarding)
 |-- hooks/             # useWallets, useTransactions, ... (data access)
 |-- screens/

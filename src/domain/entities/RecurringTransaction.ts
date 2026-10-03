@@ -44,8 +44,34 @@ export interface RecurringTransaction {
     /** Date from which to start generating transactions */
     readonly startDate: Date;
 
-    /** Optional end date - no transactions generated after this */
+    /**
+     * Optional end date, as the user chose it. Says whether the rule has an end
+     * and is what the screen shows; which occurrences it covers is fixed by
+     * endOccurrenceIndex (REGISTRE V-114, V-103).
+     */
     readonly endDate?: Date;
+
+    /**
+     * Number of the last occurrence the rule may generate, counted from 0 at
+     * startDate in the current schedule version; fixed when the end date is
+     * chosen, from its local day in the zone the device is in then, so a later
+     * zone change cannot move it. Absent when the rule has no end, and on a
+     * rule that predates it - a file restored from an older backup, or a row
+     * not yet migrated - until it is derived from endDate; see
+     * deriveEndOccurrenceIndex.
+     */
+    readonly endOccurrenceIndex?: number;
+
+    /**
+     * The calendar day of the end, 'YYYY-MM-DD', as the user chose it: the
+     * local day of endDate in the zone the device was in when the end was set
+     * (REGISTRE V-103, Owner decision D11, pass 75). A schedule change finds
+     * endOccurrenceIndex again from this day, so a zone change cannot move it.
+     * Absent when the rule has no end, and on a rule that predates it - a file
+     * restored from an older backup, or a row not yet migrated - until it is
+     * taken from endDate; see endDayOf.
+     */
+    readonly endDay?: string;
 
     /** How often to generate (daily, weekly, monthly, yearly) */
     readonly frequency: RecurrenceFrequency;
@@ -53,8 +79,29 @@ export interface RecurringTransaction {
     /** Multiplier for frequency (e.g. interval=2 + frequency=weekly -> every 2 weeks) */
     readonly interval: number;
 
-    /** Date of the last successfully generated transaction (watermark for idempotency) */
+    /**
+     * Local midnight of the last generated occurrence, in the zone that wrote
+     * it. Still written with every occurrence so older readers and backups
+     * keep their meaning, but no longer what decides whether an occurrence was
+     * generated: see lastGeneratedIndex.
+     */
     readonly lastGeneratedDate: Date;
+
+    /**
+     * Number of the last generated occurrence, counted from 0 at startDate;
+     * -1 when none has been. Zone-independent, unlike lastGeneratedDate
+     * (REGISTRE V-98). Absent on a rule that predates it - a file restored
+     * from an older backup, or a row not yet migrated - until it is derived
+     * from lastGeneratedDate; see deriveLastGeneratedIndex.
+     */
+    readonly lastGeneratedIndex?: number;
+
+    /**
+     * Incremented whenever an edit changes the schedule (startDate, frequency,
+     * interval), so the occurrence numbers of the new schedule cannot collide
+     * with those already used by the old one. Absent means 0.
+     */
+    readonly scheduleVersion?: number;
 
     /** Whether this rule is paused (engine skips paused rules) */
     readonly isPaused: boolean;
@@ -105,9 +152,17 @@ export interface SerializableRecurringTransaction {
     description?: string;
     startDate: string;
     endDate?: string;
+    /** Absent in files written before REGISTRE V-114, and when the rule has no end. */
+    endOccurrenceIndex?: number;
+    /** Absent in files written before REGISTRE V-103 (pass 75), and when the rule has no end. */
+    endDay?: string;
     frequency: RecurrenceFrequency;
     interval: number;
     lastGeneratedDate: string;
+    /** Absent in files written before REGISTRE V-98. */
+    lastGeneratedIndex?: number;
+    /** Absent in files written before REGISTRE V-98. */
+    scheduleVersion?: number;
     isPaused: boolean;
     createdAt: string;
 }

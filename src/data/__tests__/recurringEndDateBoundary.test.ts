@@ -54,30 +54,30 @@ describe('a rule ending today still generates today', () => {
     let categoryRepo: CategoryRepository;
 
     beforeEach(async () => {
-        db = await createTestDb();
+        db = await createTestDb({ writeGuard: true });
         recurringRepo = new RecurringTransactionRepository(db);
         transactionRepo = new TransactionRepository(db);
         walletRepo = new WalletRepository(db);
         categoryRepo = new CategoryRepository(db);
 
-        await walletRepo.save({
+        await db.runInTransaction(() => walletRepo.save({
             id: 'w-1',
             name: 'Bank Account',
             balance: 100000,
             type: WalletType.BANK,
             createdAt: daysAgo(30),
-        });
+        }));
 
-        await categoryRepo.save({
+        await db.runInTransaction(() => categoryRepo.save({
             id: 'cat-1',
             name: 'Test Category',
             type: CategoryType.EXPENSE,
-        });
+        }));
 
         // Daily rule that started yesterday and ends today. Yesterday is already
         // generated, so today's occurrence is the only one pending - and it is
         // the last one this rule will ever produce.
-        await recurringRepo.save({
+        await db.runInTransaction(() => recurringRepo.save({
             id: 'rule-1',
             type: TransactionType.EXPENSE,
             amount: 100,
@@ -91,7 +91,7 @@ describe('a rule ending today still generates today', () => {
             lastGeneratedDate: daysAgo(1),
             isPaused: false,
             createdAt: daysAgo(2),
-        });
+        }));
     });
 
     it('records the final occurrence on the day the rule ends', async () => {
@@ -115,7 +115,7 @@ describe('a rule ending today still generates today', () => {
     it('does not produce anything the day after the rule ended', async () => {
         // Watermark already on the endDate: the final occurrence is recorded and
         // the rule has genuinely finished. Nothing more may be generated.
-        await recurringRepo.updateLastGeneratedDate('rule-1', todayStart());
+        await db.runInTransaction(() => recurringRepo.updateLastGeneratedDate('rule-1', todayStart()));
 
         const result = await processRecurringRules({
             recurringRepo,
@@ -130,13 +130,16 @@ describe('a rule ending today still generates today', () => {
         expect(await transactionRepo.getAll()).toHaveLength(0);
     });
 
-    it('leaves a rule that ended yesterday out of the active set', async () => {
-        await recurringRepo.update({
+    // Yesterday, its end day and last occurrence, is generated. A rule that
+    // ended with an occurrence still due stays in the active set until it is
+    // generated (REGISTRE V-114): recurringEndOccurrenceIndex.test.ts - "V-114 a.".
+    it('leaves a rule that ended yesterday and generated its last occurrence out of the active set', async () => {
+        await db.runInTransaction(async () => recurringRepo.update({
             ...(await recurringRepo.getById('rule-1'))!,
             startDate: daysAgo(3),
             endDate: daysAgo(1),
-            lastGeneratedDate: daysAgo(2),
-        });
+            lastGeneratedDate: daysAgo(1),
+        }));
 
         const active = await recurringRepo.getActiveRules();
         expect(active).toHaveLength(0);

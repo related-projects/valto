@@ -52,7 +52,7 @@ describe('useBudgets', () => {
     const currentMonth = getCurrentMonth();
 
     beforeEach(async () => {
-        mockDb = await createTestDb();
+        mockDb = await createTestDb({ writeGuard: true });
         mockBudgetRepo = new BudgetRepository(mockDb);
         mockCategoryRepo = new CategoryRepository(mockDb);
         mockTransactionRepo = new TransactionRepository(mockDb);
@@ -60,11 +60,11 @@ describe('useBudgets', () => {
     });
 
     it('loads budgets for current month on mount', async () => {
-        await mockBudgetRepo.create({
+        await mockDb.runInTransaction(() => mockBudgetRepo.create({
             categoryId: 'cat-1',
             month: currentMonth,
             limitAmount: 100000,
-        });
+        }));
 
         const { result } = renderHook(() => useBudgets());
 
@@ -107,11 +107,11 @@ describe('useBudgets', () => {
     });
 
     it('deletes budget and refreshes', async () => {
-        const budget = await mockBudgetRepo.create({
+        const budget = await mockDb.runInTransaction(() => mockBudgetRepo.create({
             categoryId: 'cat-1',
             month: currentMonth,
             limitAmount: 50000,
-        });
+        }));
 
         const { result } = renderHook(() => useBudgets());
 
@@ -127,8 +127,8 @@ describe('useBudgets', () => {
     });
 
     it('computes totalBudgetLimit correctly', async () => {
-        await mockBudgetRepo.create({ categoryId: 'cat-1', month: currentMonth, limitAmount: 50000 });
-        await mockBudgetRepo.create({ categoryId: 'cat-2', month: currentMonth, limitAmount: 30000 });
+        await mockDb.runInTransaction(() => mockBudgetRepo.create({ categoryId: 'cat-1', month: currentMonth, limitAmount: 50000 }));
+        await mockDb.runInTransaction(() => mockBudgetRepo.create({ categoryId: 'cat-2', month: currentMonth, limitAmount: 30000 }));
 
         const { result } = renderHook(() => useBudgets());
 
@@ -140,8 +140,8 @@ describe('useBudgets', () => {
     });
 
     it('provides budgetedCategoryIds', async () => {
-        await mockBudgetRepo.create({ categoryId: 'cat-food', month: currentMonth, limitAmount: 50000 });
-        await mockBudgetRepo.create({ categoryId: 'cat-transport', month: currentMonth, limitAmount: 30000 });
+        await mockDb.runInTransaction(() => mockBudgetRepo.create({ categoryId: 'cat-food', month: currentMonth, limitAmount: 50000 }));
+        await mockDb.runInTransaction(() => mockBudgetRepo.create({ categoryId: 'cat-transport', month: currentMonth, limitAmount: 30000 }));
 
         const { result } = renderHook(() => useBudgets());
 
@@ -235,8 +235,8 @@ describe('useBudgets', () => {
             });
 
         try {
-            await mockBudgetRepo.create({ categoryId: 'cat-may', month: '2026-05', limitAmount: 10000 });
-            await mockBudgetRepo.create({ categoryId: 'cat-june', month: '2026-06', limitAmount: 20000 });
+            await mockDb.runInTransaction(() => mockBudgetRepo.create({ categoryId: 'cat-may', month: '2026-05', limitAmount: 10000 }));
+            await mockDb.runInTransaction(() => mockBudgetRepo.create({ categoryId: 'cat-june', month: '2026-06', limitAmount: 20000 }));
 
             const { result } = renderHook(() => useBudgets());
 

@@ -12,6 +12,9 @@ export {
     CategoryHasRecurringRulesError,
     InsufficientFundsError,
     LastWalletError,
+    RecurringCatchUpRefusedError,
+    RecurringRuleReferenceMissingError,
+    type RecurringRuleReference,
     TransferDeletionNotSupportedError,
     WalletHasRecurringRulesError,
 } from './errors';

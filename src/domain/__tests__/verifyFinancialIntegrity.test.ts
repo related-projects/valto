@@ -14,11 +14,11 @@ import { createTransaction, verifyFinancialIntegrity } from '../useCases';
 let repos: MockRepositoryBundle;
 
 beforeEach(async () => {
-    repos = await createMockRepositories();
+    repos = await createMockRepositories({ writeGuard: true });
 });
 
 it('returns true when stored balances match the ledger', async () => {
-    const wallet = await repos.walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+    const wallet = await repos.runInTransaction(() => repos.walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
     await createTransaction(repos, {
         type: TransactionType.EXPENSE,
@@ -32,10 +32,10 @@ it('returns true when stored balances match the ledger', async () => {
 });
 
 it('returns false when a stored balance drifts from the ledger', async () => {
-    const wallet = await repos.walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH });
+    const wallet = await repos.runInTransaction(() => repos.walletRepo.create({ name: 'Cash', balance: 100000, type: WalletType.CASH }));
 
     // Mutate the stored balance without a backing transaction -> ledger drift.
-    await repos.walletRepo.updateBalance(wallet.id, -5000);
+    await repos.runInTransaction(() => repos.walletRepo.updateBalance(wallet.id, -5000));
 
     await expect(verifyFinancialIntegrity(repos)).resolves.toBe(false);
 });

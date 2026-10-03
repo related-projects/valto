@@ -8,8 +8,11 @@
  *   (a) Concurrency: two independent transactions serialize - no "transaction
  *       within a transaction" error, both effects applied, the 2nd observes the
  *       1st's COMMITTED state (not an interleaved read).
- *   (b) Re-entrance: a runInTransaction nested inside an active one succeeds via
- *       SAVEPOINT, with no deadlock on the serialization mutex.
+ *   (b) No nesting (REGISTRE V-106): a runInTransaction call made from inside a
+ *       callback's synchronous prefix is refused with NestedTransactionError,
+ *       and a call from another chain never joins the open transaction, so its
+ *       write survives that transaction's rollback. The two tests that pinned
+ *       the old SAVEPOINT nesting were replaced by these.
  *
  * Note: better-sqlite3 is synchronous, but the serialization mutex lives in the
  * shared transaction runner (createTransactionRunner) - the same code op-sqlite
@@ -17,8 +20,17 @@
  */
 
 import { BetterSqliteDatabase } from '../../../tests/helpers/BetterSqliteDatabase';
+import { NestedTransactionError } from '../storage/sql/transaction';
 
 const microYield = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+    let resolve!: () => void;
+    const promise = new Promise<void>((r) => {
+        resolve = r;
+    });
+    return { promise, resolve };
+}
 
 describe('runInTransaction concurrency & re-entrance', () => {
     let db: BetterSqliteDatabase;
@@ -53,38 +65,63 @@ describe('runInTransaction concurrency & re-entrance', () => {
         expect(observed).toEqual([0, 1]); // 2nd saw the 1st's committed state
     });
 
-    it('(b) a re-entrant runInTransaction nests via SAVEPOINT without deadlock', async () => {
+    it('V-106 e1: a runInTransaction call in the callback synchronous prefix throws NestedTransactionError', async () => {
         let innerRan = false;
 
-        await db.runInTransaction(async () => {
-            await db.execute(`UPDATE ctr SET n = 10 WHERE id = 1`);
-            // Nested call inside the active transaction's work - must NOT block on
-            // the mutex (that would deadlock); it nests via SAVEPOINT.
+        // The nested call is evaluated before the callback's first await, so it
+        // runs while the callback is still executing synchronously.
+        const outer = db.runInTransaction(async () => {
             await db.runInTransaction(async () => {
                 innerRan = true;
                 await db.execute(`UPDATE ctr SET n = 20 WHERE id = 1`);
             });
         });
+        const [outcome] = await Promise.allSettled([outer]);
 
-        expect(innerRan).toBe(true);
-        const { rows } = await db.execute(`SELECT n FROM ctr WHERE id = 1`);
-        expect(Number(rows[0].n)).toBe(20); // both writes committed together
+        expect(outcome.status).toBe('rejected');
+        const reason = (outcome as PromiseRejectedResult).reason;
+        expect(reason).toBeInstanceOf(NestedTransactionError);
+        expect(reason.message).toMatch(/inside a running transaction callback/);
+        expect(innerRan).toBe(false);
+
+        // Nothing was written, and the connection is free for the next transaction.
+        const before = await db.execute(`SELECT n FROM ctr WHERE id = 1`);
+        expect(Number(before.rows[0].n)).toBe(0);
+        await db.runInTransaction(async () => {
+            await db.execute(`UPDATE ctr SET n = 1 WHERE id = 1`);
+        });
+        const after = await db.execute(`SELECT n FROM ctr WHERE id = 1`);
+        expect(Number(after.rows[0].n)).toBe(1);
     });
 
-    it('(b) a failing nested transaction rolls back only to its SAVEPOINT', async () => {
-        await db.runInTransaction(async () => {
-            await db.execute(`UPDATE ctr SET n = 5 WHERE id = 1`);
-            // Inner fails -> ROLLBACK TO savepoint; outer keeps its own write.
-            await db
-                .runInTransaction(async () => {
-                    await db.execute(`UPDATE ctr SET n = 99 WHERE id = 1`);
-                    throw new Error('inner boom');
-                })
-                .catch(() => undefined);
-        });
+    it('V-106 a: a write made by another chain survives the rollback of the transaction that was open when it was made', async () => {
+        const holdA = deferred();
 
-        const { rows } = await db.execute(`SELECT n FROM ctr WHERE id = 1`);
-        expect(Number(rows[0].n)).toBe(5); // inner write rolled back, outer kept
+        // A is open (BEGIN resolved, its UPDATE done) and waits on the gate.
+        const a = db.runInTransaction(async () => {
+            await db.execute(`UPDATE ctr SET n = 5 WHERE id = 1`);
+            await holdA.promise;
+            throw new Error('A fails');
+        });
+        await microYield();
+
+        // B is an unrelated chain that calls the runner while A is open.
+        const b = db.runInTransaction(async () => {
+            await db.execute(`INSERT INTO ctr (id, n) VALUES (2, 7)`);
+        });
+        await microYield();
+
+        holdA.resolve();
+        const [aOutcome, bOutcome] = await Promise.allSettled([a, b]);
+
+        expect(aOutcome.status).toBe('rejected');
+        expect(bOutcome.status).toBe('fulfilled');
+        const { rows } = await db.execute(`SELECT id, n FROM ctr ORDER BY id`);
+        // A rolled back its own UPDATE; B's row is still there.
+        expect(rows).toEqual([
+            { id: 1, n: 0 },
+            { id: 2, n: 7 },
+        ]);
     });
 
     it('runs many concurrent transactions without collision', async () => {

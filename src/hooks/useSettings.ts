@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, AppState, type AppStateStatus, Linking } from 'react-native';
 import { dataEvents } from '../core/events/dataEvents';
+import { beginRestoring } from '../core/restore/restoringState';
 import { createAndShareBackup, pickAndRestoreBackup, type RestoreOutcome, SnapshotRejectedError } from '../data/services/backupService';
 import { getPermissionStatus, scheduleDailyReminder, setNotificationsEnabled } from '../data/services/notificationService';
 import { resetAppData, resetFinancialDataForCurrencyReset } from '../data/services/resetService';
@@ -192,8 +193,16 @@ export function useSettings(): UseSettingsResult {
                                     text: t('alerts.restoreNow'),
                                     style: 'destructive',
                                     onPress: async () => {
+                                        // The blocking wait screen, from this
+                                        // confirmation until the restore call
+                                        // settles, catch-up included (REGISTRE
+                                        // V-119, V-106; Owner decision 1, pass
+                                        // 74). Not `loading`: every other action
+                                        // here clears that one, and this screen
+                                        // can be unmounted mid-restore - see
+                                        // restoringState.ts.
+                                        const endRestoring = beginRestoring();
                                         try {
-                                            setLoading(true);
                                             const restored = await pickAndRestoreBackup();
                                             if (restored) {
                                                 const newSettings = await loadSettings();
@@ -236,7 +245,7 @@ export function useSettings(): UseSettingsResult {
                                             Alert.alert(t('alerts.restoreFailed'), message);
                                             console.error('Restore error:', error);
                                         } finally {
-                                            setLoading(false);
+                                            endRestoring();
                                         }
                                     },
                                 },

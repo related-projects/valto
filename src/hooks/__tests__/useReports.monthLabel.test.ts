@@ -67,7 +67,7 @@ const expectedLabel = (language: string, selectedMonth: string): string => {
 
 describe('useReports month label', () => {
     beforeEach(async () => {
-        mockDb = await createTestDb();
+        mockDb = await createTestDb({ writeGuard: true });
         mockBudgetRepo = new BudgetRepository(mockDb);
         mockCategoryRepo = new CategoryRepository(mockDb);
         mockTransactionRepo = new TransactionRepository(mockDb);

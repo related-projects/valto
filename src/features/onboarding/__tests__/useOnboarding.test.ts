@@ -30,6 +30,9 @@ jest.mock('../../../core/di/container', () => ({
             return { create: mockCreateWallet };
         },
     },
+    // No database here: the wallet create runs through the runner (REGISTRE
+    // V-109), which this suite does not exercise.
+    getUseCaseDeps: () => ({ runInTransaction: (work: () => Promise<unknown>) => work() }),
 }));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';

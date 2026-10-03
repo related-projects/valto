@@ -163,6 +163,56 @@ export class TransactionRepository implements ITransactionRepository {
         return this.save(transaction);
     }
 
+    /**
+     * Insert one occurrence of a recurring rule under its occurrence key, or
+     * nothing when that key is already in the ledger.
+     *
+     * Returns the row written, or null when idx_transactions_recurring_occurrence
+     * already holds the key: the occurrence was generated before, and the
+     * caller must neither debit it again nor report an error. Only a conflict
+     * on that index is absorbed; every other constraint still throws. Verified
+     * by recurringOccurrenceKey.test.ts - "unique key: the engine treats a key
+     * conflict as already generated...".
+     */
+    async createRecurringOccurrence(
+        dto: CreateTransactionDTO,
+        key: { ruleId: string; scheduleVersion: number; occurrenceIndex: number },
+    ): Promise<Transaction | null> {
+        const transaction: Transaction = {
+            id: uuidv4(),
+            type: dto.type,
+            amount: dto.amount,
+            categoryId: dto.categoryId,
+            walletId: dto.walletId,
+            date: dto.date,
+            note: dto.note,
+            createdAt: new Date(),
+            recurringRuleId: key.ruleId,
+            recurringScheduleVersion: key.scheduleVersion,
+            recurringOccurrenceIndex: key.occurrenceIndex,
+        };
+
+        try {
+            validateTransaction(transaction);
+        } catch (error) {
+            if (error instanceof ValidationError) {
+                console.error(`[TransactionRepository] Validation failed: ${error.message}`);
+                throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, error.message);
+            }
+            throw error;
+        }
+
+        const row = transactionMapper.toRow(transaction);
+        const cols = Object.keys(row);
+        const { rowsAffected } = await this.db.execute(
+            `INSERT INTO transactions (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})
+             ON CONFLICT (recurring_rule_id, recurring_schedule_version, recurring_occurrence_index)
+             WHERE recurring_rule_id IS NOT NULL DO NOTHING`,
+            cols.map((c) => row[c]),
+        );
+        return rowsAffected === 1 ? transaction : null;
+    }
+
     async updateFromDTO(dto: UpdateTransactionDTO): Promise<Transaction> {
         const existing = await this.getById(dto.id);
         if (!existing) {

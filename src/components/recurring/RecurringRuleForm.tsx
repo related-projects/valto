@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TransactionType } from '../../domain/entities/Transaction';
 import { RecurrenceFrequency } from '../../domain/entities/RecurringTransaction';
 import { useFormatting } from '../../hooks/useFormatting';
+import { useSubmitLock } from '../../hooks/useSubmitLock';
 import { RECURRENCE_UNITS } from '../../localization/recurrenceForms';
 import { getButtonA11y } from '../../utils/accessibility';
 import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
@@ -118,7 +119,8 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
         setCategoryId(''); // Reset category when type changes
     };
 
-    const handleSubmit = async () => {
+    // A press made while a submit is running is ignored (REGISTRE V-122).
+    const handleSubmit = useSubmitLock(async () => {
         const parsedAmount = parseAmountToCentsResult(amount);
         if (!parsedAmount.ok) {
             Alert.alert(
@@ -181,7 +183,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
         } finally {
             setSubmitting(false);
         }
-    };
+    });
 
     const frequencyLabel = () => {
         const intVal = parseInt(interval, 10) || 1;

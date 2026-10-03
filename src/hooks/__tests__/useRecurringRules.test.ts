@@ -12,7 +12,8 @@ import { CategoryRepository } from '../../data/repositories/CategoryRepository';
 import { RecurringTransactionRepository } from '../../data/repositories/RecurringTransactionRepository';
 import { TransactionRepository } from '../../data/repositories/TransactionRepository';
 import { WalletRepository } from '../../data/repositories/WalletRepository';
-import { TransactionType, RecurrenceFrequency } from '../../domain/entities';
+import { CategoryType, TransactionType, RecurrenceFrequency, WalletType } from '../../domain/entities';
+import { pinClock, restoreZoneClock } from '../../../tests/helpers/zoneClock';
 
 let mockDb: SqlDatabase;
 let mockRecurringRepo: RecurringTransactionRepository;
@@ -70,7 +71,7 @@ import { useRecurringRules } from '../useRecurringRules';
 
 describe('useRecurringRules', () => {
     beforeEach(async () => {
-        mockDb = await createTestDb();
+        mockDb = await createTestDb({ writeGuard: true });
         mockRecurringRepo = new RecurringTransactionRepository(mockDb);
         mockWalletRepo = new WalletRepository(mockDb);
         mockCategoryRepo = new CategoryRepository(mockDb);
@@ -78,6 +79,24 @@ describe('useRecurringRules', () => {
         mockEmit.mockClear();
         mockSubscribe.mockClear();
         mockSubscribe.mockReturnValue(jest.fn());
+
+        // An edit or a pause of an active rule first records what is due
+        // under it (REGISTRE V-105), through the engine, which needs the
+        // rule's wallet and category to exist and a fixed "today". Process
+        // zone; the assertions here do not depend on it.
+        pinClock(new Date(2026, 5, 20, 12, 0).getTime());
+        await mockDb.runInTransaction(() => mockWalletRepo.save({
+            id: 'w-1',
+            name: 'Main',
+            balance: 10000000,
+            type: WalletType.BANK,
+            createdAt: new Date(2025, 0, 1),
+        }));
+        await mockDb.runInTransaction(() => mockCategoryRepo.save({ id: 'cat-food', name: 'Food', type: CategoryType.EXPENSE }));
+    });
+
+    afterEach(() => {
+        restoreZoneClock();
     });
 
     const sampleDTO = {
@@ -92,7 +111,7 @@ describe('useRecurringRules', () => {
     };
 
     it('loads rules on mount', async () => {
-        await mockRecurringRepo.create(sampleDTO);
+        await mockDb.runInTransaction(() => mockRecurringRepo.create(sampleDTO));
 
         const { result } = renderHook(() => useRecurringRules());
 
@@ -135,7 +154,7 @@ describe('useRecurringRules', () => {
     });
 
     it('updateRule updates and emits event', async () => {
-        const rule = await mockRecurringRepo.create(sampleDTO);
+        const rule = await mockDb.runInTransaction(() => mockRecurringRepo.create(sampleDTO));
 
         const { result } = renderHook(() => useRecurringRules());
 
@@ -154,7 +173,7 @@ describe('useRecurringRules', () => {
     });
 
     it('deleteRule deletes and emits event', async () => {
-        const rule = await mockRecurringRepo.create(sampleDTO);
+        const rule = await mockDb.runInTransaction(() => mockRecurringRepo.create(sampleDTO));
 
         const { result } = renderHook(() => useRecurringRules());
 
@@ -171,7 +190,7 @@ describe('useRecurringRules', () => {
     });
 
     it('pauseRule calls repo.pauseRule and emits event', async () => {
-        const rule = await mockRecurringRepo.create(sampleDTO);
+        const rule = await mockDb.runInTransaction(() => mockRecurringRepo.create(sampleDTO));
 
         const { result } = renderHook(() => useRecurringRules());
 
@@ -187,8 +206,8 @@ describe('useRecurringRules', () => {
     });
 
     it('resumeRule calls repo.resumeRule and emits event', async () => {
-        const rule = await mockRecurringRepo.create(sampleDTO);
-        await mockRecurringRepo.pauseRule(rule.id);
+        const rule = await mockDb.runInTransaction(() => mockRecurringRepo.create(sampleDTO));
+        await mockDb.runInTransaction(() => mockRecurringRepo.pauseRule(rule.id));
 
         const { result } = renderHook(() => useRecurringRules());
 
@@ -219,7 +238,7 @@ describe('useRecurringRules', () => {
         });
 
         // Add a rule directly to repo
-        await mockRecurringRepo.create(sampleDTO);
+        await mockDb.runInTransaction(() => mockRecurringRepo.create(sampleDTO));
 
         // Manually refresh
         await act(async () => {

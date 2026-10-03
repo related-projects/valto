@@ -18,6 +18,7 @@ import {
 import { Wallet } from '../../domain/entities';
 import { InsufficientFundsError } from '../../domain/useCases';
 import { useFormatting } from '../../hooks/useFormatting';
+import { useSubmitLock } from '../../hooks/useSubmitLock';
 import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
 import { useWallets } from '../../hooks/useWallets';
 import { radius } from '../../theme/radius';
@@ -90,7 +91,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
         setShowDestPicker(false);
     };
 
-    const handleTransfer = async () => {
+    // A press made while a transfer is running is ignored (REGISTRE V-120).
+    const handleTransfer = useSubmitLock(async () => {
         // Single input->storage conversion point (major units -> integer minor units).
         const parsedAmount = parseAmountToCentsResult(amount);
 
@@ -145,7 +147,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
         } finally {
             setTransferring(false);
         }
-    };
+    });
 
     const handleClose = () => {
         resetForm();
