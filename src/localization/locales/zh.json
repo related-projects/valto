@@ -2,8 +2,6 @@
     "settings": {
         "title": "设置",
         "processing": "处理中...",
-        "userName": "Valto 用户",
-        "premiumAccount": "高级账户",
         "sections": {
             "references": "参考",
             "appSettings": "应用设置",

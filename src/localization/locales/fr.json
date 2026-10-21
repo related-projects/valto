@@ -385,8 +385,6 @@
   "settings": {
     "title": "Paramètres",
     "processing": "Traitement...",
-    "userName": "Utilisateur Valto",
-    "premiumAccount": "Compte Premium",
     "sections": {
       "references": "Références",
       "appSettings": "Paramètres de l'application",

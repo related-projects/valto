@@ -385,8 +385,6 @@
   "settings": {
     "title": "Configuración",
     "processing": "Procesando...",
-    "userName": "Usuario Valto",
-    "premiumAccount": "Cuenta Premium",
     "sections": {
       "references": "Referencias",
       "appSettings": "Ajustes de la app",

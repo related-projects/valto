@@ -385,8 +385,6 @@
   "settings": {
     "title": "Settings",
     "processing": "Processing...",
-    "userName": "Valto User",
-    "premiumAccount": "Premium Account",
     "sections": {
       "references": "References",
       "appSettings": "App Settings",

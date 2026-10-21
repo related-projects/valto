@@ -361,6 +361,9 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                     {t('components.balanceCard.totalBalance')}
                                 </Text>
                                 <Text
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.5}
                                     style={[
                                         {
                                             color: colors.accentForeground,
@@ -411,7 +414,12 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                     </View>
                                     <Text style={[{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }, contentTextShadow]}>{t('components.balanceCard.income')}</Text>
                                 </View>
-                                <Text style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}>
+                                <Text
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.5}
+                                    style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}
+                                >
                                     {displayAmount(monthlyIncome)}
                                 </Text>
                                 {renderChangeBadge(incomeChange, false)}
@@ -424,7 +432,12 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                     </View>
                                     <Text style={[{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }, contentTextShadow]}>{t('components.balanceCard.expenses')}</Text>
                                 </View>
-                                <Text style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}>
+                                <Text
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit
+                                    minimumFontScale={0.5}
+                                    style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}
+                                >
                                     {displayAmount(monthlyExpense)}
                                 </Text>
                                 {renderChangeBadge(expenseChange, true)}
@@ -438,7 +451,12 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                         </View>
                                         <Text style={[{ color: colors.accentForeground, fontSize: typography.sizes.xs, opacity: 0.7 }, contentTextShadow]}>{t('components.balanceCard.net')}</Text>
                                     </View>
-                                    <Text style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}>
+                                    <Text
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.5}
+                                        style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}
+                                    >
                                         {displayAmount(netBalance)}
                                     </Text>
                                     {renderChangeBadge(netBalanceChange, false)}
