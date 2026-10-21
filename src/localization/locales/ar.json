@@ -2,8 +2,6 @@
     "settings": {
         "title": "الإعدادات",
         "processing": "جاري المعالجة...",
-        "userName": "مستخدم Valto",
-        "premiumAccount": "حساب مميز",
         "sections": {
             "references": "المراجع",
             "appSettings": "إعدادات التطبيق",

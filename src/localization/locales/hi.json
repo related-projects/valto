@@ -2,8 +2,6 @@
     "settings": {
         "title": "सेटिंग्स",
         "processing": "प्रोसेसिंग...",
-        "userName": "Valto उपयोगकर्ता",
-        "premiumAccount": "प्रीमियम खाता",
         "sections": {
             "references": "संदर्भ",
             "appSettings": "ऐप सेटिंग्स",

@@ -385,8 +385,6 @@
     "settings": {
         "title": "Настройки",
         "processing": "Обработка...",
-        "userName": "Пользователь Valto",
-        "premiumAccount": "Премиум аккаунт",
         "sections": {
             "references": "Ссылки",
             "appSettings": "Настройки приложения",
