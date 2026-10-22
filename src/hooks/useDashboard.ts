@@ -5,8 +5,9 @@
  * All aggregation logic lives here, keeping UI components read-only.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppState, type AppStateStatus } from 'react-native';
 import { Category, TransactionType, getCurrentMonth } from '../domain/entities';
 import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
@@ -66,9 +67,30 @@ export function useDashboard(): UseDashboardResult {
 
     const loading = transactionsLoading || categoriesLoading;
 
+    // State, not a read inside the memo: the Dashboard tab stays mounted, so an
+    // app left in the background across a month boundary must come back on the
+    // new month (V-99). Same pattern as useBudgets.
+    const [currentMonth, setCurrentMonth] = useState(getCurrentMonth);
+    const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+
+    // Foreground return: only on the transition INTO 'active', since AppState
+    // also fires for 'inactive' and 'background'. Setting the same month again
+    // is a no-op, so a return within the month recomputes nothing.
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+            const previousState = appStateRef.current;
+            appStateRef.current = nextState;
+
+            if (previousState !== 'active' && nextState === 'active') {
+                setCurrentMonth(getCurrentMonth());
+            }
+        });
+
+        return () => subscription.remove();
+    }, []);
+
     // Financial Intelligence Aggregation
     const aggregatedData = useMemo(() => {
-        const currentMonth = getCurrentMonth();
         const previousMonth = getPreviousMonth(currentMonth);
 
         let currentMonthIncome = 0;
@@ -168,7 +190,7 @@ export function useDashboard(): UseDashboardResult {
             expenseChange,
             netBalanceChange,
         };
-    }, [transactions, categories, t]);
+    }, [transactions, categories, currentMonth, t]);
 
     const hasExpenseData = aggregatedData.spendingByCategory.length > 0;
 

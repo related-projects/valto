@@ -7,8 +7,9 @@
  */
 
 import type { TFunction } from 'i18next';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AppState, type AppStateStatus } from 'react-native';
 import { getBudgetRepository } from '../core/di';
 import { dataEvents } from '../core/events';
 import { calculateYearToDateSummary, YearToDateSummary } from '../domain/calculations/ytdSummary';
@@ -106,8 +107,14 @@ function shiftMonth(monthStr: string, delta: number): string {
 
 export function useReports(): UseReportsResult {
     const { t } = useTranslation();
-    const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonth());
+    // The calendar month as of the last sync, held apart from the selection: the
+    // Reports tab stays mounted, and a return to the foreground in a new month
+    // moves the selection only if it was still on this one (V-99, Owner
+    // decision 2). A user who navigated elsewhere keeps their month.
+    const [currentMonth, setCurrentMonth] = useState(getCurrentMonth);
+    const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [budgets, setBudgets] = useState<Budget[]>([]);
+    const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
     const { transactions, loading: transactionsLoading } = useTransactions();
     const { categories, loading: categoriesLoading } = useCategories();
@@ -143,6 +150,29 @@ export function useReports(): UseReportsResult {
     const goToNextMonth = useCallback(() => {
         setSelectedMonth(prev => shiftMonth(prev, 1));
     }, []);
+
+    /** Re-read the calendar month; carry the selection along only if it was on the old one. */
+    const syncMonth = useCallback(() => {
+        const now = getCurrentMonth();
+        if (now === currentMonth) return;
+        setSelectedMonth(prev => (prev === currentMonth ? now : prev));
+        setCurrentMonth(now);
+    }, [currentMonth]);
+
+    // Foreground return: only on the transition INTO 'active' (pattern of
+    // useBudgets), since AppState also fires for 'inactive' and 'background'.
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+            const previousState = appStateRef.current;
+            appStateRef.current = nextState;
+
+            if (previousState !== 'active' && nextState === 'active') {
+                syncMonth();
+            }
+        });
+
+        return () => subscription.remove();
+    }, [syncMonth]);
 
     // ── Aggregation ────────────────────────────────────────────────────
     const aggregated = useMemo(() => {
