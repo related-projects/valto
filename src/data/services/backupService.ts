@@ -17,6 +17,7 @@ import {
     getWalletRepository,
 } from '../../core/di';
 import { dataEvents } from '../../core/events';
+import { recordEngineRun } from '../../core/recurring/failedRuleRuns';
 import {
     SerializableBudget,
     SerializableCategory,
@@ -126,12 +127,27 @@ export function snapshotTables(version: number): readonly string[] {
 }
 
 /**
+ * A step a restore runs after its ledger has committed, which can fail without
+ * undoing it: making sure a wallet and a category exist (ensureUsableState),
+ * and writing the backup's settings (saveSettings).
+ */
+export type RestoreStep = 'usableState' | 'settings';
+
+/**
  * What a restore left behind, for the caller to report to the user.
  *
  * The restore itself either succeeded or threw; nothing here is a failure of
- * the restore. These are counts of work the catch-up did or could not do.
+ * the restore. These are counts of work the catch-up did or could not do, and
+ * the steps after the commit that failed.
  */
 export interface RestoreOutcome {
+    /**
+     * Steps after the commit that failed (REGISTRE V-119, Owner decision 4,
+     * pass 79). The ledger was restored all the same, the catch-up ran and the
+     * data events were emitted; the user is told the restore was done and
+     * which step did not complete.
+     */
+    failedSteps: RestoreStep[];
     /** Transactions the recurring engine generated to catch up after the restore. */
     catchUpGenerated: number;
     /**
@@ -483,7 +499,8 @@ const entityLabel = (entity: string): string => ENTITY_LABELS[entity] ?? entity.
  * file - which carries no recurring rules - clears and rewrites four tables and
  * leaves the fifth exactly as it found it.
  *
- * @returns counts from the post-restore catch-up, for the caller to report
+ * @returns counts from the post-restore catch-up and the steps after the
+ * commit that failed, for the caller to report
  * @throws SnapshotRejectedError if snapshot validation fails
  * @throws Error if any entity fails its domain invariants, or any write fails
  */
@@ -644,13 +661,31 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     // correctly and a failure to materialize a default wallet is not a reason to
     // roll it back. Idempotent: a snapshot that carried wallets and categories
     // leaves this a no-op.
-    await ensureUsableState();
+    //
+    // This step and the settings below run after the commit, so their failure
+    // is recorded and the restore goes on (REGISTRE V-119, Owner decision 4,
+    // pass 79). Thrown, it used to report the committed restore as failed -
+    // "the file may be invalid" - skip the catch-up and emit nothing, so every
+    // screen kept the ledger the restore had just replaced. Verified by
+    // useSettingsRestoreOutcome.test.ts - "V-119 e.".
+    const failedSteps: RestoreStep[] = [];
+    try {
+        await ensureUsableState();
+    } catch (usableStateError) {
+        console.warn('[Backup] Making sure a wallet and a category exist after restore failed:', usableStateError);
+        failedSteps.push('usableState');
+    }
 
     // Settings live in key-value storage, outside the SQLite transaction above.
     // Written only after the ledger has committed, so a failed restore can never
     // leave the new snapshot's settings sitting on top of the old data.
     if (snapshot.data.settings) {
-        await saveSettings(snapshot.data.settings);
+        try {
+            await saveSettings(snapshot.data.settings);
+        } catch (settingsError) {
+            console.warn('[Backup] Writing the restored settings failed:', settingsError);
+            failedSteps.push('settings');
+        }
     }
 
     // Reconcile the daily reminder with the restored preference. A backup can carry
@@ -681,7 +716,7 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
         'wallets', 'transactions', 'categories', 'budgets', 'recurringRules',
     ]);
 
-    return outcome;
+    return { ...outcome, failedSteps };
 }
 
 /**
@@ -704,7 +739,7 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
  * carries no rules at all, so the live ones can outlive the wallet or category
  * the restore just replaced - findWithMissingReferences is what finds those.
  */
-async function runPostRestoreCatchUp(): Promise<RestoreOutcome> {
+async function runPostRestoreCatchUp(): Promise<Omit<RestoreOutcome, 'failedSteps'>> {
     try {
         const engineResult = await processRecurringRules({
             recurringRepo: container.recurringTransactionRepository,
@@ -714,6 +749,9 @@ async function runPostRestoreCatchUp(): Promise<RestoreOutcome> {
             eventBus: dataEvents,
             runInTransaction: (work) => getDb().runInTransaction(work),
         });
+        // The rules screen shows a rule this run failed as a fault until a
+        // later run succeeds (REGISTRE V-111, Owner decision 3, pass 79).
+        recordEngineRun(engineResult);
 
         // One rule can both fail in the engine and point at a missing wallet.
         // The user is being told how many standing orders did not run, not how

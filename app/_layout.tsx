@@ -3,6 +3,7 @@ import { SecurityGate } from "@/src/components/security/SecurityGate";
 import { container, getUseCaseDeps } from "@/src/core/di/container";
 import { ErrorBoundary } from "@/src/core/error/ErrorBoundary";
 import { dataEvents } from "@/src/core/events/dataEvents";
+import { recordEngineRun } from "@/src/core/recurring/failedRuleRuns";
 import {
   dropConsoleBreadcrumbs,
   stripPersistentIdentifiers,
@@ -151,6 +152,13 @@ function RootLayout() {
         eventBus: dataEvents,
         runInTransaction: getUseCaseDeps().runInTransaction,
       });
+
+      // The rules screen shows a rule this run failed as a fault until a later
+      // run succeeds (REGISTRE V-111, Owner decision 3, pass 79). Verified by
+      // recurringBootFailureStatus.test.tsx - "V-111 d (boot).".
+      if (recurringResult) {
+        recordEngineRun(recurringResult);
+      }
 
       // A rule that fails here is a standing order that did not execute, and
       // the user is told nothing: the engine catches per rule and boot carries

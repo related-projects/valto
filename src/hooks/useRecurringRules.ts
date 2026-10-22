@@ -10,14 +10,23 @@
  * and is never persisted.
  *
  * The wallets and categories the derivation needs come from useWallets and
- * useCategories, which already hold them. No query is duplicated here.
+ * useCategories, which already hold them. No query is duplicated here. Whether
+ * a rule's last engine run failed comes from core/recurring/failedRuleRuns,
+ * which every run feeds (REGISTRE V-111, Owner decision 3, pass 79).
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { container, getUseCaseDeps } from '../core/di/container';
 import { dataEvents } from '../core/events/dataEvents';
+import { useFailedRuleRuns } from '../core/recurring/failedRuleRuns';
 import type { RecurringEngineDeps } from '../data/services/RecurringTransactionEngine';
-import { editRecurringRule, pauseRecurringRule, type PauseOutcome } from '../data/services/recurringRuleChanges';
+import {
+    catchUpCreatedRule,
+    editRecurringRule,
+    pauseRecurringRule,
+    type CreatedRuleOutcome,
+    type PauseOutcome,
+} from '../data/services/recurringRuleChanges';
 import type { RecurringTransaction, CreateRecurringTransactionDTO, UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
 import {
     RecurringRuleStatus,
@@ -45,6 +54,7 @@ export function useRecurringRules() {
 
     const { wallets, loading: walletsLoading } = useWallets();
     const { categories, loading: categoriesLoading } = useCategories();
+    const failedRuns = useFailedRuleRuns();
 
     const repo = container.recurringTransactionRepository;
 
@@ -76,6 +86,14 @@ export function useRecurringRules() {
             return rule;
         },
         [repo],
+    );
+
+    // The engine run after a create, over every active rule; what it did for
+    // the new rule is returned for the screen to report (REGISTRE V-111, Owner
+    // decision 1, pass 79). See recurringRuleChanges.
+    const catchUpCreated = useCallback(
+        (rule: RecurringTransaction): Promise<CreatedRuleOutcome | null> => catchUpCreatedRule(engineDeps(), rule),
+        [],
     );
 
     // An edit and a pause first record what is due under the stored rule
@@ -142,17 +160,19 @@ export function useRecurringRules() {
                         category: categoryById.get(rule.categoryId) ?? null,
                     },
                     today,
+                    failedRuns.has(rule.id),
                 )
                 : deriveScheduleStatus(rule, today) ?? RecurringRuleStatus.ACTIVE;
         }
         return byRuleId;
-    }, [rules, wallets, categories, referencesReady]);
+    }, [rules, wallets, categories, referencesReady, failedRuns]);
 
     return {
         rules,
         statuses,
         loading,
         createRule,
+        catchUpCreatedRule: catchUpCreated,
         updateRule,
         deleteRule,
         pauseRule,
