@@ -18,9 +18,8 @@ import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '../components/EmptyState';
 import { RecurringRuleForm } from '../components/recurring/RecurringRuleForm';
-import { container, getUseCaseDeps } from '../core/di/container';
 import { dataEvents } from '../core/events/dataEvents';
-import { processRecurringRules } from '../data/services/RecurringTransactionEngine';
+import { RecurringCatchUpFailedError } from '../data/services/recurringRuleChanges';
 import { RecurrenceFrequency, type CreateRecurringTransactionDTO, type RecurringTransaction, type UpdateRecurringTransactionDTO } from '../domain/entities/RecurringTransaction';
 import { RecurringRuleStatus, isFaultStatus } from '../domain/recurring';
 import {
@@ -53,6 +52,9 @@ const STATUS_KEYS: Record<RecurringRuleStatus, string> = {
     [RecurringRuleStatus.EXPIRED]: 'recurring.statusExpired',
     [RecurringRuleStatus.MISSING_REFERENCE]: 'recurring.statusMissingReference',
     [RecurringRuleStatus.INSUFFICIENT_FUNDS]: 'recurring.statusInsufficientFunds',
+    // REGISTRE V-111, Owner decision 3, pass 79. Verified by
+    // RecurringRulesScreen.v111Outcome.test.tsx - "V-111 d.".
+    [RecurringRuleStatus.NOT_RECORDED]: 'recurring.statusNotRecorded',
 };
 
 // ─── Rule Card ────────────────────────────────────────────────────────
@@ -190,7 +192,17 @@ export const RecurringRulesScreen: React.FC = () => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { rules, statuses, loading, createRule, updateRule, deleteRule, pauseRule, resumeRule } = useRecurringRules();
+    const {
+        rules,
+        statuses,
+        loading,
+        createRule,
+        catchUpCreatedRule,
+        updateRule,
+        deleteRule,
+        pauseRule,
+        resumeRule,
+    } = useRecurringRules();
     const { formatAmount, formatDate } = useFormatting();
     const [formVisible, setFormVisible] = useState(false);
     const [editingRule, setEditingRule] = useState<RecurringTransaction | undefined>();
@@ -243,6 +255,15 @@ export const RecurringRulesScreen: React.FC = () => {
                         ? 'recurring.editRefusedEndDateMissingWallet'
                         : 'recurring.editRefusedEndDateMissingCategory';
                 return t(key, { name, dates: formatDates(error.dueDates) });
+            }
+            // A catch-up that failed otherwise names what it left unrecorded
+            // (REGISTRE V-111, Owner decision 2, pass 79). Verified by
+            // RecurringRulesScreen.v111Outcome.test.tsx - "V-111 c.".
+            if (error instanceof RecurringCatchUpFailedError) {
+                return t('recurring.editRefusedUnrecordedMessage', {
+                    name,
+                    dates: formatDates(error.unrecordedDates),
+                });
             }
             return null;
         },
@@ -312,8 +333,9 @@ export const RecurringRulesScreen: React.FC = () => {
 
     const handleFormSubmit = useCallback(async (dto: CreateRecurringTransactionDTO | UpdateRecurringTransactionDTO) => {
         const isCreate = 'startDate' in dto;
+        let created: RecurringTransaction | undefined;
         if (isCreate) {
-            await createRule(dto);
+            created = await createRule(dto);
         } else {
             try {
                 await updateRule(dto);
@@ -330,30 +352,41 @@ export const RecurringRulesScreen: React.FC = () => {
         }
         setFormVisible(false);
 
-        if (isCreate) {
-            // Run engine immediately to generate transactions for the new rule
+        if (created) {
+            // Run the engine immediately, over every active rule, and report
+            // what it did for the new rule only (REGISTRE V-111, Owner decision
+            // 1, pass 79): the run's totals used to be reported, so another
+            // rule's funds refusal or debits read as the new rule's, and a
+            // failed write read "will be generated on the next due date".
+            // Verified by RecurringRulesScreen.v111Outcome.test.tsx - "V-111
+            // a." and "V-111 b.".
             try {
-                const result = await processRecurringRules({
-                    recurringRepo: container.recurringTransactionRepository,
-                    transactionRepo: container.transactionRepository,
-                    walletRepo: container.walletRepository,
-                    categoryRepo: container.categoryRepository,
-                    eventBus: dataEvents,
-                    runInTransaction: getUseCaseDeps().runInTransaction,
-                });
+                const outcome = await catchUpCreatedRule(created);
                 // Refresh transaction list
                 dataEvents.emit('transactions');
                 dataEvents.emit('wallets');
 
-                if (result.skipped && result.skipped.length > 0) {
+                // Deleted or paused while the run was going: nothing to report.
+                if (outcome === null) return;
+
+                if (outcome.skipped) {
                     Alert.alert(
                         t('recurring.ruleCreatedInsufficientTitle'),
                         t('recurring.ruleCreatedInsufficientMessage'),
                     );
-                } else if (result.transactionsGenerated > 0) {
+                } else if (outcome.unrecorded.length > 0) {
+                    const name = ruleName(created);
+                    const dates = formatDates(outcome.unrecorded);
                     Alert.alert(
                         t('recurring.ruleCreated'),
-                        t('recurring.ruleCreatedMessage', { count: result.transactionsGenerated }),
+                        outcome.recorded > 0
+                            ? t('recurring.ruleCreatedPartlyRecordedMessage', { name, recorded: outcome.recorded, dates })
+                            : t('recurring.ruleCreatedUnrecordedMessage', { name, dates }),
+                    );
+                } else if (outcome.recorded > 0) {
+                    Alert.alert(
+                        t('recurring.ruleCreated'),
+                        t('recurring.ruleCreatedMessage', { count: outcome.recorded }),
                     );
                 } else {
                     Alert.alert(t('recurring.ruleCreated'), t('recurring.ruleCreatedNoTransactions'));
@@ -361,10 +394,10 @@ export const RecurringRulesScreen: React.FC = () => {
             } catch {
                 Alert.alert(t('recurring.ruleCreated'), t('recurring.ruleCreatedLaunch'));
             }
-        } else {
+        } else if (!isCreate) {
             Alert.alert(t('recurring.ruleUpdated'), t('recurring.ruleUpdatedMessage'));
         }
-    }, [createRule, editRefusalMessage, updateRule, t]);
+    }, [catchUpCreatedRule, createRule, editRefusalMessage, formatDates, ruleName, updateRule, t]);
 
     const renderItem = useCallback(
         ({ item }: { item: RecurringTransaction }) => (

@@ -164,7 +164,7 @@ jest.mock('@/src/data/services/backupService', () => ({
     pickAndRestoreBackup: () => mockPickAndRestoreBackup(),
 }));
 
-const QUIET_RESTORE = { catchUpGenerated: 0, rulesNotProcessed: 0, catchUpFailed: false };
+const QUIET_RESTORE = { catchUpGenerated: 0, rulesNotProcessed: 0, catchUpFailed: false, failedSteps: [] };
 
 /** Titles of every alert shown, in order. */
 let alertTitles: string[] = [];
