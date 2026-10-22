@@ -5,6 +5,7 @@
  * All checks are pure and side-effect-free.
  */
 
+import { isDayKey } from '../calculations/recurrenceDates';
 import { TransactionType } from '../entities/Transaction';
 import { RecurrenceFrequency, RecurringTransaction } from '../entities/RecurringTransaction';
 import { ValidationError } from './ValidationError';
@@ -47,6 +48,14 @@ export function validateRecurringTransaction(rule: RecurringTransaction): void {
 
     if (!(rule.startDate instanceof Date) || isNaN(rule.startDate.getTime())) {
         throw new ValidationError('RecurringTransaction', 'startDate', rule.startDate, 'Rule startDate must be a valid Date');
+    }
+
+    // The walk starts on this day (REGISTRE V-116). A row or a file written
+    // before it existed carries none and is read from startDate; a value that
+    // is there but is not a calendar day would be silently ignored the same
+    // way, so it is refused instead.
+    if (rule.startDay !== undefined && !isDayKey(rule.startDay)) {
+        throw new ValidationError('RecurringTransaction', 'startDay', rule.startDay, "Rule startDay must be a 'YYYY-MM-DD' calendar day if provided");
     }
 
     if (rule.endDate !== undefined && rule.endDate !== null) {

@@ -295,8 +295,10 @@ describe('V-105 edit after a zone change (process zone; run under TZ=UTC, Africa
     it('a3. writer zone 5 h west, rule started 21:00 writer time (21:00-start Toronto -> Lagos shape), interval 1 -> 2 edit: the September due date is debited once', async () => {
         const id = await seedRent();
         await simulateWriterZone(-5);
-        // Created at 21:00 on 15 Jan in the writer zone: 02:00 on 16 Jan here,
-        // so the process zone reads the rule as anchored on the 16th.
+        // Created at 21:00 on 15 Jan in the writer zone: 02:00 on 16 Jan here.
+        // The rule keeps the start day the writer stored, 15 Jan, so the new
+        // schedule stays on the 15th instead of moving to the 16th with the
+        // instant (REGISTRE V-116, Owner decision 3, pass 78).
         const writerStart = new Date(localDate(2026, 1, 15, 21, 0).getTime() + 5 * HOUR_MS);
         await mockDb.runInTransaction(() => mockDb.execute('UPDATE recurring_rules SET start_date = ? WHERE id = ?', [writerStart.toISOString(), id]));
         const before = await ledger();
@@ -309,7 +311,7 @@ describe('V-105 edit after a zone change (process zone; run under TZ=UTC, Africa
         await runEngine();
 
         const added = await addedSince(before);
-        expect(added.map((r) => [r.day, r.version])).toEqual([['2026-11-16', 1]]);
+        expect(added.map((r) => [r.day, r.version])).toEqual([['2026-11-15', 1]]);
     });
 
     it('a4. writer zone 5 h east, edit made 30 minutes after the writer generated 15 Sep, while the process zone is still on 14 Sep: 15 Sep is debited once', async () => {

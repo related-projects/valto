@@ -377,13 +377,15 @@ describe('V-103 the last occurrence does not move with the zone (process zone; r
         const balance = await balanceOf(BANK);
 
         // Seen from 6 h west, the start reads 14 Sep 18:30 and the end 14 Oct 18:31.
+        // The start day stays 15 Sep (REGISTRE V-116, Owner decision 3, pass 78),
+        // so the last occurrence stays on 15 Oct.
         await moveDeviceEast(-6);
         pinAt(2026, 10, 15, 6, 0);
         await runEngine();
         await runEngine();
 
         const added = await addedSince(before);
-        expect(added.map((r) => [r.day, r.index])).toEqual([['2026-10-14', 1]]);
+        expect(added.map((r) => [r.day, r.index])).toEqual([['2026-10-15', 1]]);
         expect(await balanceOf(BANK)).toBe(balance - 1000);
     });
 

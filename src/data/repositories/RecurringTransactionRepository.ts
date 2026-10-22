@@ -17,6 +17,7 @@ import {
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
 import {
     addMonthsClamped,
+    dayOfKey,
     deriveEndOccurrenceIndex,
     deriveLastGeneratedIndex,
     endDayForEdit,
@@ -27,6 +28,7 @@ import {
     lastOccurrenceIndexOnOrBefore,
     lastSettledDay,
     localDayKey,
+    startDayOf,
     startOfDay,
 } from '../../domain/calculations/recurrenceDates';
 import { ValidationError } from '../../domain/validators/ValidationError';
@@ -198,6 +200,11 @@ export class RecurringTransactionRepository
 
     async create(dto: CreateRecurringTransactionDTO): Promise<RecurringTransaction> {
         const now = new Date();
+        // The day the user picked, in this zone (REGISTRE V-116, Owner
+        // decision 3): every occurrence is derived from it, wherever the
+        // device goes next. Verified by recurringStartDayZone.test.ts -
+        // "V-116 A1." and "V-116 A2.".
+        const startDay = localDayKey(dto.startDate);
         const rule: RecurringTransaction = {
             id: uuidv4(),
             type: dto.type,
@@ -206,15 +213,20 @@ export class RecurringTransactionRepository
             categoryId: dto.categoryId,
             description: dto.description,
             startDate: dto.startDate,
+            startDay,
             endDate: dto.endDate,
             // The end day the user chose, in this zone (REGISTRE V-103, Owner
             // decision D11); a later schedule change finds the end from it.
             endDay: dto.endDate ? localDayKey(dto.endDate) : undefined,
             frequency: dto.frequency,
             interval: dto.interval,
-            // Watermark one interval before startDate so the first generation includes startDate.
-            lastGeneratedDate: this.computeDateBefore(dto.startDate, dto.frequency, dto.interval),
-            // Nothing generated yet: occurrence 0, on startDate, is the first due.
+            // Watermark one interval before the start day so the first generation includes it.
+            lastGeneratedDate: this.computeDateBefore(
+                dayOfKey(startDay) ?? startOfDay(dto.startDate),
+                dto.frequency,
+                dto.interval,
+            ),
+            // Nothing generated yet: occurrence 0, on the start day, is the first due.
             lastGeneratedIndex: -1,
             scheduleVersion: 0,
             isPaused: false,
@@ -306,9 +318,10 @@ export class RecurringTransactionRepository
      * Keep the occurrence key meaningful across an edit of the schedule, and
      * make the edit apply going forward (REGISTRE V-105, Owner decisions 1 and 4).
      *
-     * Occurrence numbers count from startDate along one schedule. Once the
-     * frequency or the interval changes (startDate cannot be edited today, but
-     * is compared too), number k names a different day than it did, so:
+     * Occurrence numbers count from the start day along one schedule. Once the
+     * frequency or the interval changes (the start cannot be edited today, but
+     * startDate and the start day are compared too), number k names a
+     * different day than it did, so:
      *  - scheduleVersion is incremented: the new schedule's keys can then
      *    never collide with a row the old schedule already wrote;
      *  - lastGeneratedIndex becomes the last occurrence of the NEW schedule on
@@ -339,7 +352,8 @@ export class RecurringTransactionRepository
         const rescheduled =
             updated.frequency !== existing.frequency ||
             updated.interval !== existing.interval ||
-            updated.startDate.getTime() !== existing.startDate.getTime();
+            updated.startDate.getTime() !== existing.startDate.getTime() ||
+            startDayOf(updated) !== startDayOf(existing);
         if (!rescheduled) return updated;
 
         const settled = lastSettledDay(existing);
@@ -402,8 +416,9 @@ export class RecurringTransactionRepository
      * only moves forward: a lower one - from a run that lost a race to another
      * - leaves the row as it is (recurringOccurrenceKey.test.ts - "overlapping
      * runs: two concurrent engine runs write each occurrence once").
-     * lastGeneratedDate is still written, as the day of that occurrence, so
-     * older readers and backups keep their meaning.
+     * lastGeneratedDate is still written, as the instant that occurrence was
+     * written at - local noon of its day (REGISTRE V-102) - so older readers
+     * and backups keep their meaning.
      *
      * `scheduleVersion` is the version the occurrence was numbered under. A
      * number only means something in its own numbering, so a row saved under
@@ -436,7 +451,9 @@ export class RecurringTransactionRepository
     /**
      * Step one interval backwards from `date` to place the initial watermark.
      *
-     * `date` is always the rule's startDate, so its day of the month IS the anchor day.
+     * `date` is always local midnight of the rule's start day, so its day of the month IS
+     * the anchor day, and the watermark carries no time of day from the form: it is local
+     * midnight of the day one interval before (REGISTRE V-116).
      * Monthly and yearly steps go through addMonthsClamped: stepping back a month from
      * 31 March lands on the last day of February, not on 3 March, which is where
      * setMonth's silent overflow used to put it. Same clamping rule as the forward

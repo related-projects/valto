@@ -140,8 +140,9 @@ describe('V-103 migration v9 on a v8 database (process zone; CI: UTC, Africa/Lag
 
         await runMigrations();
 
+        // v10 (REGISTRE V-116) runs after v9 in the same boot.
         expect({ version: await getCurrentVersion(asyncStorageAdapter), days: await endDays(db) }).toEqual({
-            version: 9,
+            version: 10,
             days: [
                 ['r-late', '2026-11-23'],
                 ['r-midnight', '2026-11-24'],
@@ -160,7 +161,7 @@ describe('V-103 migration v9 on a v8 database (process zone; CI: UTC, Africa/Lag
 
         await runMigrations();
 
-        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(9);
+        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(10);
         expect(await allRules(db)).toEqual(before);
     });
 });
