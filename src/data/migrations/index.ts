@@ -17,6 +17,7 @@ import { v6_purge_imported_kv } from './v6_purge_imported_kv';
 import { v7_recurring_occurrence_key } from './v7_recurring_occurrence_key';
 import { v8_recurring_end_occurrence_index } from './v8_recurring_end_occurrence_index';
 import { v9_recurring_end_day } from './v9_recurring_end_day';
+import { v10_recurring_start_day } from './v10_recurring_start_day';
 
 // ─── Migration Registry ──────────────────────────────────────────────
 // Add new migrations here, in ascending version order.
@@ -31,6 +32,7 @@ const migrations: Migration[] = [
     v7_recurring_occurrence_key,
     v8_recurring_end_occurrence_index,
     v9_recurring_end_day,
+    v10_recurring_start_day,
 ];
 
 // ─── Public API ──────────────────────────────────────────────────────

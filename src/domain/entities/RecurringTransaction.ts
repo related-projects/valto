@@ -41,8 +41,24 @@ export interface RecurringTransaction {
     /** Optional description attached to each generated transaction */
     readonly description?: string;
 
-    /** Date from which to start generating transactions */
+    /**
+     * Date from which to start generating transactions, as an instant: the
+     * moment the form held when the rule was created, time of day included.
+     * Which day the rule starts on, and the day of the month it is anchored
+     * on, are fixed by startDay (REGISTRE V-116).
+     */
     readonly startDate: Date;
+
+    /**
+     * The calendar day the rule starts on, 'YYYY-MM-DD': the local day of
+     * startDate in the zone the device was in when the rule was created
+     * (REGISTRE V-116, Owner decision 3, pass 78). Every occurrence is
+     * derived from this day, so a zone change moves neither the start nor
+     * the anchor day. Absent on a rule that predates it - a file restored
+     * from an older backup, or a row not yet migrated - until it is taken
+     * from startDate; see startDayOf.
+     */
+    readonly startDay?: string;
 
     /**
      * Optional end date, as the user chose it. Says whether the rule has an end
@@ -80,9 +96,12 @@ export interface RecurringTransaction {
     readonly interval: number;
 
     /**
-     * Local midnight of the last generated occurrence, in the zone that wrote
-     * it. Still written with every occurrence so older readers and backups
-     * keep their meaning, but no longer what decides whether an occurrence was
+     * The instant the last generated occurrence was written at, in the zone
+     * that wrote it: local noon of its due day from 1.1.4 on, local midnight
+     * before (REGISTRE V-102, Owner decision 4, pass 78). Before anything is
+     * generated, local midnight of the day one interval before the start day.
+     * Still written with every occurrence so older readers and backups keep
+     * their meaning, but no longer what decides whether an occurrence was
      * generated: see lastGeneratedIndex.
      */
     readonly lastGeneratedDate: Date;
@@ -151,6 +170,8 @@ export interface SerializableRecurringTransaction {
     categoryId: string;
     description?: string;
     startDate: string;
+    /** Absent in files written before REGISTRE V-116 (pass 78). */
+    startDay?: string;
     endDate?: string;
     /** Absent in files written before REGISTRE V-114, and when the rule has no end. */
     endOccurrenceIndex?: number;

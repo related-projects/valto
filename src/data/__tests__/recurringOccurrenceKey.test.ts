@@ -37,9 +37,13 @@ const WALLET_ID = 'w-main';
 const CATEGORY_ID = 'cat-main';
 const OPENING_BALANCE = 10000000;
 
-/** Local midnight of a calendar day, in the process zone. */
-function localDay(year: number, monthIndex: number, day: number): number {
-    return new Date(year, monthIndex, day).getTime();
+/**
+ * The instant the engine writes an occurrence due on a calendar day at: local
+ * noon of that day, in the process zone (REGISTRE V-102, Owner decision 4,
+ * pass 78; local midnight before).
+ */
+function occurrenceInstant(year: number, monthIndex: number, day: number): number {
+    return new Date(year, monthIndex, day, 12, 0).getTime();
 }
 
 /** Local noon of a calendar day, in the process zone. */
@@ -185,7 +189,7 @@ describe('V-98 b. interrupted run (process zone; CI: UTC, Africa/Lagos, America/
 
         expect(rerun.errors).toEqual([]);
         const dates = (await rowsOf('Insurance')).map((t) => t.date.getTime()).sort((a, b) => a - b);
-        expect(dates).toEqual([localDay(2026, 3, 10), localDay(2026, 4, 10), localDay(2026, 5, 10)]);
+        expect(dates).toEqual([occurrenceInstant(2026, 3, 10), occurrenceInstant(2026, 4, 10), occurrenceInstant(2026, 5, 10)]);
         expect(await balance()).toBe(OPENING_BALANCE - 3 * 1000);
     });
 });
@@ -292,7 +296,7 @@ describe('V-98 e. schedule edits in a constant zone apply going forward (process
 
         // New schedule: 10 Jan, 10 Mar, 10 May, 10 Jul. After the edit day, 15 Mar: May, Jul.
         expect(result.errors).toEqual([]);
-        expect(await newDatesAfter('Club', known)).toEqual([localDay(2026, 4, 10), localDay(2026, 6, 10)]);
+        expect(await newDatesAfter('Club', known)).toEqual([occurrenceInstant(2026, 4, 10), occurrenceInstant(2026, 6, 10)]);
         expect(await balance()).toBe(OPENING_BALANCE - 5 * 1000);
     });
 
@@ -310,7 +314,7 @@ describe('V-98 e. schedule edits in a constant zone apply going forward (process
 
         // New schedule: every 10th from 10 Jan. After the edit day, 15 Mar: Apr, May.
         expect(result.errors).toEqual([]);
-        expect(await newDatesAfter('Gym', known)).toEqual([localDay(2026, 3, 10), localDay(2026, 4, 10)]);
+        expect(await newDatesAfter('Gym', known)).toEqual([occurrenceInstant(2026, 3, 10), occurrenceInstant(2026, 4, 10)]);
         expect(await balance()).toBe(OPENING_BALANCE - 4 * 1000);
     });
 
@@ -330,8 +334,8 @@ describe('V-98 e. schedule edits in a constant zone apply going forward (process
         // 14 Mar is on the new schedule but before the edit, so it is not generated.
         expect(result.errors).toEqual([]);
         expect(await newDatesAfter('Lessons', known)).toEqual([
-            localDay(2026, 2, 21),
-            localDay(2026, 2, 28),
+            occurrenceInstant(2026, 2, 21),
+            occurrenceInstant(2026, 2, 28),
         ]);
         expect(await balance()).toBe(OPENING_BALANCE - 5 * 1000);
     });
@@ -353,10 +357,10 @@ describe('V-98 g. overlapping runs (process zone; CI: UTC, Africa/Lagos, America
 
         const dates = (await rowsOf('Loan')).map((t) => t.date.getTime()).sort((a, b) => a - b);
         expect(dates).toEqual([
-            localDay(2026, 2, 10),
-            localDay(2026, 3, 10),
-            localDay(2026, 4, 10),
-            localDay(2026, 5, 10),
+            occurrenceInstant(2026, 2, 10),
+            occurrenceInstant(2026, 3, 10),
+            occurrenceInstant(2026, 4, 10),
+            occurrenceInstant(2026, 5, 10),
         ]);
         expect(await balance()).toBe(OPENING_BALANCE - 4 * 3000);
     });

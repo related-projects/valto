@@ -96,6 +96,10 @@ const RULE_WITH_END: RecurringTransaction = {
     categoryId: 'food',
     description: 'Gym membership',
     startDate: new Date('2030-01-15T00:00:00.000Z'),
+    // The start day as create() stores it in a UTC zone. Carried explicitly,
+    // as endDay is: a rule without it is given the local day of startDate on
+    // restore, which is 14 Jan under America/New_York (REGISTRE V-116, pass 78).
+    startDay: '2030-01-15',
     endDate: new Date('2031-01-15T00:00:00.000Z'),
     // Every other month from 15 Jan 2030 (0) to 15 Jan 2031 (6), the end day.
     // Both instants are midnight UTC, so the number is the same in any zone.
@@ -121,6 +125,8 @@ const RULE_WITHOUT_END: RecurringTransaction = {
     walletId: 'w-cash',
     categoryId: 'salary',
     startDate: new Date('2030-02-01T00:00:00.000Z'),
+    // Carried explicitly, as on RULE_WITH_END.
+    startDay: '2030-02-01',
     frequency: RecurrenceFrequency.WEEKLY,
     interval: 1,
     lastGeneratedDate: new Date('2030-01-25T00:00:00.000Z'),

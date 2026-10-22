@@ -44,6 +44,15 @@ function monthStart(monthsBack: number): Date {
     return new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
 }
 
+/**
+ * The instant the engine writes an occurrence due on `day` at, and the rule's
+ * lastGeneratedDate with it: local noon of that day (REGISTRE V-102, Owner
+ * decision 4, pass 78; local midnight before).
+ */
+function writtenAt(day: Date): number {
+    return new Date(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0).getTime();
+}
+
 const FIVE_DUE_RULE: RecurringTransaction = {
     id: 'rule-wm',
     type: TransactionType.EXPENSE,
@@ -118,7 +127,7 @@ describe('the watermark advances once per generated occurrence', () => {
         expect(await transactionRepo.getAll()).toHaveLength(2);
 
         const rule = await recurringRepo.getById('rule-wm');
-        expect(rule!.lastGeneratedDate.getTime()).toBe(dueDates[1].getTime());
+        expect(rule!.lastGeneratedDate.getTime()).toBe(writtenAt(dueDates[1]));
     });
 
     it('emits only the occurrences that were never committed on the next run', async () => {
@@ -135,10 +144,10 @@ describe('the watermark advances once per generated occurrence', () => {
 
         // Every due date present exactly once - nothing re-emitted.
         const written = all.map((t) => t.date.getTime()).sort((a, b) => a - b);
-        expect(written).toEqual(dueDates.map((d) => d.getTime()).sort((a, b) => a - b));
+        expect(written).toEqual(dueDates.map(writtenAt).sort((a, b) => a - b));
 
         const rule = await recurringRepo.getById('rule-wm');
-        expect(rule!.lastGeneratedDate.getTime()).toBe(dueDates[4].getTime());
+        expect(rule!.lastGeneratedDate.getTime()).toBe(writtenAt(dueDates[4]));
     });
 
     it('still advances to the final occurrence when the whole run succeeds', async () => {
@@ -146,6 +155,6 @@ describe('the watermark advances once per generated occurrence', () => {
 
         expect(result.transactionsGenerated).toBe(5);
         const rule = await recurringRepo.getById('rule-wm');
-        expect(rule!.lastGeneratedDate.getTime()).toBe(dueDates[4].getTime());
+        expect(rule!.lastGeneratedDate.getTime()).toBe(writtenAt(dueDates[4]));
     });
 });

@@ -35,7 +35,12 @@ import type { RecurringTransactionRepository } from '../repositories/RecurringTr
 import type { TransactionRepository } from '../repositories/TransactionRepository';
 import type { WalletRepository } from '../repositories/WalletRepository';
 import type { EventBus, RunInTransaction } from '../../domain/useCases/types';
-import { computeDueOccurrences, deriveLastGeneratedIndex, startOfDay } from '../../domain/calculations/recurrenceDates';
+import {
+    computeDueOccurrences,
+    deriveLastGeneratedIndex,
+    localNoonOf,
+    startOfDay,
+} from '../../domain/calculations/recurrenceDates';
 import { checkInsufficientFunds } from '../../domain/recurring';
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -342,6 +347,14 @@ async function generateFromCopy(
     // own commits have moved its number. Nothing else can change the row
     // while the transaction is open, so the occurrence, its key and the
     // rule's number are written from the rule as it is stored.
+    //
+    // An occurrence is written at local noon of its due day, and the rule's
+    // lastGeneratedDate with the same instant (REGISTRE V-102, Owner decision
+    // 4, pass 78). Local midnight, as before, read as the day before - and so
+    // as the month or year before for an occurrence on the 1st - as soon as
+    // the device moved west; noon keeps the day across any move of less than
+    // 11 hours. Rows already stored are not rewritten. Verified by
+    // recurringOccurrenceNoon.test.ts - "V-102 B1." and "V-102 B2.".
     const scheduleVersion = rule.scheduleVersion ?? 0;
     // The expression createTransaction uses, which generated these rows before.
     const balanceAdjustment = rule.type === TransactionType.EXPENSE ? -rule.amount : rule.amount;
@@ -349,12 +362,13 @@ async function generateFromCopy(
     let expected = rule;
 
     for (const occurrence of dueOccurrences) {
+        const writtenAt = localNoonOf(occurrence.date);
         const dto: CreateTransactionDTO = {
             type: rule.type,
             amount: rule.amount,
             walletId: rule.walletId,
             categoryId: rule.categoryId,
-            date: occurrence.date,
+            date: writtenAt,
             note: rule.description,
         };
 
@@ -373,7 +387,7 @@ async function generateFromCopy(
             if (row) {
                 await deps.walletRepo.updateBalance(rule.walletId, balanceAdjustment);
             }
-            await deps.recurringRepo.recordGeneratedOccurrence(rule.id, scheduleVersion, occurrence.index, occurrence.date);
+            await deps.recurringRepo.recordGeneratedOccurrence(rule.id, scheduleVersion, occurrence.index, writtenAt);
             return { written: row !== null };
         });
 
@@ -385,7 +399,7 @@ async function generateFromCopy(
             // After commit, as createTransaction does.
             deps.eventBus.emitMultiple(['transactions', 'wallets']);
         }
-        expected = { ...expected, lastGeneratedIndex: occurrence.index, lastGeneratedDate: occurrence.date };
+        expected = { ...expected, lastGeneratedIndex: occurrence.index, lastGeneratedDate: writtenAt };
     }
 
     return { generated };

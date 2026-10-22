@@ -35,7 +35,12 @@ import {
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
-import { deriveEndOccurrenceIndex, deriveLastGeneratedIndex, endDayOf } from '../../domain/calculations/recurrenceDates';
+import {
+    deriveEndOccurrenceIndex,
+    deriveLastGeneratedIndex,
+    endDayOf,
+    startDayOf,
+} from '../../domain/calculations/recurrenceDates';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
@@ -521,9 +526,17 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     // the local day of the end date in the restoring zone - what migration v9
     // would give it. Verified by backupRestoreEndDay.test.ts - "V-103 A4 a."
     // and "V-103 A4 b.".
+    //
+    // And for the start day (REGISTRE V-116, Owner decision 3, pass 78): a
+    // file that carries it keeps it, and one written before it existed gets
+    // the local day of the start date in the restoring zone - what migration
+    // v10 would give it. Set first, so the numbers derived below walk from the
+    // day the rule is stored with. Verified by backupRestoreStartDay.test.ts -
+    // "V-116 A4 a." and "V-116 A4 b.".
     const recurringRules = carriesRules
         ? snapshot.data.recurringRules
             .map(deserializeRecurringTransaction)
+            .map((rule) => ({ ...rule, startDay: startDayOf(rule) }))
             .map((rule) =>
                 rule.lastGeneratedIndex === undefined || rule.lastGeneratedIndex === null
                     ? { ...rule, lastGeneratedIndex: deriveLastGeneratedIndex(rule) }

@@ -41,7 +41,7 @@ export function daysInMonth(year: number, month: number): number {
  * 2. The day is re-derived from `anchorDay` on every call, never carried over from `base`.
  *    That is what makes a clamp local to the short month: after February is clamped to the
  *    28th, March returns to the 31st instead of sticking at 28. Callers must therefore pass
- *    the rule's own anchor day (from its startDate), not `base.getDate()`, whenever `base`
+ *    the rule's own anchor day (from its start day), not `base.getDate()`, whenever `base`
  *    may itself be a clamped occurrence.
  *
  * The time-of-day components of `base` are preserved.
@@ -67,22 +67,40 @@ export function startOfDay(d: Date): Date {
     return result;
 }
 
+/**
+ * Local noon of the local day of `day`: the instant a generated occurrence is written at
+ * (REGISTRE V-102, Owner decision 4, pass 78). Read from any zone less than 11 hours away
+ * it still falls on the same day, and so in the same month and year; local midnight fell on
+ * the day before as soon as the device moved west.
+ */
+export function localNoonOf(day: Date): Date {
+    const result = new Date(day);
+    result.setHours(12, 0, 0, 0);
+    return result;
+}
+
 /** Safety limit on how many occurrences a walk visits (~10 years of daily). */
 const MAX_ITERATIONS = 3650;
 
 /**
- * Walk the rule's occurrences in order - occurrence k, 0-based from startDate - while
+ * Walk the rule's occurrences in order - occurrence k, 0-based from the start day - while
  * `keepGoing(date)` holds, and at most MAX_ITERATIONS of them. The one definition of the
  * series, shared by deriveLastGeneratedIndex and computeDueOccurrences so the two can never
  * number an occurrence differently. `visit` returns false to stop early.
+ *
+ * The series starts on the rule's start day, a calendar day (startDayOf), not on the local
+ * day of the startDate instant: read again in another zone, that instant could fall on the
+ * day before or after, and move the start and every occurrence with it (REGISTRE V-116,
+ * Owner decision 3, pass 78). For a rule with no stored day the two are the same day.
+ * Verified by recurringStartDayZone.test.ts - "V-116 A1." and "V-116 A2.".
  */
 function walkOccurrences(
     rule: RecurringTransaction,
     keepGoing: (date: Date) => boolean,
     visit: (index: number, date: Date) => boolean,
 ): void {
-    // Start from the rule's startDate and step forward
-    const start = startOfDay(rule.startDate);
+    // Start from the rule's start day, at local midnight, and step forward
+    const start = dayOfKey(startDayOf(rule)) ?? startOfDay(rule.startDate);
     let cursor = start;
 
     // Day of the month the rule is anchored on. Monthly and yearly steps re-derive the day
@@ -156,16 +174,17 @@ export function occurrenceDate(rule: RecurringTransaction, index: number): Date 
  * schedule on or before this day may be generated again (REGISTRE V-105). The later of:
  *
  *  - the day of occurrence lastGeneratedIndex. Read from the number, not from an instant, so a
- *    zone change cannot move it a day earlier: lastGeneratedDate is a local midnight of the zone
- *    that wrote it, and a zone further west reads it as the day before. Verified by
- *    recurringEditPauseForward.test.ts - "a1." to "a4.";
+ *    zone change cannot move it a day earlier: lastGeneratedDate is an instant of the zone that
+ *    wrote it - local midnight before 1.1.4, local noon since (REGISTRE V-102) - and a zone far
+ *    enough west reads it as the day before. Verified by recurringEditPauseForward.test.ts -
+ *    "a1." to "a4.";
  *  - the local day of lastGeneratedDate, the last occurrence actually written. After a
  *    renumbering the number can name an earlier day of the new schedule than the last debit.
  *    Verified by recurringEditPauseForward.test.ts - "control: a paused rule edited twice on its
  *    due day (1 -> 2 -> 1) and resumed that day debits that day once".
  *
- * For a rule that has generated nothing, lastGeneratedDate is one interval before startDate, so
- * no occurrence falls on or before the day returned.
+ * For a rule that has generated nothing, lastGeneratedDate is one interval before the start
+ * day, so no occurrence falls on or before the day returned.
  */
 export function lastSettledDay(rule: RecurringTransaction): Date {
     const index = rule.lastGeneratedIndex ?? deriveLastGeneratedIndex(rule);
@@ -174,7 +193,7 @@ export function lastSettledDay(rule: RecurringTransaction): Date {
     return byIndex !== null && byIndex.getTime() > watermark.getTime() ? byIndex : watermark;
 }
 
-/** One occurrence of a rule: its number from startDate, and its local day. */
+/** One occurrence of a rule: its number from the start day, and its local day. */
 export interface DueOccurrence {
     index: number;
     date: Date;
@@ -238,6 +257,20 @@ export function dayOfKey(key: string): Date | null {
 /** Whether `value` is a 'YYYY-MM-DD' calendar day. */
 export function isDayKey(value: unknown): value is string {
     return typeof value === 'string' && dayOfKey(value) !== null;
+}
+
+/**
+ * The start day of a rule that may not carry one yet (REGISTRE V-116, Owner decision 3,
+ * pass 78): the day it carries, or else the local day of its start date in the current
+ * zone, which is when and where that day is fixed for it.
+ *
+ * Used by the walk, so a rule not yet given its day keeps the series it had, and where a
+ * rule arrives without a day: migration v10, a restore from a file written before the day
+ * existed, and the v5 import. Verified by migrationV10StartDay.test.ts - "V-116 A3." and
+ * "V-116 A3 (v5).", and backupRestoreStartDay.test.ts - "V-116 A4 b.".
+ */
+export function startDayOf(rule: RecurringTransaction): string {
+    return isDayKey(rule.startDay) ? rule.startDay : localDayKey(rule.startDate);
 }
 
 /**
@@ -361,7 +394,7 @@ export function computeDueDates(
 /**
  * Advance a date by the given frequency and interval.
  *
- * `anchorDay` is the day of the month the rule is anchored on, taken from its startDate.
+ * `anchorDay` is the day of the month the rule is anchored on, taken from its start day.
  * It has to be passed in: `date` is the previous occurrence, which may itself have been
  * clamped into a short month, so the original anchor day cannot be recovered from it.
  * Stepping from the clamped value would pin the whole series to 28 - the same drift bug in
