@@ -91,8 +91,21 @@ export function useRecurringRules() {
     // The engine run after a create, over every active rule; what it did for
     // the new rule is returned for the screen to report (REGISTRE V-111, Owner
     // decision 1, pass 79). See recurringRuleChanges.
+    //
+    // The rules are read again after the run, whatever its outcome (pass 80,
+    // finding 3): the run can record any active rule's due debits and move its
+    // stored number, and the engine emits 'recurringRules' only for a skipped
+    // rule. Read before the run, a rule's row still counted those debits as
+    // due, and its status priced them against the debited wallet. Verified by
+    // RecurringRulesScreen.freshRowsAfterCreate.test.tsx - "c.".
     const catchUpCreated = useCallback(
-        (rule: RecurringTransaction): Promise<CreatedRuleOutcome | null> => catchUpCreatedRule(engineDeps(), rule),
+        async (rule: RecurringTransaction): Promise<CreatedRuleOutcome | null> => {
+            try {
+                return await catchUpCreatedRule(engineDeps(), rule);
+            } finally {
+                dataEvents.emit('recurringRules');
+            }
+        },
         [],
     );
 
