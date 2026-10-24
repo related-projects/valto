@@ -51,7 +51,11 @@
         {
           "url": "https://sentry.io/",
           "project": "valto",
-          "organization": "renekakpo"
+          "organization": "renekakpo",
+          "experimental_android": {
+            "enableAndroidGradlePlugin": true,
+            "includeNativeSources": false
+          }
         }
       ],
       "expo-secure-store",
@@ -59,11 +63,14 @@
       "expo-font",
       "expo-web-browser",
       "./plugins/withoutApsEnvironment",
+      "./plugins/withoutStatusBarColor",
       [
         "expo-build-properties",
         {
           "android": {
-            "enableJetifier": true
+            "enableJetifier": true,
+            "enableMinifyInReleaseBuilds": true,
+            "extraProguardRules": "-keep class expo.modules.notifications.** { *; }"
           }
         }
       ]

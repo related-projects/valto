@@ -16,7 +16,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Dimensions,
     Modal,
     Platform,
     Pressable,
@@ -26,6 +25,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import { TransactionType } from '../../domain/entities';
 import { TransactionFilters } from '../../domain/filters/filterTransactions';
@@ -48,8 +48,8 @@ interface TransactionFilterModalProps {
     onReset: () => void;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
+/** Share of the current window height the sheet takes. */
+const MODAL_HEIGHT_RATIO = 0.85;
 
 // ─── Component ────────────────────────────────────────────────────────
 
@@ -61,6 +61,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     onReset,
 }) => {
     const { colors, spacing, typography, radius } = useTheme();
+    const { height: windowHeight } = useWindowDimensions();
     const { t, i18n } = useTranslation();
     const { categories } = useCategories();
     const { wallets } = useWallets();
@@ -197,7 +198,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
                 <TouchableOpacity style={styles.overlayTouchable} activeOpacity={1} onPress={onClose} />
-                <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
+                <View style={[styles.modalContainer, { backgroundColor: colors.card, height: windowHeight * MODAL_HEIGHT_RATIO }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
                         <TouchableOpacity onPress={onClose} style={styles.headerButton} testID="filter_close_button">
