@@ -22,13 +22,13 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Dimensions,
     FlatList,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getCurrencyByCode, SUPPORTED_CURRENCIES, type CurrencyDefinition } from '../../../domain/constants/currencies';
@@ -48,7 +48,8 @@ import {
 } from '../../../utils/normalizeAmount';
 import { useOnboarding } from '../hooks/useOnboarding';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+/** Share of the current window width the primary button takes at least. */
+const PRIMARY_BUTTON_MIN_WIDTH_RATIO = 0.6;
 
 // Module-level, so t() is not in scope here: the entries carry the key and the
 // component translates it at render. Same keys the wallet screens already use.
@@ -67,6 +68,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
+    const { width: windowWidth } = useWindowDimensions();
+    const primaryButtonMinWidth = { minWidth: windowWidth * PRIMARY_BUTTON_MIN_WIDTH_RATIO };
     const { decimals, settings } = useFormatting();
     const {
         step,
@@ -189,7 +192,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 {t('onboarding.welcomeDescription')}
             </Text>
             <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
+                style={[styles.primaryButton, primaryButtonMinWidth, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
                 onPress={next}
                 testID="onboarding_get_started"
                 {...getButtonA11y(t('common.getStarted'))}
@@ -410,7 +413,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
             {/* Create Button */}
             <TouchableOpacity
-                style={[styles.primaryButton, {
+                style={[styles.primaryButton, primaryButtonMinWidth, {
                     backgroundColor: colors.primary,
                     borderRadius: radius.lg,
                     opacity: loading ? 0.6 : 1,
@@ -441,7 +444,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             </Text>
             {renderError('onboarding_complete_error')}
             <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
+                style={[styles.primaryButton, primaryButtonMinWidth, { backgroundColor: colors.primary, borderRadius: radius.lg }]}
                 onPress={handleComplete}
                 disabled={loading}
                 testID="onboarding_complete_button"
@@ -538,7 +541,6 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 32,
         alignSelf: 'center',
-        minWidth: SCREEN_WIDTH * 0.6,
     },
     primaryButtonText: {
         fontSize: 18,

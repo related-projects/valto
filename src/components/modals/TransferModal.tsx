@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -14,6 +13,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import { Wallet } from '../../domain/entities';
 import { InsufficientFundsError } from '../../domain/useCases';
@@ -32,11 +32,12 @@ interface TransferModalProps {
     onSuccess?: () => void;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
+/** Share of the current window height the sheet takes. */
+const MODAL_HEIGHT_RATIO = 0.7;
 
 export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, onSuccess }) => {
     const { colors, spacing, typography, radius } = useTheme();
+    const { height: windowHeight } = useWindowDimensions();
     const { t } = useTranslation();
     const { formatAmount, parseAmountToCentsResult, amountPlaceholder, decimals } = useFormatting();
 
@@ -203,7 +204,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                     activeOpacity={1}
                     onPress={handleClose}
                 />
-                <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
+                <View style={[styles.modalContainer, { backgroundColor: colors.card, height: windowHeight * MODAL_HEIGHT_RATIO }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
                         <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
