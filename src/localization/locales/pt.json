@@ -343,7 +343,7 @@
             {
                 "id": "backup-data",
                 "question": "Como faço o backup dos meus dados?",
-                "answer": "Vá em Configurações > Backup de Dados. Isso cria um arquivo JSON contendo todas as suas carteiras, transações, categorias, orçamentos, regras recorrentes e configurações. Você pode compartilhar ou salvar este arquivo no dispositivo ou na nuvem."
+                "answer": "Vá em Configurações > Backup de Dados. Isso cria um arquivo JSON contendo todas as suas carteiras, transações, categorias, orçamentos, regras recorrentes e configurações. Você pode compartilhar ou salvar este arquivo no dispositivo ou na nuvem. O arquivo não é criptografado: qualquer pessoa que o abrir pode ler seus dados, então guarde-o onde só você tenha acesso. Seus dados do Valto não vão para um celular novo sem este arquivo: restaure-o nele em Configurações > Restaurar Dados."
             },
             {
                 "id": "restore-data",
@@ -726,7 +726,7 @@
         "tryAgain": "Tentar novamente",
         "reset": "Redefinir dados",
         "confirmTitle": "Apagar dados locais?",
-        "confirmBody": "Isso exclui permanentemente todos os dados deste dispositivo: carteiras, transações, categorias e orçamentos. Não há backup nem cópia no servidor, então isso não pode ser desfeito.",
+        "confirmBody": "Isso exclui permanentemente todos os dados deste dispositivo: carteiras, transações, categorias e orçamentos. Não há cópia no servidor. Se você salvou um arquivo de backup do Valto, poderá restaurá-lo depois em Configurações > Restaurar Dados; o que não estiver nesse arquivo não poderá ser recuperado.",
         "confirmCta": "Apagar tudo",
         "cancel": "Cancelar",
         "resetFailedTitle": "Falha ao redefinir",

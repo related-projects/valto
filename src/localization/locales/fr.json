@@ -343,7 +343,7 @@
       {
         "id": "backup-data",
         "question": "Comment sauvegarder mes données ?",
-        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets, règles récurrentes et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
+        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets, règles récurrentes et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud. Ce fichier n'est pas chiffré : toute personne qui l'ouvre peut lire vos données, gardez-le donc dans un endroit auquel personne d'autre n'a accès. Sans ce fichier, vos données Valto ne vous suivent pas sur un nouveau téléphone : restaurez-le sur celui-ci dans Paramètres > Restaurer les données."
       },
       {
         "id": "restore-data",
@@ -726,7 +726,7 @@
     "tryAgain": "Réessayer",
     "reset": "Réinitialiser les données",
     "confirmTitle": "Effacer les données locales ?",
-    "confirmBody": "Cette action supprime définitivement toutes les données de cet appareil : portefeuilles, transactions, catégories et budgets. Il n'existe aucune sauvegarde ni copie serveur, cette action est donc irréversible.",
+    "confirmBody": "Cette action supprime définitivement toutes les données de cet appareil : portefeuilles, transactions, catégories et budgets. Il n'existe aucune copie serveur. Si vous avez enregistré un fichier de sauvegarde Valto, vous pourrez le restaurer ensuite dans Paramètres > Restaurer les données ; ce qui n'est pas dans ce fichier ne pourra pas être récupéré.",
     "confirmCta": "Tout effacer",
     "cancel": "Annuler",
     "resetFailedTitle": "Échec de la réinitialisation",

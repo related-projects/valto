@@ -343,7 +343,7 @@
       {
         "id": "backup-data",
         "question": "¿Cómo hago una copia de seguridad de mis datos?",
-        "answer": "Ve a Ajustes > Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos, reglas recurrentes y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube."
+        "answer": "Ve a Ajustes > Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos, reglas recurrentes y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube. El archivo no está cifrado: cualquiera que lo abra puede leer tus datos, así que guárdalo donde solo tú tengas acceso. Tus datos de Valto no te siguen a un teléfono nuevo sin este archivo: restáuralo allí en Ajustes > Restaurar datos."
       },
       {
         "id": "restore-data",
@@ -726,7 +726,7 @@
     "tryAgain": "Intentar de nuevo",
     "reset": "Restablecer datos",
     "confirmTitle": "¿Borrar datos locales?",
-    "confirmBody": "Esto elimina permanentemente todos los datos de este dispositivo: carteras, transacciones, categorías y presupuestos. No hay copia de seguridad ni copia en el servidor, por lo que esto no se puede deshacer.",
+    "confirmBody": "Esto elimina permanentemente todos los datos de este dispositivo: carteras, transacciones, categorías y presupuestos. No hay copia en el servidor. Si guardaste un archivo de copia de seguridad de Valto, podrás restaurarlo después en Ajustes > Restaurar datos; lo que no esté en ese archivo no se podrá recuperar.",
     "confirmCta": "Borrar todo",
     "cancel": "Cancelar",
     "resetFailedTitle": "Error al restablecer",

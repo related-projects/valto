@@ -343,7 +343,7 @@
       {
         "id": "backup-data",
         "question": "How do I back up my data?",
-        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, recurring rules, and settings. You can share or save this file to your device or cloud storage."
+        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, recurring rules, and settings. You can share or save this file to your device or cloud storage. The file is not encrypted: anyone who opens it can read your data, so keep it where only you have access. Your Valto data does not follow you to a new phone without this file: restore it there with Settings > Restore Data."
       },
       {
         "id": "restore-data",
@@ -726,7 +726,7 @@
     "tryAgain": "Try again",
     "reset": "Reset data",
     "confirmTitle": "Erase local data?",
-    "confirmBody": "This permanently deletes all data on this device: wallets, transactions, categories and budgets. There is no backup or server copy, so this cannot be undone.",
+    "confirmBody": "This permanently deletes all data on this device: wallets, transactions, categories and budgets. There is no server copy. If you saved a Valto backup file, you can restore it afterwards in Settings > Restore Data; anything not in that file cannot be recovered.",
     "confirmCta": "Erase everything",
     "cancel": "Cancel",
     "resetFailedTitle": "Reset failed",
