@@ -8,8 +8,11 @@
  * and the connection cannot be trusted. It therefore deletes the database file
  * (and its WAL/SHM siblings) directly on disk, then clears the AsyncStorage
  * pointers (schema version + seed flag) so the subsequent boot rebuilds a fresh
- * encrypted DB from scratch. The keystore encryption key is intentionally kept -
- * the file is the problem, not the key.
+ * encrypted DB from scratch. The keystore encryption key is deleted with the
+ * files, so that boot creates a new one: the key may be the problem, not the
+ * file - a stored key the keystore can no longer decrypt throws on every read,
+ * and every boot then fails before the database is opened (pass 82, Owner
+ * decision 2).
  *
  * Re-initialisation (migrations + seed) is NOT done here: the caller re-runs the
  * normal boot sequence, keeping a single init path.
@@ -23,6 +26,7 @@ import { File } from 'expo-file-system';
 
 import { asyncStorageAdapter, LEGACY_KV_FINANCIAL_KEYS, StorageKeys } from '../storage';
 import { closeDatabase, getDb } from '../storage/sql/database';
+import { deleteEncryptionKey } from '../storage/sql/encryptionKey';
 import { DB_NAME } from '../storage/sql/OpSQLiteDatabase';
 
 /** Drop a single trailing `/` (so joins never produce a double separator). */
@@ -137,9 +141,13 @@ export async function resetCorruptedStore(): Promise<void> {
 
     await deleteDatabaseFiles(directory);
 
+    // Only once the files are gone: if their deletion throws, the key that
+    // still opens them is kept with them. The next boot creates a new key.
+    await deleteEncryptionKey();
+
     // Drop the schema-version + seed pointers so the fresh DB re-runs all
     // migrations and re-seeds, and clear any residual cleartext KV copies.
-    // SETTINGS (language/theme/onboarding) and the keystore key are kept.
+    // SETTINGS (language/theme/onboarding) are kept.
     //
     // The financial keys come from LEGACY_KV_FINANCIAL_KEYS, the same constant
     // migration v6 purges, rather than from a literal list repeated here: both

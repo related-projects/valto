@@ -5,7 +5,8 @@
  * its WAL/SHM siblings) regardless of whether op-sqlite's getDbPath() reports a
  * full file path or a bare directory - and never a directory or a `/..` path
  * (the on-device ERR_FILE_NOT_WRITABLE regression). Also: clears the rebuild
- * pointers while keeping user settings.
+ * pointers while keeping user settings, and deletes the stored database key
+ * once the files are gone (pass 82, Owner decision 2).
  */
 
 // Modern File API: each `new File(uri)` records the URI it was constructed with
@@ -200,5 +201,31 @@ describe('resetCorruptedStore', () => {
         expect(await kv.get(StorageKeys.SEED_INITIALIZED)).toBeNull();
         expect(await kv.get(StorageKeys.SETTINGS)).toEqual({ currency: 'XOF', language: 'fr' });
         expect(await kv.get(StorageKeys.SECURITY_CONFIG)).toEqual({ pinHash: 'abc123' });
+    });
+});
+
+describe('resetCorruptedStore - the stored database key (pass 82, Owner decision 2)', () => {
+    // The global expo-secure-store mock (tests/setup/testSetup.ts).
+    const deleteKey = jest.requireMock<{ deleteItemAsync: jest.Mock }>('expo-secure-store').deleteItemAsync;
+
+    // The alias the key is stored under (encryptionKey.ts:14).
+    const KEY_ALIAS = 'valto.db.encryption_key';
+
+    it('pass 82 b: deletes the stored database key, after the database files', async () => {
+        await resetCorruptedStore();
+
+        expect(deleteKey).toHaveBeenCalledWith(KEY_ALIAS);
+        const lastFileDelete = Math.max(...mockFileDelete.mock.invocationCallOrder);
+        expect(deleteKey.mock.invocationCallOrder[0]).toBeGreaterThan(lastFileDelete);
+    });
+
+    // CONTROL, not a regression test: true before and after this change. A
+    // reset that stops before the files are deleted leaves the key with them,
+    // so the database it still describes stays openable.
+    it('control: keeps the key when the database files cannot be deleted', async () => {
+        mockGetDbPath.mockReturnValue(`${LIBRARY}/valto.db/..`);
+
+        await expect(resetCorruptedStore()).rejects.toThrow(/refusing to delete/);
+        expect(deleteKey).not.toHaveBeenCalled();
     });
 });
