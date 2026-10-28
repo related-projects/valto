@@ -118,10 +118,9 @@ export async function processRecurringRules(
                     result.skipped.push(genResult.skipped);
                     // Emit event so UI can refresh - this is a business outcome, not an error
                     deps.eventBus.emit('recurringRules');
-                    console.info(
-                        `[RecurringEngine] Rule ${rule.id} skipped: ${genResult.skipped.reason} ` +
-                        `(need ${genResult.skipped.amount}, have ${genResult.skipped.availableBalance})`,
-                    );
+                    // The rule and the reason; the figures stay in result.skipped,
+                    // out of the device log (pass 84b).
+                    console.info(`[RecurringEngine] Rule ${rule.id} skipped: ${genResult.skipped.reason}`);
                 }
             } catch (error) {
                 // Only real system failures reach here

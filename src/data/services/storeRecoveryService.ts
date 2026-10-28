@@ -25,6 +25,7 @@ import { Platform } from 'react-native';
 import { File } from 'expo-file-system';
 
 import { asyncStorageAdapter, LEGACY_KV_FINANCIAL_KEYS, StorageKeys } from '../storage';
+import { discardBackupCopies, discardExportCopies } from './backupCopies';
 import { closeDatabase, getDb } from '../storage/sql/database';
 import { deleteEncryptionKey } from '../storage/sql/encryptionKey';
 import { DB_NAME } from '../storage/sql/OpSQLiteDatabase';
@@ -165,4 +166,9 @@ export async function resetCorruptedStore(): Promise<void> {
         asyncStorageAdapter.remove(StorageKeys.SEED_INITIALIZED),
         ...LEGACY_KV_FINANCIAL_KEYS.map((key) => asyncStorageAdapter.remove(key)),
     ]);
+
+    // A backup file, restore copy or export left in the cache is the erased
+    // data in cleartext, so it goes with it. Best-effort, never throws.
+    discardBackupCopies();
+    discardExportCopies();
 }

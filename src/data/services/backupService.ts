@@ -45,6 +45,7 @@ import {
 } from '../../domain/calculations/recurrenceDates';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
+import { errorKind } from '../../utils/errorKind';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
 import { isTransferCategoryId } from '../../domain/ledger/transferCategories';
 import {
@@ -62,6 +63,7 @@ import {
     transactionMapper,
 } from '../storage/sql/mappers';
 import { processRecurringRules } from './RecurringTransactionEngine';
+import { discardBackupCopies } from './backupCopies';
 import { scheduleDailyReminder } from './notificationService';
 import { AppSettings, loadSettings, saveSettings } from './settingsService';
 import { ensureUsableState } from './usableStateService';
@@ -434,6 +436,11 @@ export async function createAndShareBackup(): Promise<void> {
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `valto-backup-${timestamp}.json`;
+
+    // The previous backup's file, and any restore copy, go now rather than when
+    // their share returned: the receiving app may still have been reading it.
+    discardBackupCopies();
+
     const file = new ExpoFile(Paths.cache, filename);
 
     file.write(json);
@@ -639,7 +646,8 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
             }
         });
     } catch (writeError) {
-        console.error('[Backup] Restore failed, transaction rolled back:', writeError);
+        // The kind only: a ValidationError carries the refused value from the file.
+        console.error('[Backup] Restore failed, transaction rolled back:', errorKind(writeError));
 
         // A refused entity is not a write failure, and must not be reported as
         // one: the rollback is identical, but the user needs to know the file is
@@ -804,29 +812,39 @@ export async function pickAndRestoreBackup(): Promise<RestoreOutcome | null> {
 
     const asset = result.assets[0];
     const fileUri = asset.uri;
-    console.log('[Backup] Selected file:', { uri: fileUri, name: asset.name, size: asset.size, mimeType: asset.mimeType });
+    // Nothing that names the file or quotes it is printed on this path: not the
+    // uri, not the picked name, not a slice of the content (pass 84b). Console
+    // output reaches the device log.
+    console.log('[Backup] Selected file:', { size: asset.size, mimeType: asset.mimeType });
 
-    // --- Pre-parse validation ---
-    const file = new ExpoFile(fileUri);
-
-    if (!file.exists) {
-        throw new Error('The selected file could not be accessed. Please try again.');
-    }
-
-    if (file.size === 0) {
-        throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
-    }
-
-    // --- Read file content (text() returns Promise<string> in expo-file-system v19) ---
+    // The picker's copy holds the whole ledger in cleartext. It is read once,
+    // whole, below; once that read is over - succeeded or refused - it goes,
+    // and everything after works on the string in memory.
     let content: string;
     try {
-        content = await file.text();
-    } catch (readError) {
-        console.error('[Backup] Failed to read file:', readError);
-        throw new Error('Could not read the selected file. It may be corrupted or inaccessible.');
+        // --- Pre-parse validation ---
+        const file = new ExpoFile(fileUri);
+
+        if (!file.exists) {
+            throw new Error('The selected file could not be accessed. Please try again.');
+        }
+
+        if (file.size === 0) {
+            throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
+        }
+
+        // --- Read file content (text() returns Promise<string> in expo-file-system v19) ---
+        try {
+            content = await file.text();
+        } catch (readError) {
+            console.error('[Backup] Failed to read file:', errorKind(readError));
+            throw new Error('Could not read the selected file. It may be corrupted or inaccessible.');
+        }
+    } finally {
+        discardBackupCopies();
     }
 
-    console.log('[Backup] File read:', { contentLength: content.length, first200: content.substring(0, 200) });
+    console.log('[Backup] File read:', { contentLength: content.length });
 
     if (!content || content.trim().length === 0) {
         throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
@@ -839,7 +857,8 @@ export async function pickAndRestoreBackup(): Promise<RestoreOutcome | null> {
     try {
         parsed = JSON.parse(cleanContent);
     } catch (parseError) {
-        console.error('[Backup] JSON parse failed:', parseError, { contentLength: cleanContent.length, first200: cleanContent.substring(0, 200) });
+        // The parser's message quotes the input, so only its kind is printed.
+        console.error('[Backup] JSON parse failed:', errorKind(parseError), { contentLength: cleanContent.length });
         throw new Error('The selected file contains invalid JSON. Please choose a valid Valto backup file.');
     }
 

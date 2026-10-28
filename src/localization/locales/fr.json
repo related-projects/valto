@@ -323,7 +323,7 @@
       {
         "id": "add-transaction",
         "question": "Comment ajouter une transaction ?",
-        "answer": "Appuyez sur Actions rapides sur le tableau de bord et choisissez « Dépense » ou « Revenu ». Saisissez le montant, sélectionnez une catégorie et un portefeuille, puis enregistrez."
+        "answer": "Appuyez sur Actions rapides dans l'onglet Accueil et choisissez « Dépense » ou « Revenu ». Saisissez le montant, sélectionnez une catégorie et un portefeuille, puis enregistrez."
       },
       {
         "id": "create-wallet",
@@ -333,12 +333,12 @@
       {
         "id": "transfer-funds",
         "question": "Comment effectuer un virement entre portefeuilles ?",
-        "answer": "Sur le tableau de bord, appuyez sur « Transfert » dans Actions rapides. Sélectionnez un portefeuille source, un portefeuille de destination et le montant. Le transfert débitera un portefeuille et créditera l'autre simultanément."
+        "answer": "Dans l'onglet Accueil, appuyez sur « Transfert » dans Actions rapides. Sélectionnez un portefeuille source, un portefeuille de destination et le montant. Le transfert débitera un portefeuille et créditera l'autre simultanément."
       },
       {
         "id": "set-budget",
         "question": "Comment fonctionnent les budgets ?",
-        "answer": "Les budgets sont définis par catégorie et par mois. Allez sur le tableau de bord et appuyez sur « Créer un budget » dans la section Budget. Vous verrez une barre de progression indiquant la part de chaque budget utilisée."
+        "answer": "Les budgets sont définis par catégorie et par mois. Allez dans l'onglet Accueil et appuyez sur « Créer un budget » dans la section Budget mensuel. Vous verrez une barre de progression indiquant la part de chaque budget utilisée."
       },
       {
         "id": "backup-data",
@@ -678,11 +678,8 @@
     "backButton": "Retour",
     "closeButton": "Fermer",
     "addTransaction": "Ajouter une transaction",
-    "addWallet": "Ajouter un portefeuille",
-    "addBudget": "Ajouter un budget",
     "addCategory": "Ajouter une catégorie",
     "addRecurringRule": "Ajouter une règle récurrente",
-    "editWallet": "Modifier le portefeuille {{name}}",
     "editRule": "Modifier la règle",
     "deleteRule": "Supprimer la règle",
     "editBudget": "Modifier le budget {{category}}",
@@ -705,7 +702,6 @@
     "openAbout": "Ouvrir à propos",
     "previousMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
-    "walletCard": "Portefeuille {{name}} avec solde {{balance}}",
     "transactionItem": "{{type}} de {{amount}} pour {{category}}",
     "budgetStatus": "Budget {{status}} : {{spent}} sur {{limit}}",
     "refreshData": "Actualiser les données",

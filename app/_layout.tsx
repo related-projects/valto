@@ -13,6 +13,10 @@ import { SecurityProvider } from "@/src/core/security/SecurityContext";
 import { runMigrations } from "@/src/data/migrations";
 import { initializeSeedData } from "@/src/data/seed";
 import {
+  discardBackupCopies,
+  discardExportCopies,
+} from "@/src/data/services/backupCopies";
+import {
   configureNotificationHandler,
   initializeNotifications,
 } from "@/src/data/services/notificationService";
@@ -133,6 +137,12 @@ function RootLayout() {
   const bootstrap = useCallback(async () => {
     setIsReady(false);
     setBootError(false);
+    // Backup files, restore copies and exports a previous session left in the
+    // cache hold the ledger in cleartext. Best-effort and silent: neither call
+    // throws, so they can neither block the boot nor send it to
+    // StoreRecoveryScreen.
+    discardBackupCopies();
+    discardExportCopies();
     try {
       await runMigrations();
       await initializeSeedData();

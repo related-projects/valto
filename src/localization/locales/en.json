@@ -323,7 +323,7 @@
       {
         "id": "add-transaction",
         "question": "How do I add a transaction?",
-        "answer": "Tap the Quick Actions on the dashboard and choose \"Expense\" or \"Income\". Fill in the amount, select a category and wallet, then save."
+        "answer": "Tap the Quick Actions on the Dashboard tab and choose \"Expense\" or \"Income\". Fill in the amount, select a category and wallet, then save."
       },
       {
         "id": "create-wallet",
@@ -333,12 +333,12 @@
       {
         "id": "transfer-funds",
         "question": "How do I transfer between wallets?",
-        "answer": "On the dashboard, tap \"Transfer\" in Quick Actions. Select a source wallet, destination wallet, and the amount. The transfer will debit one wallet and credit the other simultaneously."
+        "answer": "On the Dashboard tab, tap \"Transfer\" in Quick Actions. Select a source wallet, destination wallet, and the amount. The transfer will debit one wallet and credit the other simultaneously."
       },
       {
         "id": "set-budget",
         "question": "How do budgets work?",
-        "answer": "Budgets are set per category per month. Go to the dashboard and tap \"Create a budget\" in the Budget section. You'll see a progress bar showing how much of each budget you've used."
+        "answer": "Budgets are set per category per month. Go to the Dashboard tab and tap \"Create a budget\" in the Monthly Budget section. You'll see a progress bar showing how much of each budget you've used."
       },
       {
         "id": "backup-data",
@@ -678,11 +678,8 @@
     "backButton": "Go back",
     "closeButton": "Close",
     "addTransaction": "Add transaction",
-    "addWallet": "Add wallet",
-    "addBudget": "Add budget",
     "addCategory": "Add category",
     "addRecurringRule": "Add recurring rule",
-    "editWallet": "Edit wallet {{name}}",
     "editRule": "Edit rule",
     "deleteRule": "Delete rule",
     "editBudget": "Edit budget {{category}}",
@@ -705,7 +702,6 @@
     "openAbout": "Open about",
     "previousMonth": "Go to previous month",
     "nextMonth": "Go to next month",
-    "walletCard": "{{name}} wallet with balance {{balance}}",
     "transactionItem": "{{type}} of {{amount}} for {{category}}",
     "budgetStatus": "Budget {{status}}: {{spent}} of {{limit}}",
     "refreshData": "Refresh data",

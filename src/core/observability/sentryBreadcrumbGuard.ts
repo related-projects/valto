@@ -26,13 +26,14 @@
  * number: this list carried three stale pointers until somebody checked them,
  * and a number is repaired by editing the number, which proves nothing. A grep
  * that returns no hit is itself the signal that the line moved or went away.
- *   - src/data/migrations/v5_import_from_asyncstorage.ts - per-wallet stored
- *     balance, ledger balance and drift, with the wallet id.
+ *   - src/data/migrations/v5_import_from_asyncstorage.ts - the ids of the
+ *     wallets that drifted. It printed each one's stored balance, ledger
+ *     balance and drift until pass 84b took the amounts out.
  *     `grep -n 'Balance drift after v5 import' src/data/migrations/v5_import_from_asyncstorage.ts`
- *   - src/data/services/RecurringTransactionEngine.ts - the amount a skipped
- *     rule needed and the balance actually available, with the rule id; the
- *     surrounding error logs carry rule ids.
- *     `grep -n 'skipped.availableBalance' src/data/services/RecurringTransactionEngine.ts`
+ *   - src/data/services/RecurringTransactionEngine.ts - the id and skip reason
+ *     of a skipped rule; the surrounding error logs carry rule ids. It printed
+ *     the amount the rule needed and the balance available until pass 84b.
+ *     `grep -nF '} skipped: ' src/data/services/RecurringTransactionEngine.ts`
  *   - src/data/seed/seedService.ts - a category name.
  *     `grep -n 'Failed to create default category' src/data/seed/seedService.ts`
  *   - src/data/repositories/WalletRepository.ts,

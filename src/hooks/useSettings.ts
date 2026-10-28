@@ -36,6 +36,7 @@ import { type CurrencyDefinition, getCurrencyByCode } from '../domain/constants/
 import { getLanguageByCode, type LanguageDefinition } from '../domain/constants/languages';
 import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES } from '../domain/constants/numberFormats';
 import { useTheme } from '../theme/theme';
+import { errorKind } from '../utils/errorKind';
 import { type NotificationPermissionStatus, shouldShowBlockedNotice } from '../utils/notificationPermission';
 
 /** Minimal shape of the i18next `t` this file uses. */
@@ -210,7 +211,8 @@ export function useSettings(): UseSettingsResult {
             await createAndShareBackup();
         } catch (error) {
             Alert.alert(t('alerts.backupFailed'), t('alerts.backupFailedMessage'));
-            console.error('Backup error:', error);
+            // The kind only: a file system error names the backup file it failed on.
+            console.error('Backup error:', errorKind(error));
         } finally {
             setLoading(false);
         }
@@ -291,7 +293,9 @@ export function useSettings(): UseSettingsResult {
                                                 ? t('alerts.restoreMissingCurrencyMessage')
                                                 : t('alerts.restoreFailedMessage');
                                             Alert.alert(t('alerts.restoreFailed'), message);
-                                            console.error('Restore error:', error);
+                                            // The kind only: a refused snapshot's message
+                                            // quotes the rows of the file it refused.
+                                            console.error('Restore error:', errorKind(error));
                                         } finally {
                                             endRestoring();
                                         }
