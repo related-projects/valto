@@ -5,6 +5,7 @@
  * Validates schema before applying restores to prevent data corruption.
  */
 
+import * as Application from 'expo-application';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -72,7 +73,11 @@ export interface BackupSnapshot {
     version: number;
     /** ISO timestamp of when backup was created */
     createdAt: string;
-    /** App version string */
+    /**
+     * Version of the installed app that wrote the file, read from
+     * expo-application when the backup is made; 'unknown' when the platform
+     * reports none. Informational: no restore path reads it.
+     */
     appVersion: string;
     /** All data */
     data: {
@@ -400,7 +405,7 @@ async function createBackupSnapshot(): Promise<BackupSnapshot> {
     return {
         version: CURRENT_SCHEMA_VERSION,
         createdAt: new Date().toISOString(),
-        appVersion: '1.0.0',
+        appVersion: Application.nativeApplicationVersion ?? 'unknown',
         data: {
             wallets: wallets.map(serializeWallet),
             transactions: transactions.map(serializeTransaction),

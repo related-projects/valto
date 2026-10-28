@@ -4,7 +4,12 @@
  * Service responsible for evaluating recurring transaction rules
  * and generating missing transactions automatically.
  *
- * Runs on app launch, after migrations, before UI renders.
+ * Runs over every active rule (processRecurringRules) at boot, in
+ * app/_layout.tsx after the migrations, the seed and the store read check and
+ * before the root layout renders any screen; after a restore has committed
+ * (backupService, runPostRestoreCatchUp); and after a rule is created
+ * (recurringRuleChanges, catchUpCreatedRule). retryRule processes one rule,
+ * before an edit or a pause of that rule.
  *
  * Idempotency (REGISTRE V-98):
  * Each rule records the number of its last generated occurrence
@@ -139,9 +144,10 @@ export async function processRecurringRules(
 
 /**
  * Process a single rule by ID: generate what is due for it up to the local day
- * of `now`. Used after the user has added funds to the wallet, and to record
- * what is due before an edit or a pause (recurringRuleChanges), which passes
- * the same `now` it saves the edit with.
+ * of `now`. Its callers are the catch-ups that record what is due before an
+ * edit or a pause (editRecurringRule and pauseRecurringRule in
+ * recurringRuleChanges); editRecurringRule passes the same `now` it then saves
+ * the edit with. Throws when the rule does not exist or is paused.
  * Returns the generation result for that rule.
  */
 export async function retryRule(

@@ -323,12 +323,12 @@
       {
         "id": "add-transaction",
         "question": "Comment ajouter une transaction ?",
-        "answer": "Appuyez sur Actions rapides sur le tableau de bord et choisissez « Ajouter une dépense » ou « Ajouter un revenu ». Saisissez le montant, sélectionnez une catégorie et un portefeuille, puis enregistrez."
+        "answer": "Appuyez sur Actions rapides sur le tableau de bord et choisissez « Dépense » ou « Revenu ». Saisissez le montant, sélectionnez une catégorie et un portefeuille, puis enregistrez."
       },
       {
         "id": "create-wallet",
         "question": "Comment créer un nouveau portefeuille ?",
-        "answer": "Allez dans l'onglet Portefeuilles et appuyez sur « Ajouter un portefeuille ». Vous pouvez créer des portefeuilles pour les espèces, les comptes bancaires, le mobile money et l'épargne. Chaque portefeuille suit son propre solde indépendamment."
+        "answer": "Allez dans l'onglet Portefeuilles et appuyez sur « Ajouter ». Vous pouvez créer des portefeuilles pour les espèces, les comptes bancaires, le mobile money et l'épargne. Chaque portefeuille suit son propre solde indépendamment."
       },
       {
         "id": "transfer-funds",

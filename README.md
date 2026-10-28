@@ -47,7 +47,7 @@ Clean Architecture with a feature-based layout.
 - **Core**: the DI container (composition root, the only place that knows concrete implementations), security, error handling, events.
 - **UI**: screens, components, and hooks. Hooks expose data access; business rules (e.g. balance sufficiency) live in use cases, not components.
 
-Versioned, idempotent migrations run at boot: `v4` creates the relational schema, `v5` performs a one-time import of any pre-existing key-value data into SQLite, and `v6` removes those key-value copies once the import is proven. Existing data is preserved on upgrade.
+Versioned, idempotent migrations run at boot, in version order, each one the install has not yet recorded (`v1` to `v10`): `v1` marks the baseline, `v2` and `v3` repair legacy key-value records (missing `createdAt`, negative amounts), `v4` creates the relational schema, `v5` performs a one-time import of any pre-existing key-value data into SQLite, `v6` removes those key-value copies once the import is proven, and `v7` to `v10` add the recurring-rule columns (occurrence key, end occurrence number, end day, start day), each backfilled for existing rules. Existing data is preserved on upgrade.
 
 ---
 
@@ -130,7 +130,7 @@ src/
 |   |-- repositories/  # SQL implementations of the domain interfaces
 |   |-- services/      # Backup, export, recurring engine, notifications, security...
 |   |-- seed/          # Default categories on first launch
-|   `-- migrations/    # Versioned, idempotent (v1...v9)
+|   `-- migrations/    # Versioned, idempotent (v1...v10)
 |-- features/          # Self-contained feature modules (onboarding)
 |-- hooks/             # useWallets, useTransactions, ... (data access)
 |-- screens/
