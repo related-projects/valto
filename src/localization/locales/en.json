@@ -323,12 +323,12 @@
       {
         "id": "add-transaction",
         "question": "How do I add a transaction?",
-        "answer": "Tap the Quick Actions on the dashboard and choose \"Add Expense\" or \"Add Income\". Fill in the amount, select a category and wallet, then save."
+        "answer": "Tap the Quick Actions on the dashboard and choose \"Expense\" or \"Income\". Fill in the amount, select a category and wallet, then save."
       },
       {
         "id": "create-wallet",
         "question": "How do I create a new wallet?",
-        "answer": "Go to the Wallets tab and tap \"Add Wallet\". You can create wallets for cash, bank accounts, mobile money, and savings. Each wallet tracks its own balance independently."
+        "answer": "Go to the Wallets tab and tap \"Add\". You can create wallets for cash, bank accounts, mobile money, and savings. Each wallet tracks its own balance independently."
       },
       {
         "id": "transfer-funds",
@@ -338,7 +338,7 @@
       {
         "id": "set-budget",
         "question": "How do budgets work?",
-        "answer": "Budgets are set per category per month. Go to the dashboard and tap \"Create Budget\" in the Budget section. You'll see a progress bar showing how much of each budget you've used."
+        "answer": "Budgets are set per category per month. Go to the dashboard and tap \"Create a budget\" in the Budget section. You'll see a progress bar showing how much of each budget you've used."
       },
       {
         "id": "backup-data",
