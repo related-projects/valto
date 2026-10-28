@@ -136,11 +136,11 @@ export const v5_import_from_asyncstorage: Migration = {
         const walletRepo = new WalletRepository(db);
         const drifted = (await walletRepo.auditBalances()).filter((a) => a.drift !== 0);
         if (drifted.length > 0) {
+            // Which wallets, not by how much: amounts stay out of the device log
+            // (pass 84b). auditBalances() gives the figures again on demand.
             console.warn(
-                `[import] Balance drift after v5 import - opening_balance derivation is suspect: ` +
-                    drifted
-                        .map((a) => `${a.walletId} (stored ${a.stored}, ledger ${a.computed}, drift ${a.drift})`)
-                        .join(', '),
+                `[import] Balance drift after v5 import - opening_balance derivation is suspect ` +
+                    `in ${drifted.length} wallet(s): ${drifted.map((a) => a.walletId).join(', ')}`,
             );
         }
 

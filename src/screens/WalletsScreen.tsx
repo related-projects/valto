@@ -167,6 +167,7 @@ export const WalletsScreen = () => {
                     borderRadius: radius.md,
                 }}
                 onPress={handleAddWallet}
+                accessibilityRole="button"
             >
                 <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.md, fontWeight: '600' }}>
                     {t('wallets.createFirst')}
@@ -220,6 +221,7 @@ export const WalletsScreen = () => {
                             gap: spacing.xs,
                         }}
                         onPress={handleAddWallet}
+                        accessibilityRole="button"
                     >
                         <Ionicons name="add" size={18} color={colors.accentForeground} />
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>{t('wallets.add')}</Text>

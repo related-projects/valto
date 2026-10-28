@@ -323,7 +323,7 @@
             {
                 "id": "add-transaction",
                 "question": "Como faço para adicionar uma transação?",
-                "answer": "Toque em Ações Rápidas no painel e escolha «Despesa» ou «Receita». Preencha o valor, selecione uma categoria e carteira, depois salve."
+                "answer": "Toque em Ações rápidas na aba Painel e escolha «Despesa» ou «Receita». Preencha o valor, selecione uma categoria e carteira, depois salve."
             },
             {
                 "id": "create-wallet",
@@ -333,12 +333,12 @@
             {
                 "id": "transfer-funds",
                 "question": "Como faço uma transferência entre carteiras?",
-                "answer": "No painel, toque em «Transferência» nas Ações Rápidas. Selecione a carteira de origem, a de destino e o valor. A transferência debitará uma carteira e creditará a outra simultaneamente."
+                "answer": "Na aba Painel, toque em «Transferência» nas Ações rápidas. Selecione a carteira de origem, a de destino e o valor. A transferência debitará uma carteira e creditará a outra simultaneamente."
             },
             {
                 "id": "set-budget",
                 "question": "Como funcionam os orçamentos?",
-                "answer": "Os orçamentos são definidos por categoria por mês. Vá ao painel e toque em «Criar um orçamento» na seção Orçamento. Você verá uma barra de progresso mostrando quanto de cada orçamento já foi utilizado."
+                "answer": "Os orçamentos são definidos por categoria por mês. Vá para a aba Painel e toque em «Criar um orçamento» na seção Orçamento mensal. Você verá uma barra de progresso mostrando quanto de cada orçamento já foi utilizado."
             },
             {
                 "id": "backup-data",
@@ -678,11 +678,8 @@
         "backButton": "Voltar",
         "closeButton": "Fechar",
         "addTransaction": "Adicionar transação",
-        "addWallet": "Adicionar carteira",
-        "addBudget": "Adicionar orçamento",
         "addCategory": "Adicionar categoria",
         "addRecurringRule": "Adicionar regra recorrente",
-        "editWallet": "Editar carteira {{name}}",
         "editRule": "Editar regra",
         "deleteRule": "Excluir regra",
         "editBudget": "Editar or\u00e7amento {{category}}",
@@ -705,7 +702,6 @@
         "openAbout": "Abrir sobre",
         "previousMonth": "Ir para o mês anterior",
         "nextMonth": "Ir para o próximo mês",
-        "walletCard": "Carteira {{name}} com saldo {{balance}}",
         "transactionItem": "{{type}} de {{amount}} para {{category}}",
         "budgetStatus": "Orçamento {{status}}: {{spent}} de {{limit}}",
         "refreshData": "Atualizar dados",

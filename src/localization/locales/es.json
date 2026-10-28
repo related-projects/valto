@@ -323,7 +323,7 @@
       {
         "id": "add-transaction",
         "question": "¿Cómo añado una transacción?",
-        "answer": "Toca Acciones rápidas en el panel y elige «Gasto» o «Ingreso». Ingresa el monto, selecciona una categoría y una cartera, luego guarda."
+        "answer": "Toca Acciones rápidas en la pestaña Panel y elige «Gasto» o «Ingreso». Ingresa el monto, selecciona una categoría y una cartera, luego guarda."
       },
       {
         "id": "create-wallet",
@@ -333,12 +333,12 @@
       {
         "id": "transfer-funds",
         "question": "¿Cómo transfiero entre carteras?",
-        "answer": "En el panel, toca «Transferencia» en Acciones rápidas. Selecciona una cartera de origen, una de destino y el monto. La transferencia debitará una cartera y acreditará la otra simultáneamente."
+        "answer": "En la pestaña Panel, toca «Transferencia» en Acciones rápidas. Selecciona una cartera de origen, una de destino y el monto. La transferencia debitará una cartera y acreditará la otra simultáneamente."
       },
       {
         "id": "set-budget",
         "question": "¿Cómo funcionan los presupuestos?",
-        "answer": "Los presupuestos se establecen por categoría y por mes. Ve al panel y toca «Crear un presupuesto» en la sección Presupuesto. Verás una barra de progreso que muestra cuánto has usado de cada presupuesto."
+        "answer": "Los presupuestos se establecen por categoría y por mes. Ve a la pestaña Panel y toca «Crear un presupuesto» en la sección Presupuesto mensual. Verás una barra de progreso que muestra cuánto has usado de cada presupuesto."
       },
       {
         "id": "backup-data",
@@ -678,11 +678,8 @@
     "backButton": "Volver",
     "closeButton": "Cerrar",
     "addTransaction": "Añadir transacción",
-    "addWallet": "Añadir cartera",
-    "addBudget": "Añadir presupuesto",
     "addCategory": "Añadir categoría",
     "addRecurringRule": "Añadir regla recurrente",
-    "editWallet": "Editar cartera {{name}}",
     "editRule": "Editar regla",
     "deleteRule": "Eliminar regla",
     "editBudget": "Editar presupuesto {{category}}",
@@ -705,7 +702,6 @@
     "openAbout": "Abrir acerca de",
     "previousMonth": "Ir al mes anterior",
     "nextMonth": "Ir al mes siguiente",
-    "walletCard": "Cartera {{name}} con saldo {{balance}}",
     "transactionItem": "{{type}} de {{amount}} por {{category}}",
     "budgetStatus": "Presupuesto {{status}}: {{spent}} de {{limit}}",
     "refreshData": "Actualizar datos",

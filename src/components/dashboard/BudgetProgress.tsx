@@ -144,7 +144,12 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                             {getOverallStatusText()}
                         </Text>
                     </View>
-                    <TouchableOpacity onPress={onCreateBudget} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <TouchableOpacity
+                        onPress={onCreateBudget}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('components.budgetProgress.createBudget')}
+                    >
                         <Ionicons name="add-circle-outline" size={22} color={colors.accent} />
                     </TouchableOpacity>
                 </View>
