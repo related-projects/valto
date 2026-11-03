@@ -9,8 +9,10 @@
  * What these tests pin, end to end and through the real repositories:
  *  - a rule survives backup then restore with every field intact, isPaused and
  *    an absent endDate included;
- *  - a v2 file whose rule points at a wallet the file does not carry is refused
- *    before anything is written;
+ *  - a v2 file whose rule points at a wallet or a category the file does not
+ *    carry restores that rule as it was, and reports it as not processed: a
+ *    v1 restore leaves the live rules in place, so the app itself writes such
+ *    a file (REGISTRE V-127);
  *  - a v1 file, which carries no rules at all, still restores and does NOT take
  *    the live rules down with it. That is the data-loss guard: v1 files are
  *    still accepted by the version range check, and clearing a table the file
@@ -72,7 +74,6 @@ import {
     CURRENT_SCHEMA_VERSION,
     createAndShareBackup,
     restoreFromSnapshot,
-    SnapshotRejectedError,
     type BackupSnapshot,
 } from '../services/backupService';
 import { getDefaultSettings } from '../services/settingsService';
@@ -285,40 +286,41 @@ describe('a v1 file does not delete the live recurring rules', () => {
     });
 });
 
-describe('a v2 file with a rule pointing nowhere is refused', () => {
-    it('rejects the file and leaves the pre-restore data untouched', async () => {
+describe('a v2 file with a rule pointing nowhere restores it as it was (V-127)', () => {
+    it('restores a rule whose wallet the file does not carry, and reports it', async () => {
         await seedLedger(db);
         await db.runInTransaction(() => rules.save(RULE_WITH_END));
 
-        const bad = v2Snapshot();
-        bad.data.recurringRules = [
-            { ...serializeRecurringTransaction(RULE_WITH_END), walletId: 'w-missing' },
-        ];
+        const file = v2Snapshot();
+        const orphan = { ...serializeRecurringTransaction(RULE_WITH_END), walletId: 'w-missing' };
+        file.data.recurringRules = [orphan];
 
-        await expect(restoreFromSnapshot(bad)).rejects.toThrow(SnapshotRejectedError);
+        const outcome = await restoreFromSnapshot(file);
 
-        // The pre-restore ledger is intact: refusal happens before any write.
         const wallets = await new WalletRepository(db).getAll();
         expect(wallets.map((w) => w.id)).toEqual(['w-cash']);
-        const survived = await rules.getAll();
-        expect(survived).toHaveLength(1);
-        expect(survived[0].id).toBe('rr-with-end');
+        expect((await rules.getAll()).map(serializeRecurringTransaction)).toEqual([orphan]);
+        expect(outcome.rulesNotProcessed).toBe(1);
+        expect((await rules.findWithMissingReferences()).map((r) => r.id)).toEqual(['rr-with-end']);
     });
 
-    it('rejects a rule whose category the file does not carry', async () => {
+    it('restores a rule whose category the file does not carry, and reports it', async () => {
         await seedLedger(db);
 
-        const bad = v2Snapshot();
-        bad.data.recurringRules = [
-            { ...serializeRecurringTransaction(RULE_WITH_END), categoryId: 'cat-missing' },
-        ];
+        const file = v2Snapshot();
+        const orphan = { ...serializeRecurringTransaction(RULE_WITH_END), categoryId: 'cat-missing' };
+        file.data.recurringRules = [orphan];
 
-        await expect(restoreFromSnapshot(bad)).rejects.toThrow(SnapshotRejectedError);
+        const outcome = await restoreFromSnapshot(file);
+
+        expect((await rules.getAll()).map(serializeRecurringTransaction)).toEqual([orphan]);
+        expect(outcome.rulesNotProcessed).toBe(1);
+        expect((await rules.findWithMissingReferences()).map((r) => r.id)).toEqual(['rr-with-end']);
     });
 });
 
 describe('the post-restore reference report', () => {
-    it('reports no unresolved rule after a v2 restore, because the file was gated', async () => {
+    it('reports no unresolved rule after a v2 restore whose rules all resolve', async () => {
         await seedLedger(db);
 
         const outcome = await restoreFromSnapshot(v2Snapshot());

@@ -105,23 +105,25 @@ describe('Backup Validation of a v1 file, which is what every existing backup is
         expect(result.errors.some((e: string) => e.includes('wallets'))).toBe(true);
     });
 
-    it('detects orphaned transaction referencing non-existent wallet', () => {
-        const bad = {
+    // deleteWallet keeps the transactions of the wallet it deletes, and the
+    // next backup exports them (REGISTRE V-127).
+    it('accepts a transaction whose wallet the file does not carry', () => {
+        const orphan = {
             ...validSnapshot,
             data: {
                 ...validSnapshot.data,
                 transactions: [
                     {
                         id: 't1', type: TransactionType.EXPENSE, amount: 5000,
-                        categoryId: 'c1', walletId: 'nonexistent',
+                        categoryId: 'c1', walletId: 'deleted-wallet',
                         date: '2026-02-01T00:00:00Z', createdAt: '2026-02-01T00:00:00Z',
                     },
                 ],
             },
         };
-        const result = validateSnapshot(bad);
-        expect(result.valid).toBe(false);
-        expect(result.errors.some((e: string) => e.includes('wallet'))).toBe(true);
+        const result = validateSnapshot(orphan);
+        expect(result.errors).toEqual([]);
+        expect(result.valid).toBe(true);
     });
 
     it('detects orphaned transaction referencing non-existent category', () => {

@@ -207,7 +207,19 @@ const unknownCurrencyError = (code: string) =>
     `This backup records its amounts in "${code}", which this version of the app does not know, so restoring it could misread every amount.`;
 
 /**
+ * A reference the file must carry: a non-empty string. Not a uuid check - v5
+ * imported the legacy ids as they were.
+ */
+const isWellFormedId = (value: unknown): value is string =>
+    typeof value === 'string' && value.trim() !== '';
+
+/**
  * Validate a snapshot's schema and referential integrity.
+ *
+ * A category reference on a transaction or a budget must resolve in the file.
+ * A wallet reference on a transaction, and both references on a rule, need
+ * only be well formed: the app itself writes files in which they do not
+ * resolve (REGISTRE V-127), and those rows are restored as they are.
  */
 export function validateSnapshot(data: unknown): ValidationResult {
     const errors: string[] = [];
@@ -309,9 +321,6 @@ export function validateSnapshot(data: unknown): ValidationResult {
     }
 
     // Referential integrity checks
-    const walletIds = new Set(
-        (snapshotData.wallets as SerializableWallet[]).map(w => w.id),
-    );
     const categoryIds = new Set(
         (snapshotData.categories as SerializableCategory[]).map(c => c.id),
     );
@@ -321,8 +330,15 @@ export function validateSnapshot(data: unknown): ValidationResult {
             errors.push(`Transaction missing required fields: ${JSON.stringify(tx)}`);
             continue;
         }
-        if (!walletIds.has(tx.walletId)) {
-            errors.push(`Transaction ${tx.id} references non-existent wallet ${tx.walletId}`);
+        // The wallet need not be in the file. deleteWallet keeps the
+        // transactions of the wallet it deletes ("Delete Anyway"), on purpose:
+        // a transaction is a past fact that stays true without its wallet. The
+        // next backup exports them, and refusing them here refused a file the
+        // app had written itself (REGISTRE V-127). They are restored as they
+        // are; the opening balance derived below counts each wallet's own
+        // transactions only, so no other wallet's balance moves.
+        if (!isWellFormedId(tx.walletId)) {
+            errors.push(`Transaction ${tx.id} has a missing or malformed wallet id`);
         }
         // A transfer's two legs carry reserved pseudo-category ids that no
         // Category row backs, on purpose: transferFunds writes them onto the
@@ -351,20 +367,22 @@ export function validateSnapshot(data: unknown): ValidationResult {
         }
     }
 
-    // A rule is checked harder than a transaction is, for the same reason
-    // deleteWallet and deleteCategory refuse to orphan one: a transaction is a
-    // past fact that stays true without its wallet, a rule is a future
-    // instruction that cannot execute without one. Refusing the file here is
-    // what lets the restore clear and repopulate the table at all - a rule that
-    // arrives pointing nowhere would be written, look armed on the rules screen,
-    // and fail on every run.
+    // A rule's wallet and category need not be in the file either. deleteWallet
+    // and deleteCategory refuse to orphan a rule, but a restore of a v1 file
+    // does it for them: the file carries no rules, so the live ones stay while
+    // the wallets and categories are replaced (snapshotTables), and a rule can
+    // be left pointing at neither. The app runs with it - the restore reports
+    // it as not processed, the engine refuses it on every run - and the next
+    // backup exports it. Refusing it here refused a file the app had written
+    // itself (REGISTRE V-127). It is restored as it is, and the catch-up after
+    // the restore reports it again; nothing generates for it.
     if (carriesRules) {
         for (const r of snapshotData.recurringRules as SerializableRecurringTransaction[]) {
-            if (!walletIds.has(r.walletId)) {
-                errors.push(`Recurring rule ${r.id} references non-existent wallet ${r.walletId}`);
+            if (!isWellFormedId(r.walletId)) {
+                errors.push(`Recurring rule ${r.id} has a missing or malformed wallet id`);
             }
-            if (!categoryIds.has(r.categoryId)) {
-                errors.push(`Recurring rule ${r.id} references non-existent category ${r.categoryId}`);
+            if (!isWellFormedId(r.categoryId)) {
+                errors.push(`Recurring rule ${r.id} has a missing or malformed category id`);
             }
         }
     }
@@ -747,10 +765,11 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
  *
  * Deliberately after the commit and outside every rollback. The ledger is
  * already correct; a standing order that cannot execute is something to tell the
- * user about, never a reason to undo a good restore. A v2 file cannot leave a
- * broken reference behind because validateSnapshot refuses one, but a v1 file
+ * user about, never a reason to undo a good restore. A rule can be left
+ * pointing at a wallet or category that does not exist in two ways: a v1 file
  * carries no rules at all, so the live ones can outlive the wallet or category
- * the restore just replaced - findWithMissingReferences is what finds those.
+ * the restore just replaced, and a v2 file can carry such a rule as the app
+ * backed it up (REGISTRE V-127) - findWithMissingReferences is what finds both.
  */
 async function runPostRestoreCatchUp(): Promise<Omit<RestoreOutcome, 'failedSteps'>> {
     try {

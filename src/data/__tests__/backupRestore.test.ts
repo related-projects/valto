@@ -98,7 +98,9 @@ describe('validateSnapshot', () => {
         expect(result.valid).toBe(false);
     });
 
-    it('detects orphan transactions referencing non-existent wallets', () => {
+    // deleteWallet keeps the transactions of the wallet it deletes, and the
+    // next backup exports them (REGISTRE V-127).
+    it('accepts a transaction whose wallet the file does not carry', () => {
         const snap = {
             ...validSnapshot,
             data: {
@@ -108,15 +110,15 @@ describe('validateSnapshot', () => {
                     type: 'expense',
                     amount: 100,
                     categoryId: 'cat-1',
-                    walletId: 'non-existent-wallet',
+                    walletId: 'deleted-wallet',
                     date: new Date().toISOString(),
                     createdAt: new Date().toISOString(),
                 }],
             },
         };
         const result = validateSnapshot(snap);
-        expect(result.valid).toBe(false);
-        expect(result.errors.some(e => e.includes('non-existent wallet'))).toBe(true);
+        expect(result.errors).toEqual([]);
+        expect(result.valid).toBe(true);
     });
 
     it('detects orphan transactions referencing non-existent categories', () => {
