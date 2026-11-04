@@ -489,7 +489,8 @@
       "empty": "Veuillez saisir un montant",
       "notANumber": "Ce n'est pas un nombre valide",
       "negative": "Veuillez saisir un montant positif",
-      "tooManyDecimals": "Saisissez le montant sous la forme {{example}}"
+      "tooManyDecimals": "Saisissez le montant sous la forme {{example}}",
+      "tooLarge": "Montant trop élevé. Le maximum est de {{max}}"
     },
     "ok": "OK",
     "cancel": "Annuler",

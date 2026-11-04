@@ -21,6 +21,8 @@ import {
 } from '../../domain/entities/Wallet';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import { validateWallet } from '../../domain/validators/WalletValidator';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../../domain/constants/amounts';
+import { isEntryAmountWithinCap } from '../../domain/validators/EntryAmountValidator';
 import type { BalanceAudit, IWalletRepository } from '../../domain/repositories';
 import { walletMapper, sqlDelete, sqlGetAll, sqlGetById, sqlExists } from '../storage/sql/mappers';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
@@ -186,6 +188,16 @@ export class WalletRepository implements IWalletRepository {
     }
 
     async create(dto: CreateWalletDTO): Promise<Wallet> {
+        // A new opening balance is held to the entry cap (REGISTRE V-128): the
+        // createWallet use case and onboarding both create through here. Not in
+        // validateWallet, which the restore also calls.
+        if (!isEntryAmountWithinCap(dto.balance)) {
+            throw new RepositoryError(
+                RepositoryErrorType.VALIDATION_ERROR,
+                `Wallet opening balance must be a finite number of at most ${MAX_ENTRY_AMOUNT_MINOR} minor units either side of zero`,
+            );
+        }
+
         const wallet: Wallet = {
             id: uuidv4(),
             name: dto.name,

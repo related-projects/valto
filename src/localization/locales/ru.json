@@ -489,7 +489,8 @@
             "empty": "Введите сумму",
             "notANumber": "Это не число",
             "negative": "Введите положительную сумму",
-            "tooManyDecimals": "Введите сумму в формате {{example}}"
+            "tooManyDecimals": "Введите сумму в формате {{example}}",
+            "tooLarge": "Слишком большая сумма. Максимум {{max}}"
         },
         "ok": "OK",
         "cancel": "Отмена",

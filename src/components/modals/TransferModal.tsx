@@ -39,7 +39,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
     const { colors, spacing, typography, radius } = useTheme();
     const { height: windowHeight } = useWindowDimensions();
     const { t } = useTranslation();
-    const { formatAmount, parseAmountToCentsResult, amountPlaceholder, decimals } = useFormatting();
+    const { formatAmount, parseAmountToCentsResult, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
 
     // Hooks
     const { wallets, refreshWallets, transferBetweenWallets } = useWallets();
@@ -105,6 +105,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                     t,
                     'modals.transfer.invalidAmountMessage',
                     amountPlaceholder,
+                    maxEntryAmount,
                 ),
             );
             return;

@@ -489,7 +489,8 @@
       "empty": "Please enter an amount",
       "notANumber": "This is not a valid number",
       "negative": "Please enter a positive amount",
-      "tooManyDecimals": "Enter the amount like {{example}}"
+      "tooManyDecimals": "Enter the amount like {{example}}",
+      "tooLarge": "Amount too large. The maximum is {{max}}"
     },
     "ok": "OK",
     "cancel": "Cancel",
