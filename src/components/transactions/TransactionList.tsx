@@ -112,13 +112,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     const { colors, typography, spacing, radius } = useTheme();
     const { categories } = useCategories();
     const { wallets } = useWallets();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge } = useFormatting();
     const router = useRouter();
 
     // Row CONTENT - title, subtitle, note indicator, amount - belongs to
     // TransactionPresenter, so both renderers below (and the detail screen)
     // cannot describe the same transaction differently. This component owns
-    // only the containers: padding, background and the press target.
+    // only the containers: padding, background and the press target. A row is
+    // a tight place, so its amount is compact from 1 000 000 and labelled exact
+    // (REGISTRE V-128); the detail screen keeps it exact.
 
     // ─── Empty state ──────────────────────────────────────────────────
 
@@ -175,7 +177,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     transaction={item}
                     categories={categories}
                     wallets={wallets}
-                    formatAmount={formatAmount}
+                    formatAmount={formatAmountCompactLarge}
+                    formatAmountExact={formatAmount}
                     variant="compact"
                 />
             </TouchableOpacity>
@@ -249,7 +252,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     transaction={transaction}
                     categories={categories}
                     wallets={wallets}
-                    formatAmount={formatAmount}
+                    formatAmount={formatAmountCompactLarge}
+                    formatAmountExact={formatAmount}
                     variant="comfortable"
                 />
             </TouchableOpacity>

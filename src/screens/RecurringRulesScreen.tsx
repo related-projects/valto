@@ -68,7 +68,7 @@ const RuleCard: React.FC<{
 }> = ({ rule, status, onEdit, onTogglePause, onDelete }) => {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge } = useFormatting();
 
     // The label carries the state. Colour and the warning icon are redundant
     // cues on top of it, never the only thing separating a fault from a rule
@@ -146,8 +146,11 @@ const RuleCard: React.FC<{
 
             {/* Details */}
             <View style={{ marginTop: spacing.sm }}>
-                <Text style={{ color: typeColor, fontSize: typography.sizes.lg, fontWeight: '700' }}>
-                    {rule.type === 'income' ? '+' : '-'}{formatAmount(rule.amount)}
+                <Text
+                    accessibilityLabel={`${rule.type === 'income' ? '+' : '-'}${formatAmount(rule.amount)}`}
+                    style={{ color: typeColor, fontSize: typography.sizes.lg, fontWeight: '700' }}
+                >
+                    {rule.type === 'income' ? '+' : '-'}{formatAmountCompactLarge(rule.amount)}
                 </Text>
                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginTop: 2 }}>
                     {rule.interval === 1

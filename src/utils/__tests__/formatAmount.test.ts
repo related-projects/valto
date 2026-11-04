@@ -1,8 +1,8 @@
 /**
  * formatAmount Utility Tests
  *
- * Tests for all three formatting functions:
- * formatAmount, formatAmountCompact, formatAmountWhole.
+ * Tests for the exact formatting functions: formatAmount, formatAmountWhole.
+ * The compact formatters (V-128) are covered in formatAmountCompactLarge.test.ts.
  * Covers all three number-format profiles, negative values, zero, and edge cases.
  *
  * A profile fixes four things at once - grouping character, decimal character,
@@ -12,7 +12,7 @@
  * protect the thing these profiles exist for.
  */
 
-import { formatAmount, formatAmountCompact, formatAmountWhole } from '../formatAmount';
+import { formatAmount, formatAmountWhole } from '../formatAmount';
 
 /** U+00A0, the grouping and symbol-gap character. Spelled out so the expected
  *  strings below cannot be satisfied by a plain U+0020. */
@@ -96,32 +96,6 @@ describe('formatAmount', () => {
     });
 });
 
-describe('formatAmountCompact', () => {
-    it('formats standard amount in compact form', () => {
-        expect(formatAmountCompact(200000)).toBe('$2.0k');
-    });
-
-    it('formats sub-thousand amount', () => {
-        expect(formatAmountCompact(50000)).toBe('$0.5k');
-    });
-
-    it('formats large amount', () => {
-        expect(formatAmountCompact(10000000)).toBe('$100.0k');
-    });
-
-    it('formats with the comma profile', () => {
-        expect(formatAmountCompact(200000, '$', 'comma')).toBe(`2,0k${NBSP}$`);
-    });
-
-    it('formats with the space profile', () => {
-        expect(formatAmountCompact(200000, '€', 'space')).toBe(`2,0k${NBSP}€`);
-    });
-
-    it('uses custom currency symbol', () => {
-        expect(formatAmountCompact(500000, '£')).toBe('£5.0k');
-    });
-});
-
 describe('formatAmountWhole', () => {
     it('formats without decimals (rounds)', () => {
         expect(formatAmountWhole(200050)).toBe('$2,001');
@@ -187,11 +161,6 @@ describe('formatAmount — currency exponent', () => {
 
     it('renders a 3-decimal currency under the comma profile', () => {
         expect(formatAmount(1500, 'KD', 'comma', 3)).toBe(`1,500${NBSP}KD`);
-    });
-
-    it('compact form honours the exponent', () => {
-        // XOF 100000 minor = 100,000 major -> 100.0k
-        expect(formatAmountCompact(100000, 'FCFA', 'dot', 0)).toBe('FCFA100.0k');
     });
 
     it('whole form honours the exponent', () => {

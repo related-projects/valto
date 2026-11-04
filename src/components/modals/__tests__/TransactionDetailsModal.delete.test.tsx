@@ -85,6 +85,7 @@ jest.mock('../../../hooks/useWallets', () => ({
 jest.mock('../../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         formatAmount: (cents: number) => `$${(cents / 100).toFixed(2)}`,
+        formatAmountCompactLarge: (cents: number) => `$${(cents / 100).toFixed(2)}`,
         formatDate: () => '03/01/2026',
     }),
 }));

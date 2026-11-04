@@ -83,7 +83,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius, shadows, isDark } = useTheme();
-    const { formatAmount, formatPercentNumber } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge, formatPercentNumber } = useFormatting();
     const [hidden, setHidden] = useState(false);
     const authInProgress = useRef(false);
 
@@ -119,11 +119,14 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     };
 
-    // Use centralized formatting utility; respect hidden balance mode
+    // Use centralized formatting utility; respect hidden balance mode. Large
+    // amounts are compact here (REGISTRE V-128), so the label carries the exact
+    // one for TalkBack - and nothing at all while the balance is hidden.
     const displayAmount = (amount: number) => {
         if (hidden) return '••••••';
-        return formatAmount(amount);
+        return formatAmountCompactLarge(amount);
     };
+    const amountLabel = (amount: number) => (hidden ? undefined : formatAmount(amount));
 
     const renderChangeBadge = (change?: number | null, isExpense?: boolean) => {
         if (change === undefined || change === null) return null;
@@ -364,6 +367,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                     numberOfLines={1}
                                     adjustsFontSizeToFit
                                     minimumFontScale={0.5}
+                                    accessibilityLabel={amountLabel(totalBalance)}
                                     style={[
                                         {
                                             color: colors.accentForeground,
@@ -418,6 +422,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                     numberOfLines={1}
                                     adjustsFontSizeToFit
                                     minimumFontScale={0.5}
+                                    accessibilityLabel={amountLabel(monthlyIncome)}
                                     style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}
                                 >
                                     {displayAmount(monthlyIncome)}
@@ -436,6 +441,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                     numberOfLines={1}
                                     adjustsFontSizeToFit
                                     minimumFontScale={0.5}
+                                    accessibilityLabel={amountLabel(monthlyExpense)}
                                     style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}
                                 >
                                     {displayAmount(monthlyExpense)}
@@ -455,6 +461,7 @@ const BalanceCardInner: React.FC<BalanceCardProps> = ({
                                         numberOfLines={1}
                                         adjustsFontSizeToFit
                                         minimumFontScale={0.5}
+                                        accessibilityLabel={amountLabel(netBalance)}
                                         style={[{ color: colors.accentForeground, fontWeight: '600', fontSize: typography.sizes.md }, contentTextShadow]}
                                     >
                                         {displayAmount(netBalance)}

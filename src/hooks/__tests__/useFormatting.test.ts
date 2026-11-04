@@ -36,7 +36,8 @@ describe('useFormatting', () => {
 
         // Should have fallback formatting functions
         expect(typeof result.current.formatAmount).toBe('function');
-        expect(typeof result.current.formatAmountCompact).toBe('function');
+        expect(typeof result.current.formatAmountCompactLarge).toBe('function');
+        expect(typeof result.current.formatAmountWholeCompactLarge).toBe('function');
         expect(typeof result.current.formatAmountWhole).toBe('function');
         expect(typeof result.current.formatDate).toBe('function');
         expect(result.current.settings).toBeNull();
@@ -203,5 +204,44 @@ describe('useFormatting', () => {
         const formatted = result.current.formatAmountWhole(12345);
         // Should contain the whole number part (123 for 12345 cents)
         expect(formatted).toContain('$');
+    });
+
+    it('compact formatters take their suffixes from the settings language (V-128)', async () => {
+        mockLoadSettings.mockResolvedValue({
+            currency: 'USD',
+            decimalSeparator: 'space',
+            dateFormat: 'DD/MM/YYYY',
+            language: 'fr',
+        });
+
+        const { result } = renderHook(() => useFormatting());
+
+        await waitFor(() => {
+            expect(result.current.settings).not.toBeNull();
+        });
+
+        // 2 500 000 000.00 USD: "Md" is French for 10^9; the space profile puts "$" after U+00A0.
+        expect(result.current.formatAmountCompactLarge(250_000_000_000)).toBe('2,5\u00A0Md\u00A0$');
+        expect(result.current.formatAmountWholeCompactLarge(250_000_000_000)).toBe('2,5\u00A0Md\u00A0$');
+        // Below 1 000 000 each is its exact counterpart.
+        expect(result.current.formatAmountCompactLarge(200050)).toBe(result.current.formatAmount(200050));
+        expect(result.current.formatAmountWholeCompactLarge(200050)).toBe(result.current.formatAmountWhole(200050));
+    });
+
+    it('compact formatters fall back to en suffixes for an incomplete language (V-128)', async () => {
+        mockLoadSettings.mockResolvedValue({
+            currency: 'USD',
+            decimalSeparator: 'dot',
+            dateFormat: 'MM/DD/YYYY',
+            language: 'ar',
+        });
+
+        const { result } = renderHook(() => useFormatting());
+
+        await waitFor(() => {
+            expect(result.current.settings).not.toBeNull();
+        });
+
+        expect(result.current.formatAmountCompactLarge(250_000_000_000)).toBe('$2.5B');
     });
 });

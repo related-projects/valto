@@ -16,12 +16,13 @@
  *
  * Grouping character, decimal character, currency-symbol side and symbol gap all
  * come from one table - NUMBER_FORMATS in domain/constants/numberFormats. None of
- * the three formatters below restates any of those four rules, so a convention is
+ * the formatters below restates any of those four rules, so a convention is
  * changed in exactly one place. Grouping is inserted here rather than delegated to
  * toLocaleString: that call routes through the host ICU, whose output varies by
  * device, and the app needs a byte-stable string its own parser can re-read.
  */
 
+import { COMPACT_AMOUNT_FROM_EXPONENT, compactTiersForLanguage } from '../domain/constants/compactAmountFormats';
 import { NUMBER_FORMATS } from '../domain/constants/numberFormats';
 import type { NumberFormatProfile } from '../domain/entities/Settings';
 
@@ -88,23 +89,6 @@ export function formatAmount(
 }
 
 /**
- * Format a minor-unit integer in compact form (for chart labels, etc.).
- *
- * @example formatAmountCompact(200000) -> "$2.0k"
- * @example formatAmountCompact(50000)  -> "$0.5k"
- */
-export function formatAmountCompact(
-    amountMinor: number,
-    currency = '$',
-    profile: NumberFormatProfile = 'dot',
-    decimals = 2,
-): string {
-    const major = amountMinor / 10 ** decimals;
-    const compact = (major / 1000).toFixed(1).replace('.', NUMBER_FORMATS[profile].decimal);
-    return attachSymbol(`${compact}k`, currency, profile);
-}
-
-/**
  * Format a minor-unit integer with no decimal places (whole-unit display).
  *
  * @example formatAmountWhole(200050) -> "$2,001"
@@ -121,4 +105,95 @@ export function formatAmountWhole(
     const sign = major < 0 ? '-' : '';
     const digits = renderDigits(Math.abs(major), 0, profile);
     return `${sign}${attachSymbol(digits, currency, profile)}`;
+}
+
+/**
+ * The compact form of an amount of at least 1 000 000 major units, or null below
+ * that (REGISTRE V-128, Owner decision 2, option A).
+ *
+ * Works on the decimal digits of the minor-unit integer, never on a quotient, so
+ * it is exact for every safe integer and cannot produce scientific notation: the
+ * major units are the digits before the last `decimals`, the tier comes from
+ * their count, and the one decimal kept is the next digit. Dropping every digit
+ * after it truncates the magnitude, so the result is truncated toward zero
+ * whatever the sign. A zero decimal is dropped ("1 M", not "1,0 M").
+ *
+ * Only the number part differs from formatAmount: the decimal character, the
+ * sign and the currency side and gap follow the same profile rules. The head
+ * is never grouped - no in-range value has more than four digits there, and
+ * CLDR does not group them either.
+ *
+ * Returns null for a value that is not a safe integer: amounts are integer minor
+ * units, so such a value is not one, and the callers fall back to their exact
+ * formatter rather than guess.
+ */
+function formatCompactLarge(
+    amountMinor: number,
+    currency: string,
+    profile: NumberFormatProfile,
+    decimals: number,
+    language: string,
+): string | null {
+    if (!Number.isSafeInteger(amountMinor)) return null;
+
+    const digits = String(Math.abs(amountMinor));
+    const majorDigits = digits.slice(0, Math.max(0, digits.length - decimals));
+    if (majorDigits.length <= COMPACT_AMOUNT_FROM_EXPONENT) return null;
+
+    const exponent = majorDigits.length - 1;
+    const tiers = compactTiersForLanguage(language);
+    let tier = tiers[0];
+    for (const candidate of tiers) {
+        if (candidate.fromExponent <= exponent) tier = candidate;
+    }
+
+    const headLength = majorDigits.length - tier.divisorExponent;
+    const head = majorDigits.slice(0, headLength);
+    const firstDecimal = majorDigits.charAt(headLength);
+    const fraction = firstDecimal === '0' ? '' : `${NUMBER_FORMATS[profile].decimal}${firstDecimal}`;
+
+    const sign = amountMinor < 0 ? '-' : '';
+    return `${sign}${attachSymbol(`${head}${fraction}${tier.suffix}`, currency, profile)}`;
+}
+
+/**
+ * Format a minor-unit integer for a tight place (V-128, decision 2).
+ *
+ * Below 1 000 000 major units: exactly formatAmount's output. From there: the
+ * compact form, with the suffixes of `language` (en for a language without a
+ * complete bundle). Callers in tight places pair it with an accessibilityLabel
+ * holding the formatAmount output, so a screen reader reads the exact amount.
+ *
+ * @example formatAmountCompactLarge(99999999)                       -> "$999,999.99"
+ * @example formatAmountCompactLarge(199999999)                      -> "$1.9M"
+ * @example formatAmountCompactLarge(-199999999)                     -> "-$1.9M"
+ * @example formatAmountCompactLarge(1999999, 'FCFA', 'space', 0, 'fr') -> "1,9<U+00A0>M<U+00A0>FCFA" shape
+ */
+export function formatAmountCompactLarge(
+    amountMinor: number,
+    currency = '$',
+    profile: NumberFormatProfile = 'dot',
+    decimals = 2,
+    language = 'en',
+): string {
+    return formatCompactLarge(amountMinor, currency, profile, decimals, language)
+        ?? formatAmount(amountMinor, currency, profile, decimals);
+}
+
+/**
+ * formatAmountCompactLarge for a place that shows whole units below 1 000 000:
+ * exactly formatAmountWhole's output there, the same compact form from there.
+ *
+ * @example formatAmountWholeCompactLarge(200050)    -> "$2,001"
+ * @example formatAmountWholeCompactLarge(199999999) -> "$1.9M"
+ */
+export function formatAmountWholeCompactLarge(
+    amountMinor: number,
+    currency = '$',
+    profile: NumberFormatProfile = 'dot',
+    decimals = 2,
+    language = 'en',
+): string {
+    return formatCompactLarge(amountMinor, currency, profile, decimals, language)
+        ?? formatAmountWhole(amountMinor, currency, profile, decimals);
 }

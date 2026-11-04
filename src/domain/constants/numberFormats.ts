@@ -7,7 +7,7 @@
  * sits on, and whether a gap separates the two.
  *
  * This table is the single source of truth for those four rules. formatAmount,
- * formatAmountCompact and formatAmountWhole read it and restate none of them;
+ * formatAmountWhole and the compact formatters read it and restate none of them;
  * the parser derives its separator set from it so it can always re-read what the
  * formatters write.
  *

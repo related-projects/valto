@@ -60,6 +60,7 @@ jest.mock('../../hooks/useFormatting', () => {
     return {
         useFormatting: () => ({
             formatAmount: (v: number) => `amt:${v}`,
+            formatAmountCompactLarge: (v: number) => `amt:${v}`,
             formatDate: (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
             centsToMajor: (v: number) => v / 100,
             parseAmountToCentsResult: (v: string) =>

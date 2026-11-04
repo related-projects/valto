@@ -41,7 +41,10 @@ jest.mock('../../hooks/useTransactions', () => ({
 }));
 
 jest.mock('../../hooks/useFormatting', () => ({
-    useFormatting: () => ({ formatAmount: (value: number) => String(value) }),
+    useFormatting: () => ({
+        formatAmount: (value: number) => String(value),
+        formatAmountCompactLarge: (value: number) => String(value),
+    }),
 }));
 
 jest.mock('../../components/modals/AddWalletModal', () => ({ AddWalletModal: () => null }));

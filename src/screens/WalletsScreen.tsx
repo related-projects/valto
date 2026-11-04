@@ -40,7 +40,7 @@ export const WalletsScreen = () => {
     // Get real data
     const { wallets, getTotalBalance, refreshWallets } = useWallets();
     const { transactions } = useTransactions();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge } = useFormatting();
 
     // Modal state
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -126,8 +126,11 @@ export const WalletsScreen = () => {
                     </View>
 
                     <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes['4xl'], fontWeight: typography.weights.bold, letterSpacing: -1, marginBottom: spacing.md }}>
-                            {formatAmount(wallet.balance)}
+                        <Text
+                            accessibilityLabel={formatAmount(wallet.balance)}
+                            style={{ color: colors.accentForeground, fontSize: typography.sizes['4xl'], fontWeight: typography.weights.bold, letterSpacing: -1, marginBottom: spacing.md }}
+                        >
+                            {formatAmountCompactLarge(wallet.balance)}
                         </Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                             <View style={{
@@ -148,7 +151,7 @@ export const WalletsScreen = () => {
                 </View>
             </TouchableOpacity>
         ),
-        [cardWidth, colors, typography, spacing, radius, shadows, formatAmount, t],
+        [cardWidth, colors, typography, spacing, radius, shadows, formatAmount, formatAmountCompactLarge, t],
     );
 
     // ─── Empty State ──────────────────────────────────────────────────
@@ -206,8 +209,11 @@ export const WalletsScreen = () => {
                         >
                             {t('wallets.title')}
                         </Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
-                            {t('wallets.total', { amount: formatAmount(totalBalance) })}
+                        <Text
+                            accessibilityLabel={t('wallets.total', { amount: formatAmount(totalBalance) })}
+                            style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}
+                        >
+                            {t('wallets.total', { amount: formatAmountCompactLarge(totalBalance) })}
                         </Text>
                     </View>
                     <TouchableOpacity
