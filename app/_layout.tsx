@@ -3,6 +3,7 @@ import { SecurityGate } from "@/src/components/security/SecurityGate";
 import { container, getUseCaseDeps } from "@/src/core/di/container";
 import { ErrorBoundary } from "@/src/core/error/ErrorBoundary";
 import { dataEvents } from "@/src/core/events/dataEvents";
+import { recordEngineRun } from "@/src/core/recurring/failedRuleRuns";
 import {
   dropConsoleBreadcrumbs,
   stripPersistentIdentifiers,
@@ -11,6 +12,10 @@ import {
 import { SecurityProvider } from "@/src/core/security/SecurityContext";
 import { runMigrations } from "@/src/data/migrations";
 import { initializeSeedData } from "@/src/data/seed";
+import {
+  discardBackupCopies,
+  discardExportCopies,
+} from "@/src/data/services/backupCopies";
 import {
   configureNotificationHandler,
   initializeNotifications,
@@ -132,6 +137,12 @@ function RootLayout() {
   const bootstrap = useCallback(async () => {
     setIsReady(false);
     setBootError(false);
+    // Backup files, restore copies and exports a previous session left in the
+    // cache hold the ledger in cleartext. Best-effort and silent: neither call
+    // throws, so they can neither block the boot nor send it to
+    // StoreRecoveryScreen.
+    discardBackupCopies();
+    discardExportCopies();
     try {
       await runMigrations();
       await initializeSeedData();
@@ -151,6 +162,13 @@ function RootLayout() {
         eventBus: dataEvents,
         runInTransaction: getUseCaseDeps().runInTransaction,
       });
+
+      // The rules screen shows a rule this run failed as a fault until a later
+      // run succeeds (REGISTRE V-111, Owner decision 3, pass 79). Verified by
+      // recurringBootFailureStatus.test.tsx - "V-111 d (boot).".
+      if (recurringResult) {
+        recordEngineRun(recurringResult);
+      }
 
       // A rule that fails here is a standing order that did not execute, and
       // the user is told nothing: the engine catches per rule and boot carries

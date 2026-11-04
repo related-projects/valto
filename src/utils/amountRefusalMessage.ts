@@ -9,7 +9,9 @@
  * for that fraction" - so they get shared keys. The fourth, an amount of zero,
  * is already stated at every refusal site, in each site's own words: a budget
  * limit and a transfer amount are not the same noun, and the existing sentences
- * say so. Those are reused rather than flattened into one.
+ * say so. Those are reused rather than flattened into one. An amount above the
+ * entry cap (REGISTRE V-128) is the same mistake on every screen, so it has a
+ * shared key too.
  *
  * `t` is a parameter, as it is for the other helpers here: the copy belongs to
  * the caller's language, not to whatever the module-level instance last held.
@@ -25,6 +27,7 @@ export const SHARED_AMOUNT_ERROR_KEYS = {
     notANumber: 'common.amountErrors.notANumber',
     negative: 'common.amountErrors.negative',
     tooManyDecimals: 'common.amountErrors.tooManyDecimals',
+    tooLarge: 'common.amountErrors.tooLarge',
 } as const;
 
 /**
@@ -34,19 +37,26 @@ export const SHARED_AMOUNT_ERROR_KEYS = {
  * `example` is the shape the field accepts - the same derived placeholder the
  * input shows - so the over-precision message tells the user what to type
  * instead of naming a digit count that no language pluralizes alike.
+ * `maxAmount` is the entry cap (MAX_ENTRY_AMOUNT_MINOR) already formatted in
+ * the field's currency, so the too-large message names the limit the way the
+ * user reads amounts (REGISTRE V-128).
  *
- * @example amountRefusalMessage('zero', t, 'modals.transfer.invalidAmountMessage', '0')
- * @example amountRefusalMessage('tooManyDecimals', t, key, '0') -> "Enter the amount like 0"
+ * @example amountRefusalMessage('zero', t, 'modals.transfer.invalidAmountMessage', '0', max)
+ * @example amountRefusalMessage('tooManyDecimals', t, key, '0', max) -> "Enter the amount like 0"
  */
 export function amountRefusalMessage(
     cause: AmountRefusalCause,
     t: TFunction,
     zeroMessageKey: string,
     example: string,
+    maxAmount: string,
 ): string {
     if (cause === 'zero') return t(zeroMessageKey);
     if (cause === 'tooManyDecimals') {
         return t(SHARED_AMOUNT_ERROR_KEYS.tooManyDecimals, { example });
+    }
+    if (cause === 'tooLarge') {
+        return t(SHARED_AMOUNT_ERROR_KEYS.tooLarge, { max: maxAmount });
     }
     return t(SHARED_AMOUNT_ERROR_KEYS[cause]);
 }

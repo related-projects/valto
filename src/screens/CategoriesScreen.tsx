@@ -166,6 +166,8 @@ export const CategoriesScreen = () => {
                     ...shadows.elevated,
                 }}
                 onPress={handleAddNew}
+                accessibilityRole="button"
+                accessibilityLabel={t('a11y.addCategory')}
             >
                 <Ionicons name="add" size={30} color={colors.accentForeground} />
             </TouchableOpacity>

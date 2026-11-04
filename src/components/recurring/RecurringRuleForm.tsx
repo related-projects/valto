@@ -53,7 +53,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     const insets = useSafeAreaInsets();
     const { wallets } = useWallets();
     const { categories } = useCategories();
-    const { parseAmountToCentsResult, centsToMajor, formatDate, amountPlaceholder, decimals } = useFormatting();
+    const { parseAmountToCentsResult, centsToMajor, formatDate, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
 
     const isEdit = !!existingRule;
 
@@ -130,6 +130,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                     t,
                     'recurring.invalidAmountMessage',
                     amountPlaceholder,
+                    maxEntryAmount,
                 ),
             );
             return;

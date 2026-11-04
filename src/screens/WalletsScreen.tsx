@@ -2,13 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Dimensions,
     FlatList,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddWalletModal } from '../components/modals/AddWalletModal';
@@ -24,10 +24,8 @@ import { useFormatting } from '../hooks/useFormatting';
 
 // ─── Constants ────────────────────────────────────────────────────────
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-/** Card width shows ~78% of screen, revealing the edge of the next card */
-const WALLET_CARD_WIDTH = SCREEN_WIDTH * 0.78;
+/** Card width shows ~78% of the current window, revealing the edge of the next card */
+const WALLET_CARD_WIDTH_RATIO = 0.78;
 const WALLET_CARD_HEIGHT = 225;
 /** Gap between cards in the horizontal scroll */
 const WALLET_CARD_GAP = 12;
@@ -36,11 +34,13 @@ export const WalletsScreen = () => {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
     const insets = useSafeAreaInsets();
+    const { width: windowWidth } = useWindowDimensions();
+    const cardWidth = windowWidth * WALLET_CARD_WIDTH_RATIO;
 
     // Get real data
     const { wallets, getTotalBalance, refreshWallets } = useWallets();
     const { transactions } = useTransactions();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge } = useFormatting();
 
     // Modal state
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -72,15 +72,15 @@ export const WalletsScreen = () => {
 
     // ─── FlatList Optimization ────────────────────────────────────────
 
-    const snapInterval = WALLET_CARD_WIDTH + WALLET_CARD_GAP;
+    const snapInterval = cardWidth + WALLET_CARD_GAP;
 
     const getItemLayout = useCallback(
         (_data: ArrayLike<Wallet> | null | undefined, index: number) => ({
-            length: WALLET_CARD_WIDTH,
-            offset: (WALLET_CARD_WIDTH + WALLET_CARD_GAP) * index,
+            length: cardWidth,
+            offset: (cardWidth + WALLET_CARD_GAP) * index,
             index,
         }),
-        [],
+        [cardWidth],
     );
 
     const keyExtractor = useCallback((item: Wallet) => item.id, []);
@@ -95,7 +95,7 @@ export const WalletsScreen = () => {
             <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => handleEditWallet(wallet)}
-                style={{ width: WALLET_CARD_WIDTH }}
+                style={{ width: cardWidth }}
             >
                 <View
                     style={{
@@ -126,8 +126,11 @@ export const WalletsScreen = () => {
                     </View>
 
                     <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                        <Text style={{ color: colors.accentForeground, fontSize: typography.sizes['4xl'], fontWeight: typography.weights.bold, letterSpacing: -1, marginBottom: spacing.md }}>
-                            {formatAmount(wallet.balance)}
+                        <Text
+                            accessibilityLabel={formatAmount(wallet.balance)}
+                            style={{ color: colors.accentForeground, fontSize: typography.sizes['4xl'], fontWeight: typography.weights.bold, letterSpacing: -1, marginBottom: spacing.md }}
+                        >
+                            {formatAmountCompactLarge(wallet.balance)}
                         </Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                             <View style={{
@@ -148,7 +151,7 @@ export const WalletsScreen = () => {
                 </View>
             </TouchableOpacity>
         ),
-        [colors, typography, spacing, radius, shadows, formatAmount, t],
+        [cardWidth, colors, typography, spacing, radius, shadows, formatAmount, formatAmountCompactLarge, t],
     );
 
     // ─── Empty State ──────────────────────────────────────────────────
@@ -167,6 +170,7 @@ export const WalletsScreen = () => {
                     borderRadius: radius.md,
                 }}
                 onPress={handleAddWallet}
+                accessibilityRole="button"
             >
                 <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.md, fontWeight: '600' }}>
                     {t('wallets.createFirst')}
@@ -205,8 +209,11 @@ export const WalletsScreen = () => {
                         >
                             {t('wallets.title')}
                         </Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}>
-                            {t('wallets.total', { amount: formatAmount(totalBalance) })}
+                        <Text
+                            accessibilityLabel={t('wallets.total', { amount: formatAmount(totalBalance) })}
+                            style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium }}
+                        >
+                            {t('wallets.total', { amount: formatAmountCompactLarge(totalBalance) })}
                         </Text>
                     </View>
                     <TouchableOpacity
@@ -220,6 +227,7 @@ export const WalletsScreen = () => {
                             gap: spacing.xs,
                         }}
                         onPress={handleAddWallet}
+                        accessibilityRole="button"
                     >
                         <Ionicons name="add" size={18} color={colors.accentForeground} />
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>{t('wallets.add')}</Text>

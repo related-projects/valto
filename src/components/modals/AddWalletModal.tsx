@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { WalletType } from "../../domain/entities";
 import { useFormatting } from "../../hooks/useFormatting";
@@ -33,8 +33,8 @@ interface AddWalletModalProps {
   onSuccess?: () => void;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
+/** Share of the current window height the sheet takes. */
+const MODAL_HEIGHT_RATIO = 0.75;
 
 export const AddWalletModal: React.FC<AddWalletModalProps> = ({
   visible,
@@ -42,11 +42,12 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
   onSuccess,
 }) => {
   const { colors, spacing, typography, radius } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const { t } = useTranslation();
 
   // Hooks
   const { createWallet } = useWallets();
-  const { parseAmountResult, normalizeAmount, amountPlaceholder, decimals } = useFormatting();
+  const { parseAmountResult, normalizeAmount, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
 
   // Form state
   const [name, setName] = useState("");
@@ -90,6 +91,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
               t,
               "modals.addWallet.invalidBalanceMessage",
               amountPlaceholder,
+              maxEntryAmount,
             ),
       );
       return;
@@ -142,7 +144,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
         <View
           style={[
             styles.modalContainer,
-            { backgroundColor: colors.card, height: MODAL_HEIGHT },
+            { backgroundColor: colors.card, height: windowHeight * MODAL_HEIGHT_RATIO },
           ]}
         >
           {/* Header */}

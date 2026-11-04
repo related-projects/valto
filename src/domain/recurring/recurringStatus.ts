@@ -23,14 +23,17 @@ import { computeDueDates, hasOccurrencesLeft, startOfDay } from '../calculations
 /**
  * What a rule is doing right now.
  *
- * PAUSED and EXPIRED are intent and natural end. MISSING_REFERENCE and
- * INSUFFICIENT_FUNDS are faults: the rule is meant to be running and is not.
+ * PAUSED and EXPIRED are intent and natural end. MISSING_REFERENCE,
+ * INSUFFICIENT_FUNDS and NOT_RECORDED are faults: the rule is meant to be
+ * running and is not.
  */
 export enum RecurringRuleStatus {
     PAUSED = 'PAUSED',
     EXPIRED = 'EXPIRED',
     MISSING_REFERENCE = 'MISSING_REFERENCE',
     INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',
+    /** Its last engine run failed and left due debits unrecorded (REGISTRE V-111). */
+    NOT_RECORDED = 'NOT_RECORDED',
     ACTIVE = 'ACTIVE',
 }
 
@@ -131,12 +134,20 @@ export function deriveScheduleStatus(
  *              to add money would not make it run.
  *   INSUFFICIENT_FUNDS - the pending occurrences cost more than the wallet
  *              holds. A rule with nothing due is never in this state.
+ *   NOT_RECORDED - its last engine run failed (`lastRunFailed`, from
+ *              core/recurring/failedRuleRuns) and debits are still due
+ *              (REGISTRE V-111, Owner decision 3, pass 79). It used to read
+ *              Active. A rule with nothing due is never in this state, so the
+ *              label stays true once a later run has recorded them. An ended
+ *              rule with occurrences left reaches it too, as V-114 decision 1
+ *              requires of every fault.
  *   ACTIVE   - fallback.
  */
 export function deriveRecurringRuleStatus(
     rule: RecurringTransaction,
     references: RuleReferences,
     today: Date,
+    lastRunFailed = false,
 ): RecurringRuleStatus {
     const scheduleStatus = deriveScheduleStatus(rule, today);
     if (scheduleStatus) return scheduleStatus;
@@ -154,6 +165,8 @@ export function deriveRecurringRuleStatus(
         return RecurringRuleStatus.INSUFFICIENT_FUNDS;
     }
 
+    if (lastRunFailed) return RecurringRuleStatus.NOT_RECORDED;
+
     return RecurringRuleStatus.ACTIVE;
 }
 
@@ -161,6 +174,7 @@ export function deriveRecurringRuleStatus(
 const FAULT_STATUSES: readonly RecurringRuleStatus[] = [
     RecurringRuleStatus.MISSING_REFERENCE,
     RecurringRuleStatus.INSUFFICIENT_FUNDS,
+    RecurringRuleStatus.NOT_RECORDED,
 ];
 
 /**

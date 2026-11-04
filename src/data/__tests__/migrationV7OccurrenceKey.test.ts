@@ -49,6 +49,15 @@ function localDay(year: number, monthIndex: number, day: number): Date {
     return new Date(year, monthIndex, day);
 }
 
+/**
+ * The instant the engine now writes an occurrence due on a calendar day at:
+ * local noon of that day, in the process zone (REGISTRE V-102, Owner decision
+ * 4, pass 78). The rows seeded below are the unfixed engine's, at midnight.
+ */
+function occurrenceInstant(year: number, monthIndex: number, day: number): Date {
+    return new Date(year, monthIndex, day, 12, 0);
+}
+
 /** A database whose tables are exactly the v4..v6 baseline. */
 async function baselineDb(): Promise<BetterSqliteDatabase> {
     const db = new BetterSqliteDatabase();
@@ -184,8 +193,9 @@ describe('V-98 d. migration v7 on a v6 database (process zone; CI: UTC, Africa/L
 
         await runMigrations();
 
-        // v8 (REGISTRE V-114) and v9 (REGISTRE V-103) run after v7 in the same boot.
-        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(9);
+        // v8 (REGISTRE V-114), v9 (REGISTRE V-103) and v10 (REGISTRE V-116)
+        // run after v7 in the same boot.
+        expect(await getCurrentVersion(asyncStorageAdapter)).toBe(10);
 
         // The index of the last occurrence each rule has already written.
         const { rows: ruleRows } = await db.execute(
@@ -213,7 +223,8 @@ describe('V-98 d. migration v7 on a v6 database (process zone; CI: UTC, Africa/L
         });
         expect(result.errors).toEqual([]);
 
-        // Unfixed expectation, by hand:
+        // Unfixed expectation, by hand (the days; each is now written at local
+        // noon, REGISTRE V-102):
         //   r-31    after 31 Mar: 30 Apr (clamped), 31 May; 30 Jun is after today.
         //   r-w2    after 1 Jun: 15 Jun; 29 Jun is after today.
         //   r-new   25 Jun is after today: nothing.
@@ -228,21 +239,21 @@ describe('V-98 d. migration v7 on a v6 database (process zone; CI: UTC, Africa/L
         expect(fresh).toEqual([
             {
                 note: 'Rent 31st',
-                date: localDay(2026, 3, 30).toISOString(),
+                date: occurrenceInstant(2026, 3, 30).toISOString(),
                 recurring_rule_id: 'r-31',
                 recurring_schedule_version: 0,
                 recurring_occurrence_index: 3,
             },
             {
                 note: 'Rent 31st',
-                date: localDay(2026, 4, 31).toISOString(),
+                date: occurrenceInstant(2026, 4, 31).toISOString(),
                 recurring_rule_id: 'r-31',
                 recurring_schedule_version: 0,
                 recurring_occurrence_index: 4,
             },
             {
                 note: 'Cleaner',
-                date: localDay(2026, 5, 15).toISOString(),
+                date: occurrenceInstant(2026, 5, 15).toISOString(),
                 recurring_rule_id: 'r-w2',
                 recurring_schedule_version: 0,
                 recurring_occurrence_index: 1,

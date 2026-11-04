@@ -49,7 +49,14 @@ export interface TransactionPresenterProps {
     transaction: Transaction;
     categories: Category[];
     wallets: Wallet[];
+    /** Formats the amount as shown: exact on the detail screen, compact in the lists (V-128). */
     formatAmount: (amountMinor: number) => string;
+    /**
+     * The exact formatter, given where formatAmount may be compact. The amount
+     * then carries the exact signed string as its accessibilityLabel, so TalkBack
+     * reads it in full. Absent on the detail screen, which shows it exact.
+     */
+    formatAmountExact?: (amountMinor: number) => string;
     variant: TransactionPresenterVariant;
 }
 
@@ -144,6 +151,7 @@ export const TransactionPresenter: React.FC<TransactionPresenterProps> = ({
     categories,
     wallets,
     formatAmount,
+    formatAmountExact,
     variant,
 }) => {
     const { t } = useTranslation();
@@ -158,7 +166,9 @@ export const TransactionPresenter: React.FC<TransactionPresenterProps> = ({
     const hasNote = Boolean(transaction.note && transaction.note.trim().length > 0);
 
     const credit = isCredit(transaction);
-    const amount = `${credit ? '+' : '-'}${formatAmount(transaction.amount)}`;
+    const sign = credit ? '+' : '-';
+    const amount = `${sign}${formatAmount(transaction.amount)}`;
+    const amountLabel = formatAmountExact ? `${sign}${formatAmountExact(transaction.amount)}` : undefined;
     const amountColor = credit ? colors.success : colors.foreground;
 
     const iconTile = (
@@ -216,6 +226,7 @@ export const TransactionPresenter: React.FC<TransactionPresenterProps> = ({
     const amountText = (
         <Text
             testID="transaction_row_amount"
+            accessibilityLabel={amountLabel}
             style={{
                 color: amountColor,
                 fontSize: metrics.amountSize,

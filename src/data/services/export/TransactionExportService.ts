@@ -30,6 +30,7 @@ import { formatAmount } from '../../../utils/formatAmount';
 import { formatDate } from '../../../utils/formatDate';
 import { MISSING_CATEGORY_LABEL_KEY } from '../../../utils/missingCategory';
 import { centsToMajor } from '../../../utils/normalizeAmount';
+import { discardExportCopies } from '../backupCopies';
 
 // ─── CSV Export ───────────────────────────────────────────────────────
 
@@ -131,6 +132,10 @@ export async function shareCSV(
     const csv = generateCSV(transactions, wallets, categories, currency, t);
     const filename = `valto_transactions_${formatDate(new Date(), CSV_DATE_FORMAT)}.csv`;
     const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+
+    // Earlier exports go now rather than when their share returned: the
+    // receiving app may still have been reading them. Never throws.
+    discardExportCopies();
 
     await FileSystem.writeAsStringAsync(fileUri, csv, {
         encoding: FileSystem.EncodingType.UTF8,
@@ -396,6 +401,8 @@ export async function shareMonthlyPDF(
     );
 
     const { uri: printedUri } = await printToFileWithTimeout(html);
+    // Earlier exports go now, for the reason given in shareCSV. Never throws.
+    discardExportCopies();
     const uri = nameReportFile(printedUri, year, month);
 
     if (await Sharing.isAvailableAsync()) {

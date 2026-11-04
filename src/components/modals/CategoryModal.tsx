@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -14,6 +13,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import { Category, CategoryType } from '../../domain/entities';
 import { useCategories } from '../../hooks/useCategories';
@@ -31,8 +31,8 @@ interface CategoryModalProps {
     categoryToEdit?: Category | null;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85;
+/** Share of the current window height the sheet takes. */
+const MODAL_HEIGHT_RATIO = 0.85;
 
 const COLORS = [
     '#FFB74D', '#E57373', '#64B5F6', '#4DD0E1', '#BA68C8',
@@ -48,6 +48,7 @@ const ICONS = [
 
 export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, categoryToEdit }) => {
     const { colors, spacing, typography, radius } = useTheme();
+    const { height: windowHeight } = useWindowDimensions();
     const { t } = useTranslation();
     const { createCategory, updateCategory } = useCategories();
 
@@ -128,7 +129,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                     activeOpacity={1}
                     onPress={onClose}
                 />
-                <View style={[styles.modalContainer, { backgroundColor: colors.card, height: MODAL_HEIGHT }]}>
+                <View style={[styles.modalContainer, { backgroundColor: colors.card, height: windowHeight * MODAL_HEIGHT_RATIO }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
                         <TouchableOpacity onPress={onClose} style={styles.headerButton}>

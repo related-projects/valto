@@ -381,8 +381,8 @@ describe('V-105 m. edit after a restore (process zone; CI: UTC, Africa/Lagos, Am
         await processRecurringRules(engineDeps());
 
         // 10 Jan .. 10 Jun were debited before the backup; the first date after
-        // the edit day is 10 Jul.
+        // the edit day is 10 Jul, written at local noon (REGISTRE V-102).
         const added = (await clubRows()).filter((t) => !known.has(t.id));
-        expect(added.map((t) => t.date.getTime())).toEqual([new Date(2026, 6, 10).getTime()]);
+        expect(added.map((t) => t.date.getTime())).toEqual([new Date(2026, 6, 10, 12, 0).getTime()]);
     });
 });

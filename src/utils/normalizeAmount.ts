@@ -25,6 +25,7 @@ import {
     NUMBER_FORMATS,
 } from '../domain/constants/numberFormats';
 import type { NumberFormatProfile } from '../domain/entities/Settings';
+import { isEntryAmountWithinCap } from '../domain/validators/EntryAmountValidator';
 
 /**
  * Convert a major-unit amount to integer minor units.
@@ -88,13 +89,16 @@ const CONTAINS_GROUPING_SPACE = new RegExp(GROUPING_SPACE_CLASS);
  *  - tooManyDecimals  more fraction digits than the currency's exponent allows
  *  - negative         parsed below zero, where the caller requires positive
  *  - zero             parsed to exactly zero, where the caller requires positive
+ *  - tooLarge         further from zero than MAX_ENTRY_AMOUNT_MINOR once converted
+ *                     (REGISTRE V-128), including digits too many to be finite
  */
 export type AmountRefusalCause =
     | 'empty'
     | 'notANumber'
     | 'tooManyDecimals'
     | 'negative'
-    | 'zero';
+    | 'zero'
+    | 'tooLarge';
 
 /** A parsed amount, or the reason there is not one. */
 export type AmountResult =
@@ -104,9 +108,15 @@ export type AmountResult =
 const refused = (cause: AmountRefusalCause): AmountResult => ({ ok: false, cause });
 
 /**
- * Shared tail of every parse branch: enforce the currency's fraction width, then
- * convert. `normalized` must already use '.' as its decimal point and carry no
- * grouping.
+ * Shared tail of every parse branch: enforce the currency's fraction width and
+ * the entry cap, then convert. `normalized` must already use '.' as its decimal
+ * point and carry no grouping.
+ *
+ * The cap (REGISTRE V-128) is checked here because every amount field reads
+ * through this function, so no screen can miss it. It is checked on the value
+ * in minor units, the unit it is decided in. A non-finite result can only come
+ * from more digits than a double holds - the branches above admit nothing but
+ * digits and one point - so it is refused as too large, not as not a number.
  */
 function finishParse(sign: string, normalized: string, decimals: number): AmountResult {
     const dotIndex = normalized.indexOf('.');
@@ -115,13 +125,17 @@ function finishParse(sign: string, normalized: string, decimals: number): Amount
     }
 
     const parsed = Number(`${sign}${normalized}`);
-    return Number.isFinite(parsed) ? { ok: true, value: parsed } : refused('notANumber');
+    if (!isEntryAmountWithinCap(normalizeAmount(parsed, decimals))) {
+        return refused('tooLarge');
+    }
+    return { ok: true, value: parsed };
 }
 
 /**
  * Parse a user-typed amount string into major units, honouring the active decimal
  * separator preference. Returns null for anything that is not a single clean number,
- * or that carries more fraction digits than the currency's `decimals` allows.
+ * that carries more fraction digits than the currency's `decimals` allows, or that
+ * is further from zero than the entry cap (MAX_ENTRY_AMOUNT_MINOR, REGISTRE V-128).
  *
  * Sign and magnitude are returned as typed - callers apply their own zero/negative
  * policy. Use parseAndNormalizeAmount instead when the rule is "positive amounts only".

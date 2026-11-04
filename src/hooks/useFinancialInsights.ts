@@ -43,6 +43,7 @@ export function useFinancialInsights(): FinancialInsights {
         totalBudgetSpent,
         totalBudgetLimit,
         hasBudgets,
+        currentMonth,
     } = useBudgets();
 
     // --- Savings Health ---
@@ -75,17 +76,24 @@ export function useFinancialInsights(): FinancialInsights {
     }, [spendingByCategory]);
 
     // --- Budget Pace ---
+    // The month is useBudgets' currentMonth - the same state the spent and limit
+    // totals were read for - so a return to the foreground in a new month moves
+    // all three together (V-99). A clock read alone, inside this memo, stayed on
+    // the old date whenever the totals happened to come out equal.
     const budgetPace = useMemo(() => {
         if (!hasBudgets) return null;
 
+        const [year, month] = currentMonth.split('-').map(Number); // month 1-indexed
+        const totalDays = new Date(year, month, 0).getDate();
+
+        // Only the day comes off the clock, and only while the clock is still in
+        // that month; past it, the budgets on screen are for a month that is over.
         const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth(); // 0-indexed
-        const totalDays = new Date(year, month + 1, 0).getDate();
-        const daysElapsed = now.getDate();
+        const inMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+        const daysElapsed = inMonth ? now.getDate() : totalDays;
 
         return evaluateBudgetPace(totalBudgetSpent, totalBudgetLimit, daysElapsed, totalDays);
-    }, [totalBudgetSpent, totalBudgetLimit, hasBudgets]);
+    }, [totalBudgetSpent, totalBudgetLimit, hasBudgets, currentMonth]);
 
     return { savingsHealth, spendingTrend, categoryRisk, budgetPace };
 }

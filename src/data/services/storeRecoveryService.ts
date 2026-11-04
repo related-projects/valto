@@ -8,8 +8,11 @@
  * and the connection cannot be trusted. It therefore deletes the database file
  * (and its WAL/SHM siblings) directly on disk, then clears the AsyncStorage
  * pointers (schema version + seed flag) so the subsequent boot rebuilds a fresh
- * encrypted DB from scratch. The keystore encryption key is intentionally kept -
- * the file is the problem, not the key.
+ * encrypted DB from scratch. The keystore encryption key is deleted with the
+ * files, so that boot creates a new one: the key may be the problem, not the
+ * file - a stored key the keystore can no longer decrypt throws on every read,
+ * and every boot then fails before the database is opened (pass 82, Owner
+ * decision 2).
  *
  * Re-initialisation (migrations + seed) is NOT done here: the caller re-runs the
  * normal boot sequence, keeping a single init path.
@@ -22,7 +25,9 @@ import { Platform } from 'react-native';
 import { File } from 'expo-file-system';
 
 import { asyncStorageAdapter, LEGACY_KV_FINANCIAL_KEYS, StorageKeys } from '../storage';
+import { discardBackupCopies, discardExportCopies } from './backupCopies';
 import { closeDatabase, getDb } from '../storage/sql/database';
+import { deleteEncryptionKey } from '../storage/sql/encryptionKey';
 import { DB_NAME } from '../storage/sql/OpSQLiteDatabase';
 
 /** Drop a single trailing `/` (so joins never produce a double separator). */
@@ -121,13 +126,20 @@ export async function deleteDatabaseFiles(dir?: string): Promise<void> {
 }
 
 /**
- * Recover from an unreadable store: close the handle, delete the DB files, and
+ * Recover from an unreadable store: close the handle, delete the DB files, then
+ * delete the key that encrypted them (the next boot creates a new one), and
  * clear the AsyncStorage pointers that would otherwise make a re-init skip
- * migrations/seed against the now-empty file. Does NOT re-initialise - the
- * caller re-runs the boot sequence afterwards.
+ * migrations/seed against the now-empty file, together with any legacy
+ * key-value copies of financial data. Settings are kept. Does NOT
+ * re-initialise - the caller re-runs the boot sequence afterwards.
  *
  * Callers MUST require explicit user confirmation before invoking this: it
- * permanently erases all local financial data and there is no backend backup.
+ * permanently erases all local financial data. Valto has no server, and the
+ * app's Android backup rules (plugins/withAndroidBackupRules.js) keep the
+ * database and file domains, and the SecureStore file that holds the key, out
+ * of Android cloud backups and phone transfers, so no Android backup holds the
+ * store either. Only a Valto backup file the user saved earlier brings the data
+ * back, restored afterwards in Settings.
  */
 export async function resetCorruptedStore(): Promise<void> {
     // Resolve the on-disk path while the (corrupted-but-open) handle is still
@@ -137,9 +149,13 @@ export async function resetCorruptedStore(): Promise<void> {
 
     await deleteDatabaseFiles(directory);
 
+    // Only once the files are gone: if their deletion throws, the key that
+    // still opens them is kept with them. The next boot creates a new key.
+    await deleteEncryptionKey();
+
     // Drop the schema-version + seed pointers so the fresh DB re-runs all
     // migrations and re-seeds, and clear any residual cleartext KV copies.
-    // SETTINGS (language/theme/onboarding) and the keystore key are kept.
+    // SETTINGS (language/theme/onboarding) are kept.
     //
     // The financial keys come from LEGACY_KV_FINANCIAL_KEYS, the same constant
     // migration v6 purges, rather than from a literal list repeated here: both
@@ -150,4 +166,9 @@ export async function resetCorruptedStore(): Promise<void> {
         asyncStorageAdapter.remove(StorageKeys.SEED_INITIALIZED),
         ...LEGACY_KV_FINANCIAL_KEYS.map((key) => asyncStorageAdapter.remove(key)),
     ]);
+
+    // A backup file, restore copy or export left in the cache is the erased
+    // data in cleartext, so it goes with it. Best-effort, never throws.
+    discardBackupCopies();
+    discardExportCopies();
 }

@@ -51,4 +51,15 @@ export interface AppSettings {
     decimalSeparator: NumberFormatProfile;
     /** Whether the user has completed the onboarding flow */
     onboardingCompleted: boolean;
+    /**
+     * True once this install's date format has been settled from its locale or
+     * language: at first launch, or by the one-time switch settingsService runs
+     * on a blob written before the field existed (V-101). Never cleared. While it
+     * is absent from storage the switch has not run yet; once present, the
+     * stored dateFormat is the user's and is never touched again.
+     *
+     * Optional because it is additive (registry policy no. 10): blobs written
+     * before it existed, and backups taken from them, do not carry it.
+     */
+    dateFormatLocaleApplied?: boolean;
 }

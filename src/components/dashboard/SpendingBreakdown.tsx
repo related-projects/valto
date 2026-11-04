@@ -21,7 +21,7 @@ interface SpendingBreakdownProps {
 export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing } = useTheme();
-    const { formatAmount, formatAmountCompact } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge } = useFormatting();
 
     // Handle empty state
     if (data.length === 0) {
@@ -70,9 +70,10 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data }) =>
                                 adjustsFontSizeToFit
                                 minimumFontScale={0.5}
                                 ellipsizeMode="tail"
+                                accessibilityLabel={formatAmount(total)}
                                 style={{ color: colors.foreground, fontSize: typography.sizes.sm, fontWeight: typography.weights.bold, textAlign: 'center' }}
                             >
-                                {formatAmountCompact(total)}
+                                {formatAmountCompactLarge(total)}
                             </Text>
                         </>
                     }
@@ -89,8 +90,11 @@ export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({ data }) =>
                             >
                                 {item.name}
                             </Text>
-                            <Text style={{ color: colors.foreground, fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold }}>
-                                {formatAmount(item.value)}
+                            <Text
+                                accessibilityLabel={formatAmount(item.value)}
+                                style={{ color: colors.foreground, fontSize: typography.sizes.xs, fontWeight: typography.weights.semibold }}
+                            >
+                                {formatAmountCompactLarge(item.value)}
                             </Text>
                         </View>
                     ))}

@@ -46,7 +46,7 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge } = useFormatting();
 
     // Handle empty state
     if (!hasBudgets) {
@@ -144,7 +144,12 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                             {getOverallStatusText()}
                         </Text>
                     </View>
-                    <TouchableOpacity onPress={onCreateBudget} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <TouchableOpacity
+                        onPress={onCreateBudget}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('components.budgetProgress.createBudget')}
+                    >
                         <Ionicons name="add-circle-outline" size={22} color={colors.accent} />
                     </TouchableOpacity>
                 </View>
@@ -153,11 +158,17 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
             {/* Overall summary */}
             <View style={{ marginBottom: spacing.md }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: spacing.sm }}>
-                    <Text style={{ fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: colors.foreground }}>
-                        {formatAmount(totalSpent)}
+                    <Text
+                        accessibilityLabel={formatAmount(totalSpent)}
+                        style={{ fontSize: typography.sizes['2xl'], fontWeight: typography.weights.bold, color: colors.foreground }}
+                    >
+                        {formatAmountCompactLarge(totalSpent)}
                     </Text>
-                    <Text style={{ fontSize: typography.sizes.sm, color: colors.mutedForeground }}>
-                        {t('components.budgetProgress.of', { amount: formatAmount(totalLimit) })}
+                    <Text
+                        accessibilityLabel={t('components.budgetProgress.of', { amount: formatAmount(totalLimit) })}
+                        style={{ fontSize: typography.sizes.sm, color: colors.mutedForeground }}
+                    >
+                        {t('components.budgetProgress.of', { amount: formatAmountCompactLarge(totalLimit) })}
                     </Text>
                 </View>
 
@@ -180,8 +191,11 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                 </View>
 
                 {overallOverAmount > 0 && (
-                    <Text style={{ fontSize: typography.sizes.xs, color: colors.destructive, marginTop: spacing.xs }}>
-                        {t('components.budgetProgress.overAmount', { amount: formatAmount(overallOverAmount) })}
+                    <Text
+                        accessibilityLabel={t('components.budgetProgress.overAmount', { amount: formatAmount(overallOverAmount) })}
+                        style={{ fontSize: typography.sizes.xs, color: colors.destructive, marginTop: spacing.xs }}
+                    >
+                        {t('components.budgetProgress.overAmount', { amount: formatAmountCompactLarge(overallOverAmount) })}
                     </Text>
                 )}
             </View>
@@ -229,8 +243,11 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                                             {summary.categoryName}
                                         </Text>
                                     </TouchableOpacity>
-                                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
-                                        {formatAmount(summary.spentAmount)} / {formatAmount(summary.budget.limitAmount)}
+                                    <Text
+                                        accessibilityLabel={`${formatAmount(summary.spentAmount)} / ${formatAmount(summary.budget.limitAmount)}`}
+                                        style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}
+                                    >
+                                        {formatAmountCompactLarge(summary.spentAmount)} / {formatAmountCompactLarge(summary.budget.limitAmount)}
                                     </Text>
                                     {onDeleteBudget && (
                                         <TouchableOpacity
@@ -266,8 +283,11 @@ export const BudgetProgress: React.FC<BudgetProgressProps> = ({
                                 </View>
 
                                 {summary.isOverBudget && (
-                                    <Text style={{ color: colors.destructive, fontSize: typography.sizes.xs - 1, marginTop: 2 }}>
-                                        {t('components.budgetProgress.overCategory', { amount: formatAmount(summary.spentAmount - summary.budget.limitAmount) })}
+                                    <Text
+                                        accessibilityLabel={t('components.budgetProgress.overCategory', { amount: formatAmount(summary.spentAmount - summary.budget.limitAmount) })}
+                                        style={{ color: colors.destructive, fontSize: typography.sizes.xs - 1, marginTop: 2 }}
+                                    >
+                                        {t('components.budgetProgress.overCategory', { amount: formatAmountCompactLarge(summary.spentAmount - summary.budget.limitAmount) })}
                                     </Text>
                                 )}
                             </View>

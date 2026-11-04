@@ -30,7 +30,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
-    const { formatAmount, formatPercentNumber } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge, formatPercentNumber } = useFormatting();
 
     if (data.length === 0) {
         return (
@@ -106,6 +106,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                         {formatPercentNumber(item.percentage, 0)}%
                                     </Text>
                                     <Text
+                                        accessibilityLabel={formatAmount(item.amount)}
                                         style={{
                                             color: colors.foreground,
                                             fontSize: typography.sizes.sm,
@@ -114,7 +115,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                             textAlign: 'right',
                                         }}
                                     >
-                                        {formatAmount(item.amount)}
+                                        {formatAmountCompactLarge(item.amount)}
                                     </Text>
                                 </View>
                             </View>
@@ -145,6 +146,9 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                     </View>
                                     <View style={styles.budgetLabel}>
                                         <Text
+                                            accessibilityLabel={item.isOverBudget
+                                                ? undefined
+                                                : t('reports.ofBudget', { spent: formatAmount(item.amount), limit: formatAmount(item.budgetLimit) })}
                                             style={{
                                                 color: item.isOverBudget
                                                     ? colors.destructiveText
@@ -157,7 +161,7 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                         >
                                             {item.isOverBudget
                                                 ? t('reports.overBudget')
-                                                : t('reports.ofBudget', { spent: formatAmount(item.amount), limit: formatAmount(item.budgetLimit) })}
+                                                : t('reports.ofBudget', { spent: formatAmountCompactLarge(item.amount), limit: formatAmountCompactLarge(item.budgetLimit) })}
                                         </Text>
                                     </View>
                                 </View>

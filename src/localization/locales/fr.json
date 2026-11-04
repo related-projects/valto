@@ -323,27 +323,27 @@
       {
         "id": "add-transaction",
         "question": "Comment ajouter une transaction ?",
-        "answer": "Appuyez sur Actions rapides sur le tableau de bord et choisissez « Ajouter une dépense » ou « Ajouter un revenu ». Saisissez le montant, sélectionnez une catégorie et un portefeuille, puis enregistrez."
+        "answer": "Appuyez sur Actions rapides dans l'onglet Accueil et choisissez « Dépense » ou « Revenu ». Saisissez le montant, sélectionnez une catégorie et un portefeuille, puis enregistrez."
       },
       {
         "id": "create-wallet",
         "question": "Comment créer un nouveau portefeuille ?",
-        "answer": "Allez dans l'onglet Portefeuilles et appuyez sur « Ajouter un portefeuille ». Vous pouvez créer des portefeuilles pour les espèces, les comptes bancaires, le mobile money et l'épargne. Chaque portefeuille suit son propre solde indépendamment."
+        "answer": "Allez dans l'onglet Portefeuilles et appuyez sur « Ajouter ». Vous pouvez créer des portefeuilles pour les espèces, les comptes bancaires, le mobile money et l'épargne. Chaque portefeuille suit son propre solde indépendamment."
       },
       {
         "id": "transfer-funds",
         "question": "Comment effectuer un virement entre portefeuilles ?",
-        "answer": "Sur le tableau de bord, appuyez sur « Transfert » dans Actions rapides. Sélectionnez un portefeuille source, un portefeuille de destination et le montant. Le transfert débitera un portefeuille et créditera l'autre simultanément."
+        "answer": "Dans l'onglet Accueil, appuyez sur « Transfert » dans Actions rapides. Sélectionnez un portefeuille source, un portefeuille de destination et le montant. Le transfert débitera un portefeuille et créditera l'autre simultanément."
       },
       {
         "id": "set-budget",
         "question": "Comment fonctionnent les budgets ?",
-        "answer": "Les budgets sont définis par catégorie et par mois. Allez sur le tableau de bord et appuyez sur « Créer un budget » dans la section Budget. Vous verrez une barre de progression indiquant la part de chaque budget utilisée."
+        "answer": "Les budgets sont définis par catégorie et par mois. Allez dans l'onglet Accueil et appuyez sur « Créer un budget » dans la section Budget mensuel. Vous verrez une barre de progression indiquant la part de chaque budget utilisée."
       },
       {
         "id": "backup-data",
         "question": "Comment sauvegarder mes données ?",
-        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets, règles récurrentes et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud."
+        "answer": "Allez dans Paramètres > Sauvegarder les données. Cela crée un fichier JSON contenant tous vos portefeuilles, transactions, catégories, budgets, règles récurrentes et paramètres. Vous pouvez partager ou enregistrer ce fichier sur votre appareil ou dans le cloud. Ce fichier n'est pas chiffré : toute personne qui l'ouvre peut lire vos données, gardez-le donc dans un endroit auquel personne d'autre n'a accès. Sans ce fichier, vos données Valto ne vous suivent pas sur un nouveau téléphone : restaurez-le sur celui-ci dans Paramètres > Restaurer les données."
       },
       {
         "id": "restore-data",
@@ -385,8 +385,6 @@
   "settings": {
     "title": "Paramètres",
     "processing": "Traitement...",
-    "userName": "Utilisateur Valto",
-    "premiumAccount": "Compte Premium",
     "sections": {
       "references": "Références",
       "appSettings": "Paramètres de l'application",
@@ -448,7 +446,13 @@
     "restoreSuccess": "Succès",
     "restoreSuccessMessage": "Vos données ont été restaurées avec succès.",
     "restoreSuccessWithRulesMessage": "Vos données ont été restaurées avec succès. {{generated}} transaction(s) générée(s) pour rattraper le retard, {{unprocessed}} règle(s) récurrente(s) n'ont pas pu être traitées.",
-    "restoreSuccessRulesFailedMessage": "Vos données ont été restaurées avec succès, mais vos règles récurrentes n'ont pas pu être traitées. Elles seront vérifiées à la prochaine ouverture de l'application.",
+    "restoreSuccessRulesFailedMessage": "Vos données ont été restaurées avec succès, mais vos règles récurrentes n'ont pas pu être traitées. Elles seront vérifiées au prochain démarrage de l'application.",
+    "restoreDoneTitle": "Restauration effectuée",
+    "restoreDoneStepFailedMessage": "Vos données ont été restaurées, mais ceci n'a pas abouti : {{steps}}.",
+    "restoreStepUsableState": "la vérification qu'un portefeuille et une catégorie existent",
+    "restoreStepSettings": "la restauration de vos paramètres",
+    "restoreRulesCountsNote": "Transactions générées pour rattraper le retard : {{generated}}. Règles récurrentes qui n'ont pas pu être traitées : {{unprocessed}}.",
+    "restoreRulesFailedNote": "Vos règles récurrentes n'ont pas pu être traitées. Elles seront vérifiées au prochain démarrage de l'application.",
     "resetAllData": "Supprimer les données financières",
     "resetAllDataMessage": "Cela supprimera définitivement TOUS vos portefeuilles, transactions, catégories, budgets et règles récurrentes.",
     "resetIrreversible": "Action irréversible",
@@ -485,7 +489,8 @@
       "empty": "Veuillez saisir un montant",
       "notANumber": "Ce n'est pas un nombre valide",
       "negative": "Veuillez saisir un montant positif",
-      "tooManyDecimals": "Saisissez le montant sous la forme {{example}}"
+      "tooManyDecimals": "Saisissez le montant sous la forme {{example}}",
+      "tooLarge": "Montant trop élevé. Le maximum est de {{max}}"
     },
     "ok": "OK",
     "cancel": "Annuler",
@@ -515,10 +520,12 @@
     "deleteRuleMessage": "Êtes-vous sûr de vouloir supprimer cette règle récurrente ? Les transactions passées ne seront pas affectées.",
     "ruleCreated": "Règle créée",
     "ruleCreatedMessage": "Règle récurrente créée avec succès.\n{{count}} transaction(s) générée(s).",
-    "ruleCreatedNoTransactions": "Règle récurrente créée avec succès. Les transactions seront générées à la prochaine échéance.",
+    "ruleCreatedNoTransactions": "Règle récurrente créée avec succès. Les transactions seront enregistrées au premier démarrage de l'application à leur échéance ou après.",
     "ruleCreatedLaunch": "Règle récurrente créée. Les transactions seront générées au prochain lancement.",
     "ruleCreatedInsufficientTitle": "Règle créée. Fonds insuffisants",
-    "ruleCreatedInsufficientMessage": "Règle récurrente créée avec succès, mais des transactions ont été ignorées car votre portefeuille n'a pas assez de fonds. Elles seront générées automatiquement lorsque les fonds seront disponibles.",
+    "ruleCreatedInsufficientMessage": "Règle récurrente créée avec succès, mais des transactions ont été ignorées car votre portefeuille n'a pas assez de fonds. Elles seront enregistrées au prochain démarrage de l'application, si le portefeuille a alors assez de fonds.",
+    "ruleCreatedUnrecordedMessage": "La règle {{name}} a été créée. Ces transactions étaient échues et n'ont pas été enregistrées : {{dates}}. Elles seront retentées au prochain démarrage de l'application.",
+    "ruleCreatedPartlyRecordedMessage": "La règle {{name}} a été créée. Transactions enregistrées : {{recorded}}. Ces transactions étaient échues et n'ont pas été enregistrées : {{dates}}. Elles seront retentées au prochain démarrage de l'application.",
     "ruleUpdated": "Règle mise à jour",
     "ruleUpdatedMessage": "Règle récurrente mise à jour avec succès.",
     "editRefusedTitle": "Règle non modifiée",
@@ -529,6 +536,7 @@
     "editRefusedEndDateMissingWallet": "{{name}} a des transactions échues qui ne sont pas encore enregistrées : {{dates}}. Son portefeuille n'existe plus, elles ne peuvent donc pas être enregistrées, et ce changement de date de fin les ferait perdre. Choisissez un portefeuille et enregistrez d'abord en gardant la date de fin, puis changez la date de fin dans une seconde modification.",
     "editRefusedEndDateMissingCategory": "{{name}} a des transactions échues qui ne sont pas encore enregistrées : {{dates}}. Sa catégorie n'existe plus, elles ne peuvent donc pas être enregistrées, et ce changement de date de fin les ferait perdre. Choisissez une catégorie et enregistrez d'abord en gardant la date de fin, puis changez la date de fin dans une seconde modification.",
     "editRefusedEndDateMissingWalletAndCategory": "{{name}} a des transactions échues qui ne sont pas encore enregistrées : {{dates}}. Son portefeuille et sa catégorie n'existent plus, elles ne peuvent donc pas être enregistrées, et ce changement de date de fin les ferait perdre. Choisissez-les et enregistrez d'abord en gardant la date de fin, puis changez la date de fin dans une seconde modification.",
+    "editRefusedUnrecordedMessage": "La règle {{name}} n'a pas été modifiée. Ces transactions étaient échues et n'ont pas été enregistrées : {{dates}}. Modifiez à nouveau la règle pour réessayer.",
     "pausedUnrecordedTitle": "Règle en pause",
     "pausedUnrecordedMessage": "{{name}} est en pause. Ces transactions étaient échues et n'ont pas été enregistrées : {{dates}}.",
     "statusActive": "Actif",
@@ -536,6 +544,7 @@
     "statusExpired": "Terminée",
     "statusMissingReference": "Portefeuille ou catégorie manquant",
     "statusInsufficientFunds": "Fonds insuffisants",
+    "statusNotRecorded": "Transactions non enregistrées",
     "defaultDescription": "Transaction récurrente",
     "frequencyEvery": "Chaque {{base}}",
     "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
@@ -670,11 +679,8 @@
     "backButton": "Retour",
     "closeButton": "Fermer",
     "addTransaction": "Ajouter une transaction",
-    "addWallet": "Ajouter un portefeuille",
-    "addBudget": "Ajouter un budget",
     "addCategory": "Ajouter une catégorie",
     "addRecurringRule": "Ajouter une règle récurrente",
-    "editWallet": "Modifier le portefeuille {{name}}",
     "editRule": "Modifier la règle",
     "deleteRule": "Supprimer la règle",
     "editBudget": "Modifier le budget {{category}}",
@@ -697,7 +703,6 @@
     "openAbout": "Ouvrir à propos",
     "previousMonth": "Mois précédent",
     "nextMonth": "Mois suivant",
-    "walletCard": "Portefeuille {{name}} avec solde {{balance}}",
     "transactionItem": "{{type}} de {{amount}} pour {{category}}",
     "budgetStatus": "Budget {{status}} : {{spent}} sur {{limit}}",
     "refreshData": "Actualiser les données",
@@ -718,7 +723,7 @@
     "tryAgain": "Réessayer",
     "reset": "Réinitialiser les données",
     "confirmTitle": "Effacer les données locales ?",
-    "confirmBody": "Cette action supprime définitivement toutes les données de cet appareil : portefeuilles, transactions, catégories et budgets. Il n'existe aucune sauvegarde ni copie serveur, cette action est donc irréversible.",
+    "confirmBody": "Cette action supprime définitivement toutes les données de cet appareil : portefeuilles, transactions, catégories et budgets. Il n'existe aucune copie serveur. Si vous avez enregistré un fichier de sauvegarde Valto, vous pourrez le restaurer ensuite dans Paramètres > Restaurer les données ; ce qui n'est pas dans ce fichier ne pourra pas être récupéré.",
     "confirmCta": "Tout effacer",
     "cancel": "Annuler",
     "resetFailedTitle": "Échec de la réinitialisation",

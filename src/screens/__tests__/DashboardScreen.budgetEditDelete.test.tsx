@@ -150,7 +150,7 @@ jest.mock('../../hooks/useRecurringRules', () => ({
 // sheet's pre-fill effect depends on centsToMajor keeping its identity.
 const mockFormatting = {
     formatAmount: (v: number) => String(v),
-    formatAmountCompact: (v: number) => String(v),
+    formatAmountCompactLarge: (v: number) => String(v),
     formatAmountWhole: (v: number) => String(v),
     formatPercentNumber: (v: number, d: number) => v.toFixed(d),
     parseAmountToCents: (v: string) => (v ? Number(v) * 100 : null),

@@ -35,8 +35,13 @@
  * Resume needs no catch-up and lives on the repository: resumeRule.
  *
  * Verified by recurringEditPauseForward.test.ts.
+ *
+ * Every catch-up here, and the run after a create, is recorded in the list of
+ * rules whose last run failed (REGISTRE V-111, Owner decision 3, pass 79; see
+ * core/recurring/failedRuleRuns).
  */
 
+import { recordEngineRun, recordRuleRun } from '../../core/recurring/failedRuleRuns';
 import {
     computeDueOccurrences,
     deriveLastGeneratedIndex,
@@ -54,13 +59,48 @@ import {
     type RecurringRuleReference,
 } from '../../domain/useCases/errors';
 import { RepositoryError, RepositoryErrorType } from '../repositories/IRepository';
-import { retryRule, type RecurringEngineDeps } from './RecurringTransactionEngine';
+import { processRecurringRules, retryRule, type RecurringEngineDeps } from './RecurringTransactionEngine';
 
 /** What a pause did: the paused rule, and the occurrences it could not record first. */
 export interface PauseOutcome {
     rule: RecurringTransaction;
     /** Local days of the occurrences that were due and are not in the ledger. */
     unrecorded: Date[];
+}
+
+/**
+ * What the engine run after a create did for the new rule (REGISTRE V-111,
+ * Owner decision 1, pass 79). The run covers every active rule; this is the
+ * new rule's part of it only.
+ */
+export interface CreatedRuleOutcome {
+    /** Its occurrences that were due and are now in the ledger. */
+    recorded: number;
+    /** Local days of its occurrences that were due and are not in the ledger. */
+    unrecorded: Date[];
+    /** Whether the funds guard refused its catch-up. */
+    skipped: boolean;
+}
+
+/**
+ * Thrown when the catch-up before an edit failed for a reason other than
+ * funds (REGISTRE V-111, Owner decision 2, pass 79): nothing was saved, and
+ * `unrecordedDates` are the local days of the occurrences that were due and
+ * are still not in the ledger - those the catch-up wrote before it failed are
+ * not among them. Defined here rather than with the domain refusals: it is
+ * thrown by this service only.
+ */
+export class RecurringCatchUpFailedError extends Error {
+    constructor(public readonly unrecordedDates: Date[]) {
+        super(`The catch-up before the edit left ${unrecordedDates.length} occurrence(s) unrecorded`);
+        this.name = 'RecurringCatchUpFailedError';
+    }
+}
+
+/** The occurrences of `due` that `stored` has not recorded yet. */
+function notRecorded(due: DueOccurrence[], stored: RecurringTransaction): DueOccurrence[] {
+    const done = stored.lastGeneratedIndex ?? deriveLastGeneratedIndex(stored);
+    return due.filter((occurrence) => occurrence.index > done);
 }
 
 async function getRule(deps: RecurringEngineDeps, id: string): Promise<RecurringTransaction> {
@@ -138,7 +178,11 @@ function saveEdit(
  * schedule of a rule whose wallet or category is missing, and
  * RecurringEndDateEditRefusedError when such an edit would leave a due
  * occurrence out of the ledger for good (dueOccurrencesBlockingTheEdit); in
- * every case nothing is generated and nothing is saved. Verified by
+ * every case nothing is generated and nothing is saved. Throws
+ * RecurringCatchUpFailedError when the catch-up failed otherwise: nothing is
+ * saved, and what it wrote before failing stays in the ledger (REGISTRE V-111,
+ * Owner decision 2, pass 79; verified by
+ * RecurringRulesScreen.v111Outcome.test.tsx - "V-111 c."). Verified by
  * recurringEditPauseForward.test.ts - "b1.", "c.", "d.", "f." and "o.", and
  * "control: decision 8, an edit that keeps the schedule...", and
  * recurringEndOccurrenceIndex.test.ts - "V-118 a.", "V-118 b." and "V-118 c.".
@@ -171,7 +215,28 @@ export async function editRecurringRule(
 
     const due = computeDueOccurrences(rule, startOfDay(now));
     if (due.length > 0) {
-        const result = await retryRule(deps, rule.id, now);
+        let result: Awaited<ReturnType<typeof retryRule>>;
+        try {
+            result = await retryRule(deps, rule.id, now);
+        } catch (error) {
+            // Named with the dates still unrecorded, as a pause names them
+            // (REGISTRE V-111, Owner decision 2, pass 79), instead of reaching
+            // the form's generic save failure. Those the catch-up wrote before
+            // it failed stay in the ledger and are not listed. A rule deleted,
+            // paused or rescheduled meanwhile has no such list to give: the
+            // original failure goes on.
+            recordRuleRun(rule.id, 'failed');
+            const stored = await deps.recurringRepo.getById(rule.id);
+            if (
+                stored === null ||
+                stored.isPaused ||
+                (stored.scheduleVersion ?? 0) !== (rule.scheduleVersion ?? 0)
+            ) {
+                throw error;
+            }
+            throw new RecurringCatchUpFailedError(notRecorded(due, stored).map((occurrence) => occurrence.date));
+        }
+        recordRuleRun(rule.id, 'completed');
         if (result.skipped) {
             throw new RecurringCatchUpRefusedError(
                 due.map((occurrence) => occurrence.date),
@@ -207,7 +272,9 @@ export async function pauseRecurringRule(
     if (due.length > 0 && (await missingReferences(deps, rule)).length === 0) {
         try {
             await retryRule(deps, id, now);
+            recordRuleRun(id, 'completed');
         } catch (error) {
+            recordRuleRun(id, 'failed');
             const message = error instanceof Error ? error.message : String(error);
             console.warn(`[RecurringRuleChanges] Catch-up before pausing rule ${id} failed: ${message}`);
         }
@@ -216,9 +283,47 @@ export async function pauseRecurringRule(
     // After the catch-up, the rule is read again and paused in one transaction.
     return deps.runInTransaction(async () => {
         const fresh = await getRule(deps, id);
-        const done = fresh.lastGeneratedIndex ?? deriveLastGeneratedIndex(fresh);
-        const unrecorded = due.filter((occurrence) => occurrence.index > done).map((occurrence) => occurrence.date);
+        const unrecorded = notRecorded(due, fresh).map((occurrence) => occurrence.date);
 
         return { rule: await deps.recurringRepo.pauseRule(id), unrecorded };
     });
+}
+
+/**
+ * Run the engine after a create and say what it did for the new rule
+ * (REGISTRE V-111, Owner decision 1, pass 79).
+ *
+ * The run still covers every active rule, as it did from the rules screen;
+ * only what is returned is narrowed to `rule`. Its due occurrences are
+ * computed before the run, from the rule as created, and compared after it
+ * with the stored rule - as pauseRecurringRule computes what it left
+ * unrecorded - so an error the engine reported for it, or a run that could
+ * not read the rules at all, both show up as unrecorded days. Its debits are
+ * counted from its own number, never from the run's total.
+ *
+ * Returns null when the rule was deleted or paused while the run was going:
+ * there is nothing left to report about it.
+ */
+export async function catchUpCreatedRule(
+    deps: RecurringEngineDeps,
+    rule: RecurringTransaction,
+    now: Date = new Date(),
+): Promise<CreatedRuleOutcome | null> {
+    const due = computeDueOccurrences(rule, startOfDay(now));
+    const result = await processRecurringRules(deps);
+    recordEngineRun(result);
+
+    const stored = await deps.recurringRepo.getById(rule.id);
+    if (stored === null || stored.isPaused) return null;
+
+    const unrecorded = notRecorded(due, stored);
+    const skipped = result.skipped.some((skip) => skip.ruleId === rule.id);
+    if (unrecorded.length > 0 && !skipped) {
+        recordRuleRun(rule.id, 'failed');
+    }
+    return {
+        recorded: due.length - unrecorded.length,
+        unrecorded: unrecorded.map((occurrence) => occurrence.date),
+        skipped,
+    };
 }

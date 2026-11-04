@@ -5,6 +5,7 @@
  * Validates schema before applying restores to prevent data corruption.
  */
 
+import * as Application from 'expo-application';
 import * as DocumentPicker from 'expo-document-picker';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -17,6 +18,7 @@ import {
     getWalletRepository,
 } from '../../core/di';
 import { dataEvents } from '../../core/events';
+import { recordEngineRun } from '../../core/recurring/failedRuleRuns';
 import {
     SerializableBudget,
     SerializableCategory,
@@ -35,9 +37,16 @@ import {
     serializeTransaction,
     serializeWallet,
 } from '../../domain/entities';
-import { deriveEndOccurrenceIndex, deriveLastGeneratedIndex, endDayOf } from '../../domain/calculations/recurrenceDates';
+import {
+    deriveEndOccurrenceIndex,
+    deriveLastGeneratedIndex,
+    endDayOf,
+    startDayOf,
+} from '../../domain/calculations/recurrenceDates';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../../domain/constants/amounts';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
+import { errorKind } from '../../utils/errorKind';
 import { ledgerEffect } from '../../domain/ledger/ledgerEffect';
 import { isTransferCategoryId } from '../../domain/ledger/transferCategories';
 import {
@@ -55,6 +64,7 @@ import {
     transactionMapper,
 } from '../storage/sql/mappers';
 import { processRecurringRules } from './RecurringTransactionEngine';
+import { discardBackupCopies } from './backupCopies';
 import { scheduleDailyReminder } from './notificationService';
 import { AppSettings, loadSettings, saveSettings } from './settingsService';
 import { ensureUsableState } from './usableStateService';
@@ -66,7 +76,11 @@ export interface BackupSnapshot {
     version: number;
     /** ISO timestamp of when backup was created */
     createdAt: string;
-    /** App version string */
+    /**
+     * Version of the installed app that wrote the file, read from
+     * expo-application when the backup is made; 'unknown' when the platform
+     * reports none. Informational: no restore path reads it.
+     */
     appVersion: string;
     /** All data */
     data: {
@@ -121,12 +135,27 @@ export function snapshotTables(version: number): readonly string[] {
 }
 
 /**
+ * A step a restore runs after its ledger has committed, which can fail without
+ * undoing it: making sure a wallet and a category exist (ensureUsableState),
+ * and writing the backup's settings (saveSettings).
+ */
+export type RestoreStep = 'usableState' | 'settings';
+
+/**
  * What a restore left behind, for the caller to report to the user.
  *
  * The restore itself either succeeded or threw; nothing here is a failure of
- * the restore. These are counts of work the catch-up did or could not do.
+ * the restore. These are counts of work the catch-up did or could not do, and
+ * the steps after the commit that failed.
  */
 export interface RestoreOutcome {
+    /**
+     * Steps after the commit that failed (REGISTRE V-119, Owner decision 4,
+     * pass 79). The ledger was restored all the same, the catch-up ran and the
+     * data events were emitted; the user is told the restore was done and
+     * which step did not complete.
+     */
+    failedSteps: RestoreStep[];
     /** Transactions the recurring engine generated to catch up after the restore. */
     catchUpGenerated: number;
     /**
@@ -179,7 +208,19 @@ const unknownCurrencyError = (code: string) =>
     `This backup records its amounts in "${code}", which this version of the app does not know, so restoring it could misread every amount.`;
 
 /**
+ * A reference the file must carry: a non-empty string. Not a uuid check - v5
+ * imported the legacy ids as they were.
+ */
+const isWellFormedId = (value: unknown): value is string =>
+    typeof value === 'string' && value.trim() !== '';
+
+/**
  * Validate a snapshot's schema and referential integrity.
+ *
+ * A category reference on a transaction or a budget must resolve in the file.
+ * A wallet reference on a transaction, and both references on a rule, need
+ * only be well formed: the app itself writes files in which they do not
+ * resolve (REGISTRE V-127), and those rows are restored as they are.
  */
 export function validateSnapshot(data: unknown): ValidationResult {
     const errors: string[] = [];
@@ -281,9 +322,6 @@ export function validateSnapshot(data: unknown): ValidationResult {
     }
 
     // Referential integrity checks
-    const walletIds = new Set(
-        (snapshotData.wallets as SerializableWallet[]).map(w => w.id),
-    );
     const categoryIds = new Set(
         (snapshotData.categories as SerializableCategory[]).map(c => c.id),
     );
@@ -293,8 +331,15 @@ export function validateSnapshot(data: unknown): ValidationResult {
             errors.push(`Transaction missing required fields: ${JSON.stringify(tx)}`);
             continue;
         }
-        if (!walletIds.has(tx.walletId)) {
-            errors.push(`Transaction ${tx.id} references non-existent wallet ${tx.walletId}`);
+        // The wallet need not be in the file. deleteWallet keeps the
+        // transactions of the wallet it deletes ("Delete Anyway"), on purpose:
+        // a transaction is a past fact that stays true without its wallet. The
+        // next backup exports them, and refusing them here refused a file the
+        // app had written itself (REGISTRE V-127). They are restored as they
+        // are; the opening balance derived below counts each wallet's own
+        // transactions only, so no other wallet's balance moves.
+        if (!isWellFormedId(tx.walletId)) {
+            errors.push(`Transaction ${tx.id} has a missing or malformed wallet id`);
         }
         // A transfer's two legs carry reserved pseudo-category ids that no
         // Category row backs, on purpose: transferFunds writes them onto the
@@ -323,20 +368,22 @@ export function validateSnapshot(data: unknown): ValidationResult {
         }
     }
 
-    // A rule is checked harder than a transaction is, for the same reason
-    // deleteWallet and deleteCategory refuse to orphan one: a transaction is a
-    // past fact that stays true without its wallet, a rule is a future
-    // instruction that cannot execute without one. Refusing the file here is
-    // what lets the restore clear and repopulate the table at all - a rule that
-    // arrives pointing nowhere would be written, look armed on the rules screen,
-    // and fail on every run.
+    // A rule's wallet and category need not be in the file either. deleteWallet
+    // and deleteCategory refuse to orphan a rule, but a restore of a v1 file
+    // does it for them: the file carries no rules, so the live ones stay while
+    // the wallets and categories are replaced (snapshotTables), and a rule can
+    // be left pointing at neither. The app runs with it - the restore reports
+    // it as not processed, the engine refuses it on every run - and the next
+    // backup exports it. Refusing it here refused a file the app had written
+    // itself (REGISTRE V-127). It is restored as it is, and the catch-up after
+    // the restore reports it again; nothing generates for it.
     if (carriesRules) {
         for (const r of snapshotData.recurringRules as SerializableRecurringTransaction[]) {
-            if (!walletIds.has(r.walletId)) {
-                errors.push(`Recurring rule ${r.id} references non-existent wallet ${r.walletId}`);
+            if (!isWellFormedId(r.walletId)) {
+                errors.push(`Recurring rule ${r.id} has a missing or malformed wallet id`);
             }
-            if (!categoryIds.has(r.categoryId)) {
-                errors.push(`Recurring rule ${r.id} references non-existent category ${r.categoryId}`);
+            if (!isWellFormedId(r.categoryId)) {
+                errors.push(`Recurring rule ${r.id} has a missing or malformed category id`);
             }
         }
     }
@@ -379,7 +426,7 @@ async function createBackupSnapshot(): Promise<BackupSnapshot> {
     return {
         version: CURRENT_SCHEMA_VERSION,
         createdAt: new Date().toISOString(),
-        appVersion: '1.0.0',
+        appVersion: Application.nativeApplicationVersion ?? 'unknown',
         data: {
             wallets: wallets.map(serializeWallet),
             transactions: transactions.map(serializeTransaction),
@@ -408,6 +455,11 @@ export async function createAndShareBackup(): Promise<void> {
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `valto-backup-${timestamp}.json`;
+
+    // The previous backup's file, and any restore copy, go now rather than when
+    // their share returned: the receiving app may still have been reading it.
+    discardBackupCopies();
+
     const file = new ExpoFile(Paths.cache, filename);
 
     file.write(json);
@@ -446,6 +498,23 @@ const ENTITY_LABELS: Record<string, string> = {
 const entityLabel = (entity: string): string => ENTITY_LABELS[entity] ?? entity.toLowerCase();
 
 /**
+ * A budget whose limit the file carries as null, kept with the largest limit
+ * the app accepts.
+ *
+ * 1.1.3 let a limit be Infinity, and JSON has no Infinity: JSON.stringify
+ * wrote it as null. Inserted as it was, the null failed
+ * `limit_amount INTEGER NOT NULL` and rolled the whole restore back, so a
+ * backup the app wrote could not be restored (REGISTRE V-128, Owner decision
+ * 04/11; policy 14). Only a null limit is touched: any other value, negative
+ * or above the cap included, is restored as the file has it.
+ */
+function withRestorableLimit(budget: SerializableBudget): SerializableBudget {
+    return (budget.limitAmount as unknown) === null
+        ? { ...budget, limitAmount: MAX_ENTRY_AMOUNT_MINOR }
+        : budget;
+}
+
+/**
  * Restore app data from a validated snapshot.
  *
  * Financial data is written to the encrypted SQLite store, which is the only
@@ -478,7 +547,8 @@ const entityLabel = (entity: string): string => ENTITY_LABELS[entity] ?? entity.
  * file - which carries no recurring rules - clears and rewrites four tables and
  * leaves the fifth exactly as it found it.
  *
- * @returns counts from the post-restore catch-up, for the caller to report
+ * @returns counts from the post-restore catch-up and the steps after the
+ * commit that failed, for the caller to report
  * @throws SnapshotRejectedError if snapshot validation fails
  * @throws Error if any entity fails its domain invariants, or any write fails
  */
@@ -498,7 +568,7 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     const wallets = snapshot.data.wallets.map(deserializeWallet);
     const transactions = snapshot.data.transactions.map(deserializeTransaction);
     const categories = snapshot.data.categories.map(deserializeCategory);
-    const budgets = snapshot.data.budgets.map(deserializeBudget);
+    const budgets = snapshot.data.budgets.map(withRestorableLimit).map(deserializeBudget);
     // A file written before the occurrence key existed carries no number for
     // its rules. Each gets the one the v7 backfill would give it, derived from
     // its watermark in the zone the restore runs in, and it is stored with the
@@ -521,9 +591,17 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     // the local day of the end date in the restoring zone - what migration v9
     // would give it. Verified by backupRestoreEndDay.test.ts - "V-103 A4 a."
     // and "V-103 A4 b.".
+    //
+    // And for the start day (REGISTRE V-116, Owner decision 3, pass 78): a
+    // file that carries it keeps it, and one written before it existed gets
+    // the local day of the start date in the restoring zone - what migration
+    // v10 would give it. Set first, so the numbers derived below walk from the
+    // day the rule is stored with. Verified by backupRestoreStartDay.test.ts -
+    // "V-116 A4 a." and "V-116 A4 b.".
     const recurringRules = carriesRules
         ? snapshot.data.recurringRules
             .map(deserializeRecurringTransaction)
+            .map((rule) => ({ ...rule, startDay: startDayOf(rule) }))
             .map((rule) =>
                 rule.lastGeneratedIndex === undefined || rule.lastGeneratedIndex === null
                     ? { ...rule, lastGeneratedIndex: deriveLastGeneratedIndex(rule) }
@@ -588,7 +666,8 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
 
             // Categories and budgets have no domain validator to call. Their
             // referential integrity is checked in validateSnapshot; their own
-            // field invariants are not enforced on this path.
+            // field invariants are not enforced on this path. The one repair
+            // is a null budget limit, set to the cap above (withRestorableLimit).
             for (const b of budgets) {
                 await sqlInsert(db, budgetMapper, b);
             }
@@ -604,7 +683,8 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
             }
         });
     } catch (writeError) {
-        console.error('[Backup] Restore failed, transaction rolled back:', writeError);
+        // The kind only: a ValidationError carries the refused value from the file.
+        console.error('[Backup] Restore failed, transaction rolled back:', errorKind(writeError));
 
         // A refused entity is not a write failure, and must not be reported as
         // one: the rollback is identical, but the user needs to know the file is
@@ -631,13 +711,31 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     // correctly and a failure to materialize a default wallet is not a reason to
     // roll it back. Idempotent: a snapshot that carried wallets and categories
     // leaves this a no-op.
-    await ensureUsableState();
+    //
+    // This step and the settings below run after the commit, so their failure
+    // is recorded and the restore goes on (REGISTRE V-119, Owner decision 4,
+    // pass 79). Thrown, it used to report the committed restore as failed -
+    // "the file may be invalid" - skip the catch-up and emit nothing, so every
+    // screen kept the ledger the restore had just replaced. Verified by
+    // useSettingsRestoreOutcome.test.ts - "V-119 e.".
+    const failedSteps: RestoreStep[] = [];
+    try {
+        await ensureUsableState();
+    } catch (usableStateError) {
+        console.warn('[Backup] Making sure a wallet and a category exist after restore failed:', usableStateError);
+        failedSteps.push('usableState');
+    }
 
     // Settings live in key-value storage, outside the SQLite transaction above.
     // Written only after the ledger has committed, so a failed restore can never
     // leave the new snapshot's settings sitting on top of the old data.
     if (snapshot.data.settings) {
-        await saveSettings(snapshot.data.settings);
+        try {
+            await saveSettings(snapshot.data.settings);
+        } catch (settingsError) {
+            console.warn('[Backup] Writing the restored settings failed:', settingsError);
+            failedSteps.push('settings');
+        }
     }
 
     // Reconcile the daily reminder with the restored preference. A backup can carry
@@ -668,7 +766,7 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
         'wallets', 'transactions', 'categories', 'budgets', 'recurringRules',
     ]);
 
-    return outcome;
+    return { ...outcome, failedSteps };
 }
 
 /**
@@ -686,12 +784,13 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
  *
  * Deliberately after the commit and outside every rollback. The ledger is
  * already correct; a standing order that cannot execute is something to tell the
- * user about, never a reason to undo a good restore. A v2 file cannot leave a
- * broken reference behind because validateSnapshot refuses one, but a v1 file
+ * user about, never a reason to undo a good restore. A rule can be left
+ * pointing at a wallet or category that does not exist in two ways: a v1 file
  * carries no rules at all, so the live ones can outlive the wallet or category
- * the restore just replaced - findWithMissingReferences is what finds those.
+ * the restore just replaced, and a v2 file can carry such a rule as the app
+ * backed it up (REGISTRE V-127) - findWithMissingReferences is what finds both.
  */
-async function runPostRestoreCatchUp(): Promise<RestoreOutcome> {
+async function runPostRestoreCatchUp(): Promise<Omit<RestoreOutcome, 'failedSteps'>> {
     try {
         const engineResult = await processRecurringRules({
             recurringRepo: container.recurringTransactionRepository,
@@ -701,6 +800,9 @@ async function runPostRestoreCatchUp(): Promise<RestoreOutcome> {
             eventBus: dataEvents,
             runInTransaction: (work) => getDb().runInTransaction(work),
         });
+        // The rules screen shows a rule this run failed as a fault until a
+        // later run succeeds (REGISTRE V-111, Owner decision 3, pass 79).
+        recordEngineRun(engineResult);
 
         // One rule can both fail in the engine and point at a missing wallet.
         // The user is being told how many standing orders did not run, not how
@@ -748,29 +850,39 @@ export async function pickAndRestoreBackup(): Promise<RestoreOutcome | null> {
 
     const asset = result.assets[0];
     const fileUri = asset.uri;
-    console.log('[Backup] Selected file:', { uri: fileUri, name: asset.name, size: asset.size, mimeType: asset.mimeType });
+    // Nothing that names the file or quotes it is printed on this path: not the
+    // uri, not the picked name, not a slice of the content (pass 84b). Console
+    // output reaches the device log.
+    console.log('[Backup] Selected file:', { size: asset.size, mimeType: asset.mimeType });
 
-    // --- Pre-parse validation ---
-    const file = new ExpoFile(fileUri);
-
-    if (!file.exists) {
-        throw new Error('The selected file could not be accessed. Please try again.');
-    }
-
-    if (file.size === 0) {
-        throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
-    }
-
-    // --- Read file content (text() returns Promise<string> in expo-file-system v19) ---
+    // The picker's copy holds the whole ledger in cleartext. It is read once,
+    // whole, below; once that read is over - succeeded or refused - it goes,
+    // and everything after works on the string in memory.
     let content: string;
     try {
-        content = await file.text();
-    } catch (readError) {
-        console.error('[Backup] Failed to read file:', readError);
-        throw new Error('Could not read the selected file. It may be corrupted or inaccessible.');
+        // --- Pre-parse validation ---
+        const file = new ExpoFile(fileUri);
+
+        if (!file.exists) {
+            throw new Error('The selected file could not be accessed. Please try again.');
+        }
+
+        if (file.size === 0) {
+            throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
+        }
+
+        // --- Read file content (text() returns Promise<string> in expo-file-system v19) ---
+        try {
+            content = await file.text();
+        } catch (readError) {
+            console.error('[Backup] Failed to read file:', errorKind(readError));
+            throw new Error('Could not read the selected file. It may be corrupted or inaccessible.');
+        }
+    } finally {
+        discardBackupCopies();
     }
 
-    console.log('[Backup] File read:', { contentLength: content.length, first200: content.substring(0, 200) });
+    console.log('[Backup] File read:', { contentLength: content.length });
 
     if (!content || content.trim().length === 0) {
         throw new Error('The selected file is empty. Please choose a valid Valto backup file.');
@@ -783,7 +895,8 @@ export async function pickAndRestoreBackup(): Promise<RestoreOutcome | null> {
     try {
         parsed = JSON.parse(cleanContent);
     } catch (parseError) {
-        console.error('[Backup] JSON parse failed:', parseError, { contentLength: cleanContent.length, first200: cleanContent.substring(0, 200) });
+        // The parser's message quotes the input, so only its kind is printed.
+        console.error('[Backup] JSON parse failed:', errorKind(parseError), { contentLength: cleanContent.length });
         throw new Error('The selected file contains invalid JSON. Please choose a valid Valto backup file.');
     }
 

@@ -323,47 +323,47 @@
       {
         "id": "add-transaction",
         "question": "¿Cómo añado una transacción?",
-        "answer": "Toca Acciones rápidas en el panel y elige «Añadir gasto» o «Añadir ingreso». Ingresa el monto, selecciona una categoría y una cartera, luego guarda."
+        "answer": "Toca Acciones rápidas en la pestaña Panel y elige «Gasto» o «Ingreso». Ingresa el monto, selecciona una categoría y una cartera, luego guarda."
       },
       {
         "id": "create-wallet",
         "question": "¿Cómo creo una nueva cartera?",
-        "answer": "Ve a la pestaña Carteras y toca «Añadir cartera». Puedes crear carteras para efectivo, cuentas bancarias, dinero móvil y ahorros. Cada cartera lleva su propio saldo de forma independiente."
+        "answer": "Ve a la pestaña Carteras y toca «Añadir». Puedes crear carteras para efectivo, cuentas bancarias, dinero móvil y ahorros. Cada cartera lleva su propio saldo de forma independiente."
       },
       {
         "id": "transfer-funds",
         "question": "¿Cómo transfiero entre carteras?",
-        "answer": "En el panel, toca «Transferencia» en Acciones rápidas. Selecciona una cartera de origen, una de destino y el monto. La transferencia debitará una cartera y acreditará la otra simultáneamente."
+        "answer": "En la pestaña Panel, toca «Transferencia» en Acciones rápidas. Selecciona una cartera de origen, una de destino y el monto. La transferencia debitará una cartera y acreditará la otra simultáneamente."
       },
       {
         "id": "set-budget",
         "question": "¿Cómo funcionan los presupuestos?",
-        "answer": "Los presupuestos se establecen por categoría y por mes. Ve al panel y toca «Crear presupuesto» en la sección Presupuesto. Verás una barra de progreso que muestra cuánto has usado de cada presupuesto."
+        "answer": "Los presupuestos se establecen por categoría y por mes. Ve a la pestaña Panel y toca «Crear un presupuesto» en la sección Presupuesto mensual. Verás una barra de progreso que muestra cuánto has usado de cada presupuesto."
       },
       {
         "id": "backup-data",
         "question": "¿Cómo hago una copia de seguridad de mis datos?",
-        "answer": "Ve a Ajustes > Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos, reglas recurrentes y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube."
+        "answer": "Ve a Configuración > Copia de seguridad. Se crea un archivo JSON con todas tus carteras, transacciones, categorías, presupuestos, reglas recurrentes y ajustes. Puedes compartir o guardar este archivo en tu dispositivo o en la nube. El archivo no está cifrado: cualquiera que lo abra puede leer tus datos, así que guárdalo donde solo tú tengas acceso. Tus datos de Valto no te siguen a un teléfono nuevo sin este archivo: restáuralo allí en Configuración > Restaurar datos."
       },
       {
         "id": "restore-data",
         "question": "¿Cómo restauro desde una copia de seguridad?",
-        "answer": "Ve a Ajustes > Restaurar datos. Elige tu archivo de copia de seguridad con el selector de archivos. La app validará la copia y reemplazará todos los datos actuales. Las copias creadas por esta versión también reemplazan tus reglas recurrentes; los archivos más antiguos no las incluyen, así que tus reglas actuales se conservan. Esta acción no se puede deshacer: considera hacer primero una copia de seguridad."
+        "answer": "Ve a Configuración > Restaurar datos. Elige tu archivo de copia de seguridad con el selector de archivos. La app validará la copia y reemplazará todos los datos actuales. Las copias creadas por esta versión también reemplazan tus reglas recurrentes; los archivos más antiguos no las incluyen, así que tus reglas actuales se conservan. Esta acción no se puede deshacer: considera hacer primero una copia de seguridad."
       },
       {
         "id": "change-currency",
         "question": "¿Cómo cambio la moneda?",
-        "answer": "Ve a Ajustes > Moneda. Selecciona entre las monedas disponibles. El símbolo de moneda se actualizará en toda la aplicación."
+        "answer": "Ve a Configuración > Moneda. Selecciona entre las monedas disponibles. El símbolo de moneda se actualizará en toda la aplicación."
       },
       {
         "id": "dark-mode",
         "question": "¿La app admite modo oscuro?",
-        "answer": "Sí. Ve a Ajustes > Tema y elige Claro, Oscuro o Sistema (sigue la configuración de tu dispositivo)."
+        "answer": "Sí. Ve a Configuración > Tema y elige Claro, Oscuro o Sistema (sigue la configuración de tu dispositivo)."
       },
       {
         "id": "security",
         "question": "¿Cómo protejo mis datos con un PIN?",
-        "answer": "Ve a Ajustes > Seguridad y toca para configurar un PIN. También puedes activar la autenticación biométrica (huella o cara) para acceso rápido. La app se bloqueará automáticamente al pasar a segundo plano."
+        "answer": "Ve a Configuración > Seguridad y toca para configurar un PIN. También puedes activar la autenticación biométrica (huella o cara) para acceso rápido. La app se bloqueará automáticamente al pasar a segundo plano."
       },
       {
         "id": "offline",
@@ -373,20 +373,18 @@
       {
         "id": "reset-data",
         "question": "¿Cómo elimino todos mis datos financieros?",
-        "answer": "Ve a Ajustes > Eliminar los datos financieros. Esto elimina permanentemente todas tus carteras, transacciones, categorías, presupuestos y reglas recurrentes, y luego te deja una cartera vacía y las categorías predeterminadas. Tus ajustes y tu bloqueo de la app se conservan. Esta acción no se puede deshacer."
+        "answer": "Ve a Configuración > Eliminar los datos financieros. Esto elimina permanentemente todas tus carteras, transacciones, categorías, presupuestos y reglas recurrentes, y luego te deja una cartera vacía y las categorías predeterminadas. Tus ajustes y tu bloqueo de la app se conservan. Esta acción no se puede deshacer."
       },
       {
         "id": "categories",
         "question": "¿Puedo personalizar las categorías?",
-        "answer": "Ve a Ajustes > Categorías. Puedes ver todas las categorías de gastos e ingresos. La gestión personalizada de categorías estará disponible en una futura actualización."
+        "answer": "Ve a Configuración > Categorías. Puedes ver todas las categorías de gastos e ingresos. La gestión personalizada de categorías estará disponible en una futura actualización."
       }
     ]
   },
   "settings": {
     "title": "Configuración",
     "processing": "Procesando...",
-    "userName": "Usuario Valto",
-    "premiumAccount": "Cuenta Premium",
     "sections": {
       "references": "Referencias",
       "appSettings": "Ajustes de la app",
@@ -448,7 +446,13 @@
     "restoreSuccess": "Listo",
     "restoreSuccessMessage": "Tus datos se han restaurado correctamente.",
     "restoreSuccessWithRulesMessage": "Tus datos se han restaurado correctamente. {{generated}} transacción(es) generada(s) para ponerse al día, {{unprocessed}} regla(s) recurrente(s) no se pudieron procesar.",
-    "restoreSuccessRulesFailedMessage": "Tus datos se han restaurado correctamente, pero tus reglas recurrentes no se pudieron procesar. Se revisarán la próxima vez que abras la app.",
+    "restoreSuccessRulesFailedMessage": "Tus datos se han restaurado correctamente, pero tus reglas recurrentes no se pudieron procesar. Se revisarán la próxima vez que se inicie la app.",
+    "restoreDoneTitle": "Restauración completada",
+    "restoreDoneStepFailedMessage": "Tus datos se han restaurado, pero esto no se completó: {{steps}}.",
+    "restoreStepUsableState": "comprobar que existen una cartera y una categoría",
+    "restoreStepSettings": "restaurar tu configuración",
+    "restoreRulesCountsNote": "Transacciones generadas para ponerse al día: {{generated}}. Reglas recurrentes que no se pudieron procesar: {{unprocessed}}.",
+    "restoreRulesFailedNote": "Tus reglas recurrentes no se pudieron procesar. Se revisarán la próxima vez que se inicie la app.",
     "resetAllData": "Eliminar los datos financieros",
     "resetAllDataMessage": "Esto eliminará permanentemente TODAS tus carteras, transacciones, categorías, presupuestos y reglas recurrentes.",
     "resetIrreversible": "Esto es irreversible",
@@ -485,7 +489,8 @@
       "empty": "Introduce un importe",
       "notANumber": "Esto no es un número válido",
       "negative": "Introduce un importe positivo",
-      "tooManyDecimals": "Introduce el importe con este formato: {{example}}"
+      "tooManyDecimals": "Introduce el importe con este formato: {{example}}",
+      "tooLarge": "Importe demasiado alto. El máximo es {{max}}"
     },
     "ok": "OK",
     "cancel": "Cancelar",
@@ -515,10 +520,12 @@
     "deleteRuleMessage": "¿Seguro que deseas eliminar esta regla recurrente? Las transacciones pasadas no se verán afectadas.",
     "ruleCreated": "Regla creada",
     "ruleCreatedMessage": "Regla recurrente creada correctamente.\n{{count}} transacción(es) generada(s).",
-    "ruleCreatedNoTransactions": "Regla recurrente creada correctamente. Las transacciones se generarán en la próxima fecha de vencimiento.",
-    "ruleCreatedLaunch": "Regla recurrente creada. Las transacciones se generarán al abrir la app la próxima vez.",
+    "ruleCreatedNoTransactions": "Regla recurrente creada correctamente. Las transacciones se registrarán la primera vez que se inicie la app en su fecha de vencimiento o después.",
+    "ruleCreatedLaunch": "Regla recurrente creada. Las transacciones se generarán la próxima vez que se inicie la app.",
     "ruleCreatedInsufficientTitle": "Regla creada. Fondos insuficientes",
-    "ruleCreatedInsufficientMessage": "Regla recurrente creada correctamente, pero se omitieron las transacciones porque tu cartera no tiene fondos suficientes. Se generarán automáticamente cuando haya fondos disponibles.",
+    "ruleCreatedInsufficientMessage": "Regla recurrente creada correctamente, pero se omitieron las transacciones porque tu cartera no tiene fondos suficientes. Se registrarán la próxima vez que se inicie la app, si la cartera tiene entonces fondos suficientes.",
+    "ruleCreatedUnrecordedMessage": "{{name}} se ha creado. Estas transacciones vencían y no se registraron: {{dates}}. Se volverán a intentar la próxima vez que se inicie la app.",
+    "ruleCreatedPartlyRecordedMessage": "{{name}} se ha creado. Transacciones registradas: {{recorded}}. Estas transacciones vencían y no se registraron: {{dates}}. Se volverán a intentar la próxima vez que se inicie la app.",
     "ruleUpdated": "Regla actualizada",
     "ruleUpdatedMessage": "Regla recurrente actualizada correctamente.",
     "editRefusedTitle": "Regla no actualizada",
@@ -529,6 +536,7 @@
     "editRefusedEndDateMissingWallet": "{{name}} tiene transacciones vencidas que aún no se han registrado: {{dates}}. Su cartera ya no existe, así que no se pueden registrar, y este cambio de la fecha de fin haría que se perdieran. Elige una cartera y guarda primero sin cambiar la fecha de fin; después cambia la fecha de fin en una segunda edición.",
     "editRefusedEndDateMissingCategory": "{{name}} tiene transacciones vencidas que aún no se han registrado: {{dates}}. Su categoría ya no existe, así que no se pueden registrar, y este cambio de la fecha de fin haría que se perdieran. Elige una categoría y guarda primero sin cambiar la fecha de fin; después cambia la fecha de fin en una segunda edición.",
     "editRefusedEndDateMissingWalletAndCategory": "{{name}} tiene transacciones vencidas que aún no se han registrado: {{dates}}. Su cartera y su categoría ya no existen, así que no se pueden registrar, y este cambio de la fecha de fin haría que se perdieran. Elige ambas y guarda primero sin cambiar la fecha de fin; después cambia la fecha de fin en una segunda edición.",
+    "editRefusedUnrecordedMessage": "{{name}} no se ha actualizado. Estas transacciones vencían y no se registraron: {{dates}}. Edita la regla de nuevo para reintentarlo.",
     "pausedUnrecordedTitle": "Regla en pausa",
     "pausedUnrecordedMessage": "{{name}} está en pausa. Estas transacciones vencían y no se registraron: {{dates}}.",
     "statusActive": "Activa",
@@ -536,6 +544,7 @@
     "statusExpired": "Finalizada",
     "statusMissingReference": "Falta la cartera o la categoría",
     "statusInsufficientFunds": "Fondos insuficientes",
+    "statusNotRecorded": "Transacciones no registradas",
     "defaultDescription": "Transacción recurrente",
     "frequencyEvery": "Cada {{base}}",
     "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
@@ -670,11 +679,8 @@
     "backButton": "Volver",
     "closeButton": "Cerrar",
     "addTransaction": "Añadir transacción",
-    "addWallet": "Añadir cartera",
-    "addBudget": "Añadir presupuesto",
     "addCategory": "Añadir categoría",
     "addRecurringRule": "Añadir regla recurrente",
-    "editWallet": "Editar cartera {{name}}",
     "editRule": "Editar regla",
     "deleteRule": "Eliminar regla",
     "editBudget": "Editar presupuesto {{category}}",
@@ -697,7 +703,6 @@
     "openAbout": "Abrir acerca de",
     "previousMonth": "Ir al mes anterior",
     "nextMonth": "Ir al mes siguiente",
-    "walletCard": "Cartera {{name}} con saldo {{balance}}",
     "transactionItem": "{{type}} de {{amount}} por {{category}}",
     "budgetStatus": "Presupuesto {{status}}: {{spent}} de {{limit}}",
     "refreshData": "Actualizar datos",
@@ -718,7 +723,7 @@
     "tryAgain": "Intentar de nuevo",
     "reset": "Restablecer datos",
     "confirmTitle": "¿Borrar datos locales?",
-    "confirmBody": "Esto elimina permanentemente todos los datos de este dispositivo: carteras, transacciones, categorías y presupuestos. No hay copia de seguridad ni copia en el servidor, por lo que esto no se puede deshacer.",
+    "confirmBody": "Esto elimina permanentemente todos los datos de este dispositivo: carteras, transacciones, categorías y presupuestos. No hay copia en el servidor. Si guardaste un archivo de copia de seguridad de Valto, podrás restaurarlo después en Configuración > Restaurar datos; lo que no esté en ese archivo no se podrá recuperar.",
     "confirmCta": "Borrar todo",
     "cancel": "Cancelar",
     "resetFailedTitle": "Error al restablecer",

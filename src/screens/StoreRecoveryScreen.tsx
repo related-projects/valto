@@ -8,8 +8,10 @@
  *
  * Two actions:
  *  - "Try again" re-runs the boot sequence (transient failure may clear).
- *  - "Reset data" performs a filesystem-level wipe behind an explicit, nested
- *    confirmation. There is no backend backup, so the wipe is unrecoverable.
+ *  - "Reset data" asks for confirmation in one dialog; once confirmed, onReset
+ *    wipes the store at the filesystem level and re-runs the boot sequence.
+ *    There is no server copy: what the wipe erases comes back only from a
+ *    Valto backup file saved earlier, restored afterwards in Settings.
  */
 
 import React, { useRef } from 'react';

@@ -4,7 +4,12 @@
  * Service responsible for evaluating recurring transaction rules
  * and generating missing transactions automatically.
  *
- * Runs on app launch, after migrations, before UI renders.
+ * Runs over every active rule (processRecurringRules) at boot, in
+ * app/_layout.tsx after the migrations, the seed and the store read check and
+ * before the root layout renders any screen; after a restore has committed
+ * (backupService, runPostRestoreCatchUp); and after a rule is created
+ * (recurringRuleChanges, catchUpCreatedRule). retryRule processes one rule,
+ * before an edit or a pause of that rule.
  *
  * Idempotency (REGISTRE V-98):
  * Each rule records the number of its last generated occurrence
@@ -35,7 +40,12 @@ import type { RecurringTransactionRepository } from '../repositories/RecurringTr
 import type { TransactionRepository } from '../repositories/TransactionRepository';
 import type { WalletRepository } from '../repositories/WalletRepository';
 import type { EventBus, RunInTransaction } from '../../domain/useCases/types';
-import { computeDueOccurrences, deriveLastGeneratedIndex, startOfDay } from '../../domain/calculations/recurrenceDates';
+import {
+    computeDueOccurrences,
+    deriveLastGeneratedIndex,
+    localNoonOf,
+    startOfDay,
+} from '../../domain/calculations/recurrenceDates';
 import { checkInsufficientFunds } from '../../domain/recurring';
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -108,10 +118,9 @@ export async function processRecurringRules(
                     result.skipped.push(genResult.skipped);
                     // Emit event so UI can refresh - this is a business outcome, not an error
                     deps.eventBus.emit('recurringRules');
-                    console.info(
-                        `[RecurringEngine] Rule ${rule.id} skipped: ${genResult.skipped.reason} ` +
-                        `(need ${genResult.skipped.amount}, have ${genResult.skipped.availableBalance})`,
-                    );
+                    // The rule and the reason; the figures stay in result.skipped,
+                    // out of the device log (pass 84b).
+                    console.info(`[RecurringEngine] Rule ${rule.id} skipped: ${genResult.skipped.reason}`);
                 }
             } catch (error) {
                 // Only real system failures reach here
@@ -134,9 +143,10 @@ export async function processRecurringRules(
 
 /**
  * Process a single rule by ID: generate what is due for it up to the local day
- * of `now`. Used after the user has added funds to the wallet, and to record
- * what is due before an edit or a pause (recurringRuleChanges), which passes
- * the same `now` it saves the edit with.
+ * of `now`. Its callers are the catch-ups that record what is due before an
+ * edit or a pause (editRecurringRule and pauseRecurringRule in
+ * recurringRuleChanges); editRecurringRule passes the same `now` it then saves
+ * the edit with. Throws when the rule does not exist or is paused.
  * Returns the generation result for that rule.
  */
 export async function retryRule(
@@ -342,6 +352,14 @@ async function generateFromCopy(
     // own commits have moved its number. Nothing else can change the row
     // while the transaction is open, so the occurrence, its key and the
     // rule's number are written from the rule as it is stored.
+    //
+    // An occurrence is written at local noon of its due day, and the rule's
+    // lastGeneratedDate with the same instant (REGISTRE V-102, Owner decision
+    // 4, pass 78). Local midnight, as before, read as the day before - and so
+    // as the month or year before for an occurrence on the 1st - as soon as
+    // the device moved west; noon keeps the day across any move of less than
+    // 11 hours. Rows already stored are not rewritten. Verified by
+    // recurringOccurrenceNoon.test.ts - "V-102 B1." and "V-102 B2.".
     const scheduleVersion = rule.scheduleVersion ?? 0;
     // The expression createTransaction uses, which generated these rows before.
     const balanceAdjustment = rule.type === TransactionType.EXPENSE ? -rule.amount : rule.amount;
@@ -349,12 +367,13 @@ async function generateFromCopy(
     let expected = rule;
 
     for (const occurrence of dueOccurrences) {
+        const writtenAt = localNoonOf(occurrence.date);
         const dto: CreateTransactionDTO = {
             type: rule.type,
             amount: rule.amount,
             walletId: rule.walletId,
             categoryId: rule.categoryId,
-            date: occurrence.date,
+            date: writtenAt,
             note: rule.description,
         };
 
@@ -373,7 +392,7 @@ async function generateFromCopy(
             if (row) {
                 await deps.walletRepo.updateBalance(rule.walletId, balanceAdjustment);
             }
-            await deps.recurringRepo.recordGeneratedOccurrence(rule.id, scheduleVersion, occurrence.index, occurrence.date);
+            await deps.recurringRepo.recordGeneratedOccurrence(rule.id, scheduleVersion, occurrence.index, writtenAt);
             return { written: row !== null };
         });
 
@@ -385,7 +404,7 @@ async function generateFromCopy(
             // After commit, as createTransaction does.
             deps.eventBus.emitMultiple(['transactions', 'wallets']);
         }
-        expected = { ...expected, lastGeneratedIndex: occurrence.index, lastGeneratedDate: occurrence.date };
+        expected = { ...expected, lastGeneratedIndex: occurrence.index, lastGeneratedDate: writtenAt };
     }
 
     return { generated };

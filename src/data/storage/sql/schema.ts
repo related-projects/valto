@@ -5,7 +5,8 @@
  * Consumed by:
  *  - migration v4 (creates the schema in the app's encrypted DB),
  *  - migrations v5 and v7 (applyOccurrenceKeySchema only), v5 and v8
- *    (applyEndOccurrenceSchema only), v5 and v9 (applyEndDaySchema only), and
+ *    (applyEndOccurrenceSchema only), v5 and v9 (applyEndDaySchema only), v5
+ *    and v10 (applyStartDaySchema only), and
  *  - tests/helpers/createTestDb (creates the same schema in-memory).
  *
  * Conventions:
@@ -155,6 +156,22 @@ export async function applyEndDaySchema(db: SqlDatabase): Promise<void> {
     }
 }
 
+/**
+ * The calendar day a rule starts on, 'YYYY-MM-DD' (REGISTRE V-116, Owner
+ * decision 3, pass 78), added by migration v10. Nullable: a row not yet
+ * migrated has none, and its day is then read from start_date.
+ *
+ * Applied the same way as the end day: by migration v10 to existing
+ * databases, and by applySchema - so by v4 - to new ones, whose v5 import
+ * already writes this column through the mappers. Idempotent.
+ */
+export async function applyStartDaySchema(db: SqlDatabase): Promise<void> {
+    const { rows } = await db.execute('PRAGMA table_info(recurring_rules)');
+    if (!rows.some((row) => row.name === 'start_day')) {
+        await db.execute('ALTER TABLE recurring_rules ADD COLUMN start_day TEXT');
+    }
+}
+
 /** Apply the full schema to a database (idempotent). */
 export async function applySchema(db: SqlDatabase): Promise<void> {
     for (const stmt of SCHEMA_STATEMENTS) {
@@ -163,4 +180,5 @@ export async function applySchema(db: SqlDatabase): Promise<void> {
     await applyOccurrenceKeySchema(db);
     await applyEndOccurrenceSchema(db);
     await applyEndDaySchema(db);
+    await applyStartDaySchema(db);
 }

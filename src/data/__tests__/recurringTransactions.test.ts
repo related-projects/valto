@@ -505,9 +505,12 @@ describe('RecurringTransactionEngine', () => {
             recurringRepo, transactionRepo, walletRepo, categoryRepo, eventBus: dataEvents, runInTransaction: db.runInTransaction,
         });
 
-        // Watermark advanced to the last due date - this month's occurrence
+        // Watermark advanced to the last due date - this month's occurrence,
+        // at local noon of that day, where the engine writes it (REGISTRE V-102)
+        const thisMonthNoon = monthStart(0);
+        thisMonthNoon.setHours(12, 0, 0, 0);
         const updatedRule = await recurringRepo.getById('rule-1');
-        expect(updatedRule!.lastGeneratedDate.getTime()).toBe(monthStart(0).getTime());
+        expect(updatedRule!.lastGeneratedDate.getTime()).toBe(thisMonthNoon.getTime());
     });
 });
 

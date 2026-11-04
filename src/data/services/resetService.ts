@@ -9,6 +9,7 @@ import { dataEvents } from '../../core/events';
 import { getDb } from '../storage/sql/database';
 import { FINANCIAL_TABLES } from '../storage/sql/schema';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
+import { discardBackupCopies, discardExportCopies } from './backupCopies';
 import { type AppSettings, unlockAndResetCurrency } from './settingsService';
 import { ensureUsableState } from './usableStateService';
 
@@ -50,6 +51,11 @@ async function wipeFinancialData(): Promise<void> {
         asyncStorageAdapter.remove(StorageKeys.RECURRING_RULES),
         asyncStorageAdapter.remove(StorageKeys.SEED_INITIALIZED),
     ]);
+
+    // A backup file, restore copy or export left in the cache is the same data
+    // in cleartext; the data is gone, so they go too. Best-effort, never throws.
+    discardBackupCopies();
+    discardExportCopies();
 }
 
 /**

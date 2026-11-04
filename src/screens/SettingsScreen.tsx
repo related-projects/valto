@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SecuritySetupModal } from '../components/security/SecuritySetupModal';
 import { CurrencyPickerModal } from '../components/settings/CurrencyPickerModal';
 import { LanguagePickerModal } from '../components/settings/LanguagePickerModal';
-import { Avatar } from '../components/ui/Avatar';
 import { IconBadge } from '../components/ui/IconBadge';
 import { ListItem } from '../components/ui/ListItem';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -133,28 +132,6 @@ export const SettingsScreen = () => {
                     </Text>
                 </View>
             )}
-
-            {/* User Info Card */}
-            <View style={{
-                backgroundColor: colors.card,
-                borderRadius: radius.lg,
-                padding: spacing.md,
-                marginBottom: spacing.lg,
-                ...shadows.card,
-                flexDirection: 'row',
-                alignItems: 'center',
-            }}>
-                <Avatar label="V" size="md" />
-                <View style={{ flex: 1, marginLeft: spacing.md }}>
-                    <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '600' }}>
-                        {t('settings.userName')}
-                    </Text>
-                    <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>
-                        {t('settings.premiumAccount')}
-                    </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.mutedForeground} />
-            </View>
 
             {/* References */}
             <View style={{ marginBottom: spacing.xl }}>

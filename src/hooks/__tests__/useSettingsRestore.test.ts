@@ -126,6 +126,7 @@ const QUIET_RESTORE: RestoreOutcome = {
     catchUpGenerated: 0,
     rulesNotProcessed: 0,
     catchUpFailed: false,
+    failedSteps: [],
 };
 
 /** Walk the two-step confirmation the restore flow puts in front of the user. */
@@ -224,7 +225,7 @@ describe('useSettings restore reports the recurring catch-up', () => {
     let restoreOutcome: RestoreOutcome;
 
     it('reports both counts when the catch-up did something', async () => {
-        restoreOutcome = { catchUpGenerated: 6, rulesNotProcessed: 2, catchUpFailed: false };
+        restoreOutcome = { catchUpGenerated: 6, rulesNotProcessed: 2, catchUpFailed: false, failedSteps: [] };
 
         const result = await mountSettings();
         await confirmRestore(result.current.restoreBackup);
@@ -236,7 +237,7 @@ describe('useSettings restore reports the recurring catch-up', () => {
     });
 
     it('reports rules it could not run even when nothing was generated', async () => {
-        restoreOutcome = { catchUpGenerated: 0, rulesNotProcessed: 1, catchUpFailed: false };
+        restoreOutcome = { catchUpGenerated: 0, rulesNotProcessed: 1, catchUpFailed: false, failedSteps: [] };
 
         const result = await mountSettings();
         await confirmRestore(result.current.restoreBackup);
@@ -248,7 +249,7 @@ describe('useSettings restore reports the recurring catch-up', () => {
     });
 
     it('still reports success when the catch-up itself failed', async () => {
-        restoreOutcome = { catchUpGenerated: 0, rulesNotProcessed: 0, catchUpFailed: true };
+        restoreOutcome = { catchUpGenerated: 0, rulesNotProcessed: 0, catchUpFailed: true, failedSteps: [] };
 
         const result = await mountSettings();
         await confirmRestore(result.current.restoreBackup);

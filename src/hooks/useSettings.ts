@@ -13,7 +13,13 @@ import { useTranslation } from 'react-i18next';
 import { Alert, AppState, type AppStateStatus, Linking } from 'react-native';
 import { dataEvents } from '../core/events/dataEvents';
 import { beginRestoring } from '../core/restore/restoringState';
-import { createAndShareBackup, pickAndRestoreBackup, type RestoreOutcome, SnapshotRejectedError } from '../data/services/backupService';
+import {
+    createAndShareBackup,
+    pickAndRestoreBackup,
+    type RestoreOutcome,
+    type RestoreStep,
+    SnapshotRejectedError,
+} from '../data/services/backupService';
 import { getPermissionStatus, scheduleDailyReminder, setNotificationsEnabled } from '../data/services/notificationService';
 import { resetAppData, resetFinancialDataForCurrencyReset } from '../data/services/resetService';
 import {
@@ -30,6 +36,7 @@ import { type CurrencyDefinition, getCurrencyByCode } from '../domain/constants/
 import { getLanguageByCode, type LanguageDefinition } from '../domain/constants/languages';
 import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES } from '../domain/constants/numberFormats';
 import { useTheme } from '../theme/theme';
+import { errorKind } from '../utils/errorKind';
 import { type NotificationPermissionStatus, shouldShowBlockedNotice } from '../utils/notificationPermission';
 
 /** Minimal shape of the i18next `t` this file uses. */
@@ -62,6 +69,43 @@ function restoreSuccessMessage(t: Translate, outcome: RestoreOutcome): string {
     }
 
     return t('alerts.restoreSuccessMessage');
+}
+
+/** The name of each step after the commit, as the user is told it failed. */
+const RESTORE_STEP_KEYS: Record<RestoreStep, string> = {
+    usableState: 'alerts.restoreStepUsableState',
+    settings: 'alerts.restoreStepSettings',
+};
+
+/**
+ * The title and message after a restore that did not throw.
+ *
+ * A step after the commit that failed is named, and the restore is said to be
+ * done, never to have failed (REGISTRE V-119, Owner decision 4, pass 79): the
+ * ledger was restored. What the catch-up has to say follows, as in
+ * restoreSuccessMessage. With no failed step the alert is unchanged. Verified
+ * by useSettingsRestoreOutcome.test.ts - "V-119 e." and "control: a successful
+ * restore behaves as now".
+ */
+function restoreOutcomeAlert(t: Translate, outcome: RestoreOutcome): [string, string] {
+    if (outcome.failedSteps.length === 0) {
+        return [t('alerts.restoreSuccess'), restoreSuccessMessage(t, outcome)];
+    }
+
+    const parts = [
+        t('alerts.restoreDoneStepFailedMessage', {
+            steps: outcome.failedSteps.map((step) => t(RESTORE_STEP_KEYS[step])).join(', '),
+        }),
+    ];
+    if (outcome.catchUpFailed) {
+        parts.push(t('alerts.restoreRulesFailedNote'));
+    } else if (outcome.catchUpGenerated > 0 || outcome.rulesNotProcessed > 0) {
+        parts.push(t('alerts.restoreRulesCountsNote', {
+            generated: outcome.catchUpGenerated,
+            unprocessed: outcome.rulesNotProcessed,
+        }));
+    }
+    return [t('alerts.restoreDoneTitle'), parts.join('\n\n')];
 }
 
 // ─── Interface ────────────────────────────────────────────────────────
@@ -167,7 +211,8 @@ export function useSettings(): UseSettingsResult {
             await createAndShareBackup();
         } catch (error) {
             Alert.alert(t('alerts.backupFailed'), t('alerts.backupFailedMessage'));
-            console.error('Backup error:', error);
+            // The kind only: a file system error names the backup file it failed on.
+            console.error('Backup error:', errorKind(error));
         } finally {
             setLoading(false);
         }
@@ -224,13 +269,18 @@ export function useSettings(): UseSettingsResult {
                                                 // The restore ran the recurring engine once it had
                                                 // committed. Counts only - a standing order that did
                                                 // not execute is something the user has to be told
-                                                // about, and it used to be told to nobody.
-                                                Alert.alert(
-                                                    t('alerts.restoreSuccess'),
-                                                    restoreSuccessMessage(t, restored),
-                                                );
+                                                // about, and it used to be told to nobody. A step
+                                                // after the commit that failed is named.
+                                                const [title, message] = restoreOutcomeAlert(t, restored);
+                                                Alert.alert(title, message);
                                             }
                                         } catch (error) {
+                                            // A refused restore emits every data event (REGISTRE
+                                            // V-119, Owner decision 5, pass 79): a screen that
+                                            // read while the restore was open, then rolled back,
+                                            // reloads what is committed. Verified by
+                                            // useSettingsRestoreOutcome.test.ts - "V-119 f.".
+                                            dataEvents.emitMultiple(['wallets', 'transactions', 'categories', 'budgets', 'recurringRules', 'settings']);
                                             // A refused backup gets its own copy: "the file may be
                                             // invalid" does not tell a user whose backup predates
                                             // the currency field what is actually wrong with it.
@@ -243,7 +293,9 @@ export function useSettings(): UseSettingsResult {
                                                 ? t('alerts.restoreMissingCurrencyMessage')
                                                 : t('alerts.restoreFailedMessage');
                                             Alert.alert(t('alerts.restoreFailed'), message);
-                                            console.error('Restore error:', error);
+                                            // The kind only: a refused snapshot's message
+                                            // quotes the rows of the file it refused.
+                                            console.error('Restore error:', errorKind(error));
                                         } finally {
                                             endRestoring();
                                         }

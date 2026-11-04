@@ -323,27 +323,27 @@
       {
         "id": "add-transaction",
         "question": "How do I add a transaction?",
-        "answer": "Tap the Quick Actions on the dashboard and choose \"Add Expense\" or \"Add Income\". Fill in the amount, select a category and wallet, then save."
+        "answer": "Tap the Quick Actions on the Dashboard tab and choose \"Expense\" or \"Income\". Fill in the amount, select a category and wallet, then save."
       },
       {
         "id": "create-wallet",
         "question": "How do I create a new wallet?",
-        "answer": "Go to the Wallets tab and tap \"Add Wallet\". You can create wallets for cash, bank accounts, mobile money, and savings. Each wallet tracks its own balance independently."
+        "answer": "Go to the Wallets tab and tap \"Add\". You can create wallets for cash, bank accounts, mobile money, and savings. Each wallet tracks its own balance independently."
       },
       {
         "id": "transfer-funds",
         "question": "How do I transfer between wallets?",
-        "answer": "On the dashboard, tap \"Transfer\" in Quick Actions. Select a source wallet, destination wallet, and the amount. The transfer will debit one wallet and credit the other simultaneously."
+        "answer": "On the Dashboard tab, tap \"Transfer\" in Quick Actions. Select a source wallet, destination wallet, and the amount. The transfer will debit one wallet and credit the other simultaneously."
       },
       {
         "id": "set-budget",
         "question": "How do budgets work?",
-        "answer": "Budgets are set per category per month. Go to the dashboard and tap \"Create Budget\" in the Budget section. You'll see a progress bar showing how much of each budget you've used."
+        "answer": "Budgets are set per category per month. Go to the Dashboard tab and tap \"Create a budget\" in the Monthly Budget section. You'll see a progress bar showing how much of each budget you've used."
       },
       {
         "id": "backup-data",
         "question": "How do I back up my data?",
-        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, recurring rules, and settings. You can share or save this file to your device or cloud storage."
+        "answer": "Go to Settings > Backup Data. This creates a JSON file containing all your wallets, transactions, categories, budgets, recurring rules, and settings. You can share or save this file to your device or cloud storage. The file is not encrypted: anyone who opens it can read your data, so keep it where only you have access. Your Valto data does not follow you to a new phone without this file: restore it there with Settings > Restore Data."
       },
       {
         "id": "restore-data",
@@ -385,8 +385,6 @@
   "settings": {
     "title": "Settings",
     "processing": "Processing...",
-    "userName": "Valto User",
-    "premiumAccount": "Premium Account",
     "sections": {
       "references": "References",
       "appSettings": "App Settings",
@@ -448,7 +446,13 @@
     "restoreSuccess": "Success",
     "restoreSuccessMessage": "Your data has been restored successfully.",
     "restoreSuccessWithRulesMessage": "Your data has been restored successfully. {{generated}} transaction(s) generated to catch up, {{unprocessed}} recurring rule(s) could not be processed.",
-    "restoreSuccessRulesFailedMessage": "Your data has been restored successfully, but your recurring rules could not be processed. They will be checked again the next time you open the app.",
+    "restoreSuccessRulesFailedMessage": "Your data has been restored successfully, but your recurring rules could not be processed. They will be checked again the next time the app starts.",
+    "restoreDoneTitle": "Restore Done",
+    "restoreDoneStepFailedMessage": "Your data has been restored, but this did not complete: {{steps}}.",
+    "restoreStepUsableState": "making sure a wallet and a category exist",
+    "restoreStepSettings": "restoring your settings",
+    "restoreRulesCountsNote": "Transactions generated to catch up: {{generated}}. Recurring rules that could not be processed: {{unprocessed}}.",
+    "restoreRulesFailedNote": "Your recurring rules could not be processed. They will be checked again the next time the app starts.",
     "resetAllData": "Delete Financial Data",
     "resetAllDataMessage": "This will permanently delete ALL your wallets, transactions, categories, budgets and recurring rules.",
     "resetIrreversible": "This is irreversible",
@@ -485,7 +489,8 @@
       "empty": "Please enter an amount",
       "notANumber": "This is not a valid number",
       "negative": "Please enter a positive amount",
-      "tooManyDecimals": "Enter the amount like {{example}}"
+      "tooManyDecimals": "Enter the amount like {{example}}",
+      "tooLarge": "Amount too large. The maximum is {{max}}"
     },
     "ok": "OK",
     "cancel": "Cancel",
@@ -515,10 +520,12 @@
     "deleteRuleMessage": "Are you sure you want to delete this recurring rule? Past transactions will not be affected.",
     "ruleCreated": "Rule Created",
     "ruleCreatedMessage": "Recurring rule created successfully.\n{{count}} transaction(s) generated.",
-    "ruleCreatedNoTransactions": "Recurring rule created successfully. Transactions will be generated on the next due date.",
+    "ruleCreatedNoTransactions": "Recurring rule created successfully. Transactions will be recorded the first time the app starts on or after their due date.",
     "ruleCreatedLaunch": "Recurring rule created. Transactions will generate on next app launch.",
     "ruleCreatedInsufficientTitle": "Rule Created. Insufficient Funds",
-    "ruleCreatedInsufficientMessage": "Recurring rule created successfully, but transactions were skipped because your wallet does not have enough funds. They will be generated automatically once funds are available.",
+    "ruleCreatedInsufficientMessage": "Recurring rule created successfully, but transactions were skipped because your wallet does not have enough funds. They will be recorded the next time the app starts, if the wallet then has enough funds.",
+    "ruleCreatedUnrecordedMessage": "{{name}} was created. These transactions were due and were not recorded: {{dates}}. They will be tried again the next time the app starts.",
+    "ruleCreatedPartlyRecordedMessage": "{{name}} was created. Transactions recorded: {{recorded}}. These transactions were due and were not recorded: {{dates}}. They will be tried again the next time the app starts.",
     "ruleUpdated": "Rule Updated",
     "ruleUpdatedMessage": "Recurring rule updated successfully.",
     "editRefusedTitle": "Rule Not Updated",
@@ -529,6 +536,7 @@
     "editRefusedEndDateMissingWallet": "{{name}} has transactions due that are not recorded yet: {{dates}}. Its wallet no longer exists, so they cannot be recorded, and this change to the end date would lose them. Choose a wallet and save first, keeping the end date, then change the end date in a second edit.",
     "editRefusedEndDateMissingCategory": "{{name}} has transactions due that are not recorded yet: {{dates}}. Its category no longer exists, so they cannot be recorded, and this change to the end date would lose them. Choose a category and save first, keeping the end date, then change the end date in a second edit.",
     "editRefusedEndDateMissingWalletAndCategory": "{{name}} has transactions due that are not recorded yet: {{dates}}. Its wallet and category no longer exist, so they cannot be recorded, and this change to the end date would lose them. Choose both and save first, keeping the end date, then change the end date in a second edit.",
+    "editRefusedUnrecordedMessage": "{{name}} was not updated. These transactions were due and were not recorded: {{dates}}. Edit the rule again to retry.",
     "pausedUnrecordedTitle": "Rule Paused",
     "pausedUnrecordedMessage": "{{name}} is paused. These transactions were due and were not recorded: {{dates}}.",
     "statusActive": "Active",
@@ -536,6 +544,7 @@
     "statusExpired": "Ended",
     "statusMissingReference": "Missing wallet or category",
     "statusInsufficientFunds": "Not enough funds",
+    "statusNotRecorded": "Transactions not recorded",
     "defaultDescription": "Recurring Transaction",
     "frequencyEvery": "Every {{base}}",
     "frequencyEveryN": "{{unit, recurrenceEvery}} {{interval}} {{unit, recurrenceUnit}}",
@@ -670,11 +679,8 @@
     "backButton": "Go back",
     "closeButton": "Close",
     "addTransaction": "Add transaction",
-    "addWallet": "Add wallet",
-    "addBudget": "Add budget",
     "addCategory": "Add category",
     "addRecurringRule": "Add recurring rule",
-    "editWallet": "Edit wallet {{name}}",
     "editRule": "Edit rule",
     "deleteRule": "Delete rule",
     "editBudget": "Edit budget {{category}}",
@@ -697,7 +703,6 @@
     "openAbout": "Open about",
     "previousMonth": "Go to previous month",
     "nextMonth": "Go to next month",
-    "walletCard": "{{name}} wallet with balance {{balance}}",
     "transactionItem": "{{type}} of {{amount}} for {{category}}",
     "budgetStatus": "Budget {{status}}: {{spent}} of {{limit}}",
     "refreshData": "Refresh data",
@@ -718,7 +723,7 @@
     "tryAgain": "Try again",
     "reset": "Reset data",
     "confirmTitle": "Erase local data?",
-    "confirmBody": "This permanently deletes all data on this device: wallets, transactions, categories and budgets. There is no backup or server copy, so this cannot be undone.",
+    "confirmBody": "This permanently deletes all data on this device: wallets, transactions, categories and budgets. There is no server copy. If you saved a Valto backup file, you can restore it afterwards in Settings > Restore Data; anything not in that file cannot be recovered.",
     "confirmCta": "Erase everything",
     "cancel": "Cancel",
     "resetFailedTitle": "Reset failed",

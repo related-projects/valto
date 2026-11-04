@@ -2,7 +2,7 @@
   "expo": {
     "name": "Valto",
     "slug": "valto",
-    "version": "1.1.3",
+    "version": "1.1.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "valto",
@@ -25,7 +25,12 @@
       },
       "package": "com.renkakpo.valto.app",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "output": "static",
@@ -51,19 +56,32 @@
         {
           "url": "https://sentry.io/",
           "project": "valto",
-          "organization": "renekakpo"
+          "organization": "renekakpo",
+          "experimental_android": {
+            "enableAndroidGradlePlugin": true,
+            "includeNativeSources": false
+          }
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": false
+        }
+      ],
+      "./plugins/withAndroidBackupRules",
       "@react-native-community/datetimepicker",
       "expo-font",
       "expo-web-browser",
       "./plugins/withoutApsEnvironment",
+      "./plugins/withoutStatusBarColor",
       [
         "expo-build-properties",
         {
           "android": {
-            "enableJetifier": true
+            "enableJetifier": true,
+            "enableMinifyInReleaseBuilds": true,
+            "extraProguardRules": "-keep class expo.modules.notifications.** { *; }"
           }
         }
       ]

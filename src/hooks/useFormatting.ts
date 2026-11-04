@@ -8,10 +8,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { dataEvents } from '../core/events/dataEvents';
 import { type AppSettings, loadSettings } from '../data/services/settingsService';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../domain/constants/amounts';
 import { getCurrencyByCode } from '../domain/constants/currencies';
+import { DEFAULT_LANGUAGE_CODE } from '../domain/constants/languages';
 import { DEFAULT_NUMBER_FORMAT } from '../domain/constants/numberFormats';
 import { amountPlaceholder as amountPlaceholderUtil } from '../utils/amountPlaceholder';
-import { formatAmountCompact as formatAmountCompactUtil, formatAmount as formatAmountUtil, formatAmountWhole as formatAmountWholeUtil } from '../utils/formatAmount';
+import { formatAmountCompactLarge as formatAmountCompactLargeUtil, formatAmount as formatAmountUtil, formatAmountWholeCompactLarge as formatAmountWholeCompactLargeUtil, formatAmountWhole as formatAmountWholeUtil } from '../utils/formatAmount';
 import { formatDate as formatDateUtil } from '../utils/formatDate';
 import { formatPercentNumber as formatPercentNumberUtil } from '../utils/formatPercent';
 import { centsToMajor as centsToMajorUtil, normalizeAmount as normalizeAmountUtil, parseAmountInputResult as parseAmountInputResultUtil, parseAmountInput as parseAmountInputUtil, parseAndNormalizeAmountResult as parseAndNormalizeAmountResultUtil, parseAndNormalizeAmount as parseAndNormalizeAmountUtil } from '../utils/normalizeAmount';
@@ -36,15 +38,27 @@ export function useFormatting() {
     // whole number-format profile: grouping, decimal, symbol side and symbol gap.
     const numberFormat = settings?.decimalSeparator ?? DEFAULT_NUMBER_FORMAT;
     const dateFormat = settings?.dateFormat ?? 'MM/DD/YYYY';
+    // Picks the compact suffixes only; a language without a complete bundle gets en's.
+    const language = settings?.language ?? DEFAULT_LANGUAGE_CODE;
 
     const formatAmount = useCallback(
         (amountMinor: number) => formatAmountUtil(amountMinor, currencySymbol, numberFormat, decimals),
         [currencySymbol, numberFormat, decimals],
     );
 
-    const formatAmountCompact = useCallback(
-        (amountMinor: number) => formatAmountCompactUtil(amountMinor, currencySymbol, numberFormat, decimals),
-        [currencySymbol, numberFormat, decimals],
+    /**
+     * For tight places only (REGISTRE V-128): exact below 1 000 000 major units,
+     * compact from there. Pair it with an accessibilityLabel from formatAmount.
+     */
+    const formatAmountCompactLarge = useCallback(
+        (amountMinor: number) => formatAmountCompactLargeUtil(amountMinor, currencySymbol, numberFormat, decimals, language),
+        [currencySymbol, numberFormat, decimals, language],
+    );
+
+    /** formatAmountCompactLarge for a place that shows whole units below 1 000 000. */
+    const formatAmountWholeCompactLarge = useCallback(
+        (amountMinor: number) => formatAmountWholeCompactLargeUtil(amountMinor, currencySymbol, numberFormat, decimals, language),
+        [currencySymbol, numberFormat, decimals, language],
     );
 
     const formatAmountWhole = useCallback(
@@ -111,10 +125,17 @@ export function useFormatting() {
      */
     const amountPlaceholder = amountPlaceholderUtil(decimals, numberFormat);
 
+    /**
+     * The largest amount a field accepts (REGISTRE V-128), formatted like every
+     * other amount in the active currency, for the too-large refusal to name.
+     */
+    const maxEntryAmount = formatAmountUtil(MAX_ENTRY_AMOUNT_MINOR, currencySymbol, numberFormat, decimals);
+
     return {
         formatAmount,
-        formatAmountCompact,
+        formatAmountCompactLarge,
         formatAmountWhole,
+        formatAmountWholeCompactLarge,
         formatPercentNumber,
         formatDate,
         parseAmount,
@@ -124,6 +145,7 @@ export function useFormatting() {
         normalizeAmount,
         centsToMajor,
         amountPlaceholder,
+        maxEntryAmount,
         decimals,
         settings,
     };

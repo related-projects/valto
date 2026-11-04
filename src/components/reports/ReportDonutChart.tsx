@@ -37,7 +37,7 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing } = useTheme();
-    const { formatAmount, formatPercentNumber } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge, formatPercentNumber } = useFormatting();
 
     // Donut chart parameters
     const size = 160;
@@ -107,6 +107,7 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
                                 adjustsFontSizeToFit
                                 minimumFontScale={0.5}
                                 ellipsizeMode="tail"
+                                accessibilityLabel={formatAmount(totalExpense)}
                                 style={{
                                     color: colors.foreground,
                                     fontSize: typography.sizes.lg,
@@ -114,7 +115,7 @@ export const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
                                     textAlign: 'center',
                                 }}
                             >
-                                {formatAmount(totalExpense)}
+                                {formatAmountCompactLarge(totalExpense)}
                             </Text>
                         </>
                     }

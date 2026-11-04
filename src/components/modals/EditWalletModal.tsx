@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Wallet, WalletType } from "../../domain/entities";
 import { LastWalletError, WalletHasRecurringRulesError } from "../../domain/useCases";
@@ -31,8 +31,8 @@ interface EditWalletModalProps {
   onSuccess?: () => void;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.75;
+/** Share of the current window height the sheet takes. */
+const MODAL_HEIGHT_RATIO = 0.75;
 
 export const EditWalletModal: React.FC<EditWalletModalProps> = ({
   visible,
@@ -41,6 +41,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
   onSuccess,
 }) => {
   const { colors, spacing, typography, radius } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const { t } = useTranslation();
 
   // Hooks
@@ -199,7 +200,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
         <View
           style={[
             styles.modalContainer,
-            { backgroundColor: colors.card, height: MODAL_HEIGHT },
+            { backgroundColor: colors.card, height: windowHeight * MODAL_HEIGHT_RATIO },
           ]}
         >
           {/* Header */}

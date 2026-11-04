@@ -31,3 +31,14 @@ export async function getOrCreateEncryptionKey(): Promise<string> {
 
     return hex;
 }
+
+/**
+ * Delete the persisted DB key, so the next getOrCreateEncryptionKey() generates
+ * a new one. For the recovery Reset only (resetCorruptedStore), once the
+ * database files it encrypted are gone: an entry the keystore can no longer
+ * decrypt throws on every read, and deleting it is the only way past that
+ * (pass 82, Owner decision 2).
+ */
+export async function deleteEncryptionKey(): Promise<void> {
+    await SecureStore.deleteItemAsync(KEY_ALIAS);
+}
