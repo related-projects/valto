@@ -20,6 +20,7 @@ jest.mock('react-i18next', () => ({
 jest.mock('../../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         formatAmount: (v: number) => String(v),
+        formatAmountCompactLarge: (v: number) => String(v),
     }),
 }));
 

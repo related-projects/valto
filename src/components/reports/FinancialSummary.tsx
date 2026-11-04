@@ -37,7 +37,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
-    const { formatAmount, formatPercentNumber } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge, formatPercentNumber } = useFormatting();
 
     if (!hasActivity) {
         return (
@@ -61,30 +61,35 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
         );
     }
 
+    // Amount rows are compact from 1 000 000 and labelled exact (REGISTRE V-128).
     const rows: {
         label: string;
         value: string;
+        valueLabel?: string;
         color: string;
         icon: keyof typeof Ionicons.glyphMap;
         bgColor: string;
     }[] = [
             {
                 label: t('reports.financialSummary.totalIncome'),
-                value: formatAmount(totalIncome),
+                value: formatAmountCompactLarge(totalIncome),
+                valueLabel: formatAmount(totalIncome),
                 color: colors.successText,
                 icon: 'arrow-down-circle-outline',
                 bgColor: colors.successBackground,
             },
             {
                 label: t('reports.financialSummary.totalExpense'),
-                value: formatAmount(totalExpense),
+                value: formatAmountCompactLarge(totalExpense),
+                valueLabel: formatAmount(totalExpense),
                 color: colors.destructiveText,
                 icon: 'arrow-up-circle-outline',
                 bgColor: colors.destructiveBackground,
             },
             {
                 label: t('reports.financialSummary.netBalance'),
-                value: formatAmount(netBalance),
+                value: formatAmountCompactLarge(netBalance),
+                valueLabel: formatAmount(netBalance),
                 color: netBalance >= 0 ? colors.successText : colors.destructiveText,
                 icon: 'wallet-outline',
                 bgColor: netBalance >= 0 ? colors.successBackground : colors.destructiveBackground,
@@ -137,6 +142,7 @@ export const FinancialSummary: React.FC<FinancialSummaryProps> = ({
                             </Text>
                         </View>
                         <Text
+                            accessibilityLabel={row.valueLabel}
                             style={{
                                 color: row.color,
                                 fontSize: typography.sizes.md,

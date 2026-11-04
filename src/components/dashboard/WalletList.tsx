@@ -15,7 +15,7 @@ interface WalletListProps {
 export const WalletList: React.FC<WalletListProps> = ({ wallets }) => {
     const { t } = useTranslation();
     const { colors, typography, spacing, radius } = useTheme();
-    const { formatAmount } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge } = useFormatting();
     const router = useRouter();
 
     const getIconName = (type: string): keyof typeof Ionicons.glyphMap => {
@@ -112,13 +112,14 @@ export const WalletList: React.FC<WalletListProps> = ({ wallets }) => {
                         </View>
 
                         <Text
+                            accessibilityLabel={formatAmount(wallet.balance)}
                             style={{
                                 color: wallet.balance < 0 ? colors.destructive : colors.foreground,
                                 fontSize: typography.sizes.sm,
                                 fontWeight: '600',
                             }}
                         >
-                            {formatAmount(wallet.balance)}
+                            {formatAmountCompactLarge(wallet.balance)}
                         </Text>
                     </TouchableOpacity>
                 ))}

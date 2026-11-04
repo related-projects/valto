@@ -37,7 +37,7 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
 }) => {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
-    const { formatAmount, formatPercentNumber } = useFormatting();
+    const { formatAmount, formatAmountCompactLarge, formatPercentNumber } = useFormatting();
 
     const savingsRateDisplay = savingsRate !== null
         ? `${formatPercentNumber(savingsRate * 100, 1)}%`
@@ -90,14 +90,16 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>
                 <MetricItem
                     label={t('reports.ytdSummary.income')}
-                    value={formatAmount(totalIncome)}
+                    value={formatAmountCompactLarge(totalIncome)}
+                    valueLabel={formatAmount(totalIncome)}
                     color={colors.success}
                     typography={typography}
                     colors={colors}
                 />
                 <MetricItem
                     label={t('reports.ytdSummary.expenses')}
-                    value={formatAmount(totalExpenses)}
+                    value={formatAmountCompactLarge(totalExpenses)}
+                    valueLabel={formatAmount(totalExpenses)}
                     color={colors.destructive}
                     typography={typography}
                     colors={colors}
@@ -106,7 +108,8 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <MetricItem
                     label={t('reports.ytdSummary.net')}
-                    value={formatAmount(Math.abs(net))}
+                    value={formatAmountCompactLarge(Math.abs(net))}
+                    valueLabel={formatAmount(Math.abs(net))}
                     prefix={net >= 0 ? '+' : '-'}
                     color={netColor}
                     typography={typography}
@@ -129,18 +132,23 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
 interface MetricItemProps {
     label: string;
     value: string;
+    /** The exact amount when `value` may be compact (REGISTRE V-128); read with the prefix. */
+    valueLabel?: string;
     prefix?: string;
     color: string;
     typography: any;
     colors: any;
 }
 
-const MetricItem: React.FC<MetricItemProps> = ({ label, value, prefix, color, typography, colors }) => (
+const MetricItem: React.FC<MetricItemProps> = ({ label, value, valueLabel, prefix, color, typography, colors }) => (
     <View style={{ flex: 1, alignItems: 'flex-start', paddingVertical: 4 }}>
         <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs }}>
             {label}
         </Text>
-        <Text style={{ color, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}>
+        <Text
+            accessibilityLabel={valueLabel === undefined ? undefined : `${prefix ?? ''}${valueLabel}`}
+            style={{ color, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold }}
+        >
             {prefix}{value}
         </Text>
     </View>

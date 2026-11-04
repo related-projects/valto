@@ -11,7 +11,7 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({ label, amount, variant }) => {
     const { colors, typography, spacing, radius } = useTheme();
-    const { formatAmountWhole } = useFormatting();
+    const { formatAmount, formatAmountWholeCompactLarge } = useFormatting();
 
     const getBackgroundColor = () => {
         switch (variant) {
@@ -55,14 +55,16 @@ export const StatCard: React.FC<StatCardProps> = ({ label, amount, variant }) =>
             >
                 {label}
             </Text>
+            {/* Whole units below 1 000 000, compact from there (REGISTRE V-128); the label is exact. */}
             <Text
+                accessibilityLabel={formatAmount(amount)}
                 style={{
                     color: getTextColor(),
                     fontSize: typography.sizes.xl,
                     fontWeight: typography.weights.bold,
                 }}
             >
-                {formatAmountWhole(amount)}
+                {formatAmountWholeCompactLarge(amount)}
             </Text>
         </View>
     );

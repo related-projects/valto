@@ -51,6 +51,7 @@ jest.mock('../../hooks/useRecurringRules', () => ({
 jest.mock('../../hooks/useFormatting', () => ({
     useFormatting: () => ({
         formatAmount: (v: number) => String(v),
+        formatAmountCompactLarge: (v: number) => String(v),
         centsToMajor: (v: number) => v / 100,
         formatDate: (d: Date) => d.toISOString().slice(0, 10),
         parseAmountToCentsResult: (v: string) =>
