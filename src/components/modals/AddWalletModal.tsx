@@ -47,7 +47,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
 
   // Hooks
   const { createWallet } = useWallets();
-  const { parseAmountResult, normalizeAmount, amountPlaceholder, decimals } = useFormatting();
+  const { parseAmountResult, normalizeAmount, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
 
   // Form state
   const [name, setName] = useState("");
@@ -91,6 +91,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({
               t,
               "modals.addWallet.invalidBalanceMessage",
               amountPlaceholder,
+              maxEntryAmount,
             ),
       );
       return;

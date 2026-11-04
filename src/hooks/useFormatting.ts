@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { dataEvents } from '../core/events/dataEvents';
 import { type AppSettings, loadSettings } from '../data/services/settingsService';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../domain/constants/amounts';
 import { getCurrencyByCode } from '../domain/constants/currencies';
 import { DEFAULT_NUMBER_FORMAT } from '../domain/constants/numberFormats';
 import { amountPlaceholder as amountPlaceholderUtil } from '../utils/amountPlaceholder';
@@ -111,6 +112,12 @@ export function useFormatting() {
      */
     const amountPlaceholder = amountPlaceholderUtil(decimals, numberFormat);
 
+    /**
+     * The largest amount a field accepts (REGISTRE V-128), formatted like every
+     * other amount in the active currency, for the too-large refusal to name.
+     */
+    const maxEntryAmount = formatAmountUtil(MAX_ENTRY_AMOUNT_MINOR, currencySymbol, numberFormat, decimals);
+
     return {
         formatAmount,
         formatAmountCompact,
@@ -124,6 +131,7 @@ export function useFormatting() {
         normalizeAmount,
         centsToMajor,
         amountPlaceholder,
+        maxEntryAmount,
         decimals,
         settings,
     };

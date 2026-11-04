@@ -489,7 +489,8 @@
       "empty": "Introduce un importe",
       "notANumber": "Esto no es un número válido",
       "negative": "Introduce un importe positivo",
-      "tooManyDecimals": "Introduce el importe con este formato: {{example}}"
+      "tooManyDecimals": "Introduce el importe con este formato: {{example}}",
+      "tooLarge": "Importe demasiado alto. El máximo es {{max}}"
     },
     "ok": "OK",
     "cancel": "Cancelar",

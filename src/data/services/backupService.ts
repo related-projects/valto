@@ -43,6 +43,7 @@ import {
     endDayOf,
     startDayOf,
 } from '../../domain/calculations/recurrenceDates';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../../domain/constants/amounts';
 import { getCurrencyByCode } from '../../domain/constants/currencies';
 import i18n from '../../localization/i18n';
 import { errorKind } from '../../utils/errorKind';
@@ -497,6 +498,23 @@ const ENTITY_LABELS: Record<string, string> = {
 const entityLabel = (entity: string): string => ENTITY_LABELS[entity] ?? entity.toLowerCase();
 
 /**
+ * A budget whose limit the file carries as null, kept with the largest limit
+ * the app accepts.
+ *
+ * 1.1.3 let a limit be Infinity, and JSON has no Infinity: JSON.stringify
+ * wrote it as null. Inserted as it was, the null failed
+ * `limit_amount INTEGER NOT NULL` and rolled the whole restore back, so a
+ * backup the app wrote could not be restored (REGISTRE V-128, Owner decision
+ * 04/11; policy 14). Only a null limit is touched: any other value, negative
+ * or above the cap included, is restored as the file has it.
+ */
+function withRestorableLimit(budget: SerializableBudget): SerializableBudget {
+    return (budget.limitAmount as unknown) === null
+        ? { ...budget, limitAmount: MAX_ENTRY_AMOUNT_MINOR }
+        : budget;
+}
+
+/**
  * Restore app data from a validated snapshot.
  *
  * Financial data is written to the encrypted SQLite store, which is the only
@@ -550,7 +568,7 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
     const wallets = snapshot.data.wallets.map(deserializeWallet);
     const transactions = snapshot.data.transactions.map(deserializeTransaction);
     const categories = snapshot.data.categories.map(deserializeCategory);
-    const budgets = snapshot.data.budgets.map(deserializeBudget);
+    const budgets = snapshot.data.budgets.map(withRestorableLimit).map(deserializeBudget);
     // A file written before the occurrence key existed carries no number for
     // its rules. Each gets the one the v7 backfill would give it, derived from
     // its watermark in the zone the restore runs in, and it is stored with the
@@ -648,7 +666,8 @@ export async function restoreFromSnapshot(snapshot: BackupSnapshot): Promise<Res
 
             // Categories and budgets have no domain validator to call. Their
             // referential integrity is checked in validateSnapshot; their own
-            // field invariants are not enforced on this path.
+            // field invariants are not enforced on this path. The one repair
+            // is a null budget limit, set to the cap above (withRestorableLimit).
             for (const b of budgets) {
                 await sqlInsert(db, budgetMapper, b);
             }

@@ -61,7 +61,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
   const { height: windowHeight } = useWindowDimensions();
   const { t } = useTranslation();
   const { expenseCategories } = useCategories();
-  const { parseAmountToCentsResult, centsToMajor, amountPlaceholder, decimals } = useFormatting();
+  const { parseAmountToCentsResult, centsToMajor, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
 
   // Form state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -115,6 +115,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
           t,
           "modals.addBudget.invalidAmountMessage",
           amountPlaceholder,
+          maxEntryAmount,
         ),
       );
       return;

@@ -25,9 +25,23 @@ import {
     sqlUpdate,
 } from '../storage/sql/mappers';
 import type { IBudgetRepository } from '../../domain/repositories';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../../domain/constants/amounts';
 import { BudgetMonthClosedError } from '../../domain/useCases/errors';
+import { isEntryAmountWithinCap } from '../../domain/validators/EntryAmountValidator';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
+
+/**
+ * A new limit is held to the entry cap (REGISTRE V-128), on create and on an
+ * edit that sets one. The restore inserts budgets without coming here, so a
+ * limit a file already holds is restored as it is.
+ */
+function limitAboveCap(): RepositoryError {
+    return new RepositoryError(
+        RepositoryErrorType.VALIDATION_ERROR,
+        `Budget limit must be a finite number of at most ${MAX_ENTRY_AMOUNT_MINOR} minor units`,
+    );
+}
 
 export class BudgetRepository implements IBudgetRepository {
     constructor(private db: SqlDatabase) { }
@@ -109,6 +123,9 @@ export class BudgetRepository implements IBudgetRepository {
         if (dto.limitAmount <= 0) {
             throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Budget limit must be a positive number');
         }
+        if (!isEntryAmountWithinCap(dto.limitAmount)) {
+            throw limitAboveCap();
+        }
 
         const now = new Date();
         const budget: Budget = {
@@ -137,6 +154,9 @@ export class BudgetRepository implements IBudgetRepository {
         }
         if (dto.limitAmount !== undefined && dto.limitAmount <= 0) {
             throw new RepositoryError(RepositoryErrorType.VALIDATION_ERROR, 'Budget limit must be a positive number');
+        }
+        if (dto.limitAmount !== undefined && !isEntryAmountWithinCap(dto.limitAmount)) {
+            throw limitAboveCap();
         }
 
         // A past month is closed: its budget stays as the user lived with it.

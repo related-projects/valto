@@ -14,6 +14,8 @@ import {
     RecurringTransaction,
     UpdateRecurringTransactionDTO,
 } from '../../domain/entities/RecurringTransaction';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../../domain/constants/amounts';
+import { isEntryAmountWithinCap } from '../../domain/validators/EntryAmountValidator';
 import { validateRecurringTransaction } from '../../domain/validators/RecurringTransactionValidator';
 import {
     addMonthsClamped,
@@ -45,6 +47,21 @@ import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import type { IRecurringTransactionRepository } from '../../domain/repositories';
 import type { IRepository } from './IRepository';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
+
+/**
+ * A new rule amount is held to the entry cap (REGISTRE V-128), on create and
+ * on an edit that sets one. Not in validateRecurringTransaction, which the
+ * restore also calls, nor in update, which pausing, resuming and the engine's
+ * watermark go through for rules a restore may have brought in above the cap.
+ */
+function assertEntryAmount(amount: number): void {
+    if (!isEntryAmountWithinCap(amount)) {
+        throw new RepositoryError(
+            RepositoryErrorType.VALIDATION_ERROR,
+            `Rule amount must be a finite number of at most ${MAX_ENTRY_AMOUNT_MINOR} minor units`,
+        );
+    }
+}
 
 export class RecurringTransactionRepository
     implements IRepository<RecurringTransaction>, IRecurringTransactionRepository {
@@ -199,6 +216,7 @@ export class RecurringTransactionRepository
     }
 
     async create(dto: CreateRecurringTransactionDTO): Promise<RecurringTransaction> {
+        assertEntryAmount(dto.amount);
         const now = new Date();
         // The day the user picked, in this zone (REGISTRE V-116, Owner
         // decision 3): every occurrence is derived from it, wherever the
@@ -249,6 +267,7 @@ export class RecurringTransactionRepository
      * records what is due under the stored rule before calling this.
      */
     async updateFromDTO(dto: UpdateRecurringTransactionDTO, now: Date = new Date()): Promise<RecurringTransaction> {
+        if (dto.amount !== undefined) assertEntryAmount(dto.amount);
         const existing = await this.getById(dto.id);
         if (!existing) {
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Recurring rule with id ${dto.id} not found`);

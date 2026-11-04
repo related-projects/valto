@@ -6,7 +6,8 @@
  *
  * UI-only responsibilities:
  * - Collects filter inputs into local state
- * - On "Apply": pushes local state to the hook's setFilters(), closes modal
+ * - On "Apply": pushes local state to the hook's setFilters(), closes modal;
+ *   an amount bound above the entry cap is refused with a message instead
  * - On "Reset": clears local state and resets hook filters
  * - On close (tap outside / ✕): discards local changes, closes modal
  */
@@ -16,6 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    Alert,
     Modal,
     Platform,
     Pressable,
@@ -32,6 +34,7 @@ import { TransactionFilters } from '../../domain/filters/filterTransactions';
 import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
+import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -65,7 +68,7 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
     const { t, i18n } = useTranslation();
     const { categories } = useCategories();
     const { wallets } = useWallets();
-    const { parseAmountToCents, centsToMajor, decimals } = useFormatting();
+    const { parseAmountToCentsResult, centsToMajor, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
 
     // ── Local filter state (copied from current on open) ──────────────
 
@@ -158,15 +161,26 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
 
         // The user types major units; transactions are stored in minor units. Convert at
         // this boundary so the filter compares minor units to minor units. Unparseable
-        // input is dropped silently, leaving that bound unapplied.
-        const parsedMin = parseAmountToCents(minAmount);
-        const parsedMax = parseAmountToCents(maxAmount);
-        if (parsedMin !== null) filters.minAmountCents = parsedMin;
-        if (parsedMax !== null) filters.maxAmountCents = parsedMax;
+        // input is dropped silently, leaving that bound unapplied. A bound above the
+        // entry cap is not: no amount entered in the app can reach it, so it is refused
+        // with the same sentence the amount fields give, and nothing is applied
+        // (REGISTRE V-128).
+        const parsedMin = parseAmountToCentsResult(minAmount);
+        const parsedMax = parseAmountToCentsResult(maxAmount);
+        const tooLarge = [parsedMin, parsedMax].some((parsed) => !parsed.ok && parsed.cause === 'tooLarge');
+        if (tooLarge) {
+            Alert.alert(
+                t('transactions.filter.amountRange'),
+                amountRefusalMessage('tooLarge', t, 'transactions.filter.amountRange', amountPlaceholder, maxEntryAmount),
+            );
+            return;
+        }
+        if (parsedMin.ok) filters.minAmountCents = parsedMin.value;
+        if (parsedMax.ok) filters.maxAmountCents = parsedMax.value;
 
         onApply(filters);
         onClose();
-    }, [selectedTypes, selectedCategoryIds, selectedWalletIds, startDate, endDate, minAmount, maxAmount, parseAmountToCents, onApply, onClose]);
+    }, [selectedTypes, selectedCategoryIds, selectedWalletIds, startDate, endDate, minAmount, maxAmount, parseAmountToCentsResult, amountPlaceholder, maxEntryAmount, t, onApply, onClose]);
 
     const handleReset = useCallback(() => {
         setSelectedTypes([]);

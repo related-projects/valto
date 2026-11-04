@@ -16,6 +16,8 @@ import {
     TransactionType,
     UpdateTransactionDTO,
 } from '../../domain/entities/Transaction';
+import { MAX_ENTRY_AMOUNT_MINOR } from '../../domain/constants/amounts';
+import { isEntryAmountWithinCap } from '../../domain/validators/EntryAmountValidator';
 import { validateTransaction } from '../../domain/validators/TransactionValidator';
 import { ValidationError } from '../../domain/validators/ValidationError';
 import {
@@ -150,6 +152,17 @@ export class TransactionRepository implements ITransactionRepository {
     }
 
     async create(dto: CreateTransactionDTO): Promise<Transaction> {
+        // A new amount is held to the entry cap (REGISTRE V-128): this is the path
+        // createTransaction and both legs of transferFunds write by. Not in
+        // validateTransaction, which the restore also calls, nor in
+        // createRecurringOccurrence, which writes the amount of a stored rule.
+        if (!isEntryAmountWithinCap(dto.amount)) {
+            throw new RepositoryError(
+                RepositoryErrorType.VALIDATION_ERROR,
+                `Transaction amount must be a finite number of at most ${MAX_ENTRY_AMOUNT_MINOR} minor units`,
+            );
+        }
+
         const transaction: Transaction = {
             id: uuidv4(),
             type: dto.type,

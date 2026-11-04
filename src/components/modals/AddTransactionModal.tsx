@@ -48,7 +48,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
     const { colors, spacing, typography, radius } = useTheme();
     const { height: windowHeight } = useWindowDimensions();
     const { t, i18n } = useTranslation();
-    const { formatAmount, parseAmountToCentsResult, amountPlaceholder, decimals } = useFormatting();
+    const { formatAmount, parseAmountToCentsResult, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
     const scrollViewRef = React.useRef<ScrollView>(null);
 
     // Hooks
@@ -188,6 +188,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                     t,
                     'modals.addTransaction.invalidAmountMessage',
                     amountPlaceholder,
+                    maxEntryAmount,
                 ),
             );
             return;
