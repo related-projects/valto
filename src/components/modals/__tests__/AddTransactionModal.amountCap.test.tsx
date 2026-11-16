@@ -137,7 +137,12 @@ describe('V-128 AddTransactionModal amount cap', () => {
 
         expect(alertSpy).not.toHaveBeenCalled();
         if (mode === 'transfer') {
-            expect(transferBetweenWallets).toHaveBeenCalledWith(SOURCE.id, DEST.id, CAP_MINOR);
+            expect(transferBetweenWallets).toHaveBeenCalledWith(
+                SOURCE.id,
+                DEST.id,
+                CAP_MINOR,
+                expect.objectContaining({ date: expect.any(Date) }),
+            );
             expect(createTransaction).not.toHaveBeenCalled();
         } else {
             expect(createTransaction).toHaveBeenCalledWith(expect.objectContaining({

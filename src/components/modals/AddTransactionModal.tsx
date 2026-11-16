@@ -94,13 +94,30 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
         }
     }, [visible, wallets, selectedWalletId]);
 
-    // Auto-select first category
+    // Auto-select the first category of the current type.
+    //
+    // For an expense or an income, a selected category that is not of that
+    // type is replaced the same way: it is left over from a type switch, or
+    // from the reset made on opening, which runs in the same commit as this
+    // effect and so leaves it reading the previous type. Without this, Save
+    // stored an income under an expense category and the reverse. With no
+    // category of the type, the selection is cleared and Save asks for one.
+    // Verified by AddTransactionModal.typeSwitchCategory.test.tsx.
+    //
+    // A transfer stores no category: its selection is handled as before.
     useEffect(() => {
-        if (visible) {
-            const list = transactionType === 'expense' ? expenseCategories : incomeCategories;
+        if (!visible) return;
+        const list = transactionType === 'expense' ? expenseCategories : incomeCategories;
+        if (transactionType === 'transfer') {
             if (list.length > 0 && !selectedCategoryId) {
                 setSelectedCategoryId(list[0].id);
             }
+            return;
+        }
+        if (list.some(c => c.id === selectedCategoryId)) return;
+        const next = list.length > 0 ? list[0].id : '';
+        if (next !== selectedCategoryId) {
+            setSelectedCategoryId(next);
         }
     }, [visible, transactionType, expenseCategories, incomeCategories, selectedCategoryId]);
 
@@ -214,7 +231,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                 setSaving(true);
                 // Sufficiency is decided in the transferFunds use case (within the
                 // DB transaction). The modal only catches and displays.
-                await transferBetweenWallets(selectedWalletId, destWalletId, amountNum);
+                // The date and note are passed as for an expense or an income
+                // below (REGISTRE V-129).
+                await transferBetweenWallets(selectedWalletId, destWalletId, amountNum, {
+                    date: date,
+                    note: notes || undefined,
+                });
                 setAmount('');
                 setNotes('');
                 setDate(new Date());

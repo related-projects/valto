@@ -14,7 +14,11 @@ import {
     createWallet as createWalletUC,
     deleteWallet as deleteWalletUC,
     transferFunds as transferFundsUC,
+    type TransferFundsInput,
 } from '../domain/useCases';
+
+/** What a transfer may carry besides its wallets and amount (REGISTRE V-129). */
+type TransferOptions = Pick<TransferFundsInput, 'date' | 'note'>;
 
 interface UseWalletsResult {
     wallets: Wallet[];
@@ -26,7 +30,7 @@ interface UseWalletsResult {
     createWallet: (dto: import('../domain/entities').CreateWalletDTO) => Promise<Wallet>;
     updateWallet: (dto: UpdateWalletDTO) => Promise<Wallet>;
     deleteWallet: (id: string) => Promise<void>;
-    transferBetweenWallets: (fromId: string, toId: string, amount: number) => Promise<void>;
+    transferBetweenWallets: (fromId: string, toId: string, amount: number, options?: TransferOptions) => Promise<void>;
     hasTransactions: (walletId: string) => Promise<boolean>;
 }
 
@@ -164,15 +168,25 @@ export function useWallets(): UseWalletsResult {
 
     /**
      * Transfer money between two wallets (delegates to use case)
+     *
+     * `options` carries the date and note the user entered; without them the
+     * use case records the present instant and the fixed notes.
      */
     const transferBetweenWallets = useCallback(async (
         fromId: string,
         toId: string,
-        amount: number
+        amount: number,
+        options?: TransferOptions,
     ): Promise<void> => {
         try {
             const deps = getUseCaseDeps();
-            await transferFundsUC(deps, { fromWalletId: fromId, toWalletId: toId, amount });
+            await transferFundsUC(deps, {
+                fromWalletId: fromId,
+                toWalletId: toId,
+                amount,
+                date: options?.date,
+                note: options?.note,
+            });
 
             // Refresh local state
             await loadWallets();
