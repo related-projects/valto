@@ -14,6 +14,25 @@ export interface TransferFundsInput {
     fromWalletId: string;
     toWalletId: string;
     amount: number;
+    /**
+     * When the transfer happened, stored on both legs. Absent: the present
+     * instant (the Dashboard shortcut has no date field). Checked as
+     * createTransaction's date is, by validateTransaction when each leg is
+     * written. REGISTRE V-129, decision 1.
+     */
+    date?: Date;
+    /**
+     * The note the user typed. Trimmed, then stored on each leg after that
+     * leg's wallet text, so the leg still names the other wallet:
+     * "Transfer to <wallet> - <note>". Absent, empty or blank: the wallet text
+     * alone. REGISTRE V-129, Owner decisions 16/11 and 17/11.
+     */
+    note?: string;
+}
+
+/** A leg's note: its wallet text, then the typed note when there is one. */
+function legNote(walletText: string, typedNote: string): string {
+    return typedNote ? `${walletText} - ${typedNote}` : walletText;
 }
 
 export async function transferFunds(
@@ -21,7 +40,7 @@ export async function transferFunds(
     input: TransferFundsInput,
 ): Promise<void> {
     const { transactionRepo, walletRepo, eventBus, runInTransaction } = deps;
-    const { fromWalletId, toWalletId, amount } = input;
+    const { fromWalletId, toWalletId, amount, note } = input;
 
     // ── Validation ────────────────────────────────────────────────────
 
@@ -39,7 +58,10 @@ export async function transferFunds(
     // single DB transaction. Reading-then-deciding-then-writing under the same
     // transaction (with the step-1.5 mutex) closes the TOCTOU window. Any throw
     // rolls the whole transfer back, so a balance can never be left corrupted.
-    const now = new Date();
+    // The date is only written: the sufficiency check reads the current
+    // balance, whatever date the transfer carries.
+    const date = input.date ?? new Date();
+    const typedNote = note?.trim() ?? '';
 
     await runInTransaction(async () => {
         const sourceWallet = await walletRepo.getById(fromWalletId);
@@ -75,8 +97,8 @@ export async function transferFunds(
             amount,
             walletId: fromWalletId,
             categoryId: TRANSFER_OUT_CATEGORY_ID,
-            date: now,
-            note: `Transfer to ${destWallet.name}`,
+            date,
+            note: legNote(`Transfer to ${destWallet.name}`, typedNote),
         });
 
         await transactionRepo.create({
@@ -84,8 +106,8 @@ export async function transferFunds(
             amount,
             walletId: toWalletId,
             categoryId: TRANSFER_IN_CATEGORY_ID,
-            date: now,
-            note: `Transfer from ${sourceWallet.name}`,
+            date,
+            note: legNote(`Transfer from ${sourceWallet.name}`, typedNote),
         });
     });
 
