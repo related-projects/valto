@@ -436,6 +436,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ visibl
                                 <TouchableOpacity
                                     style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}
                                     onPress={() => setShowDatePicker(true)}
+                                    testID="add_tx_date_button"
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                         <Ionicons name="calendar-outline" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />

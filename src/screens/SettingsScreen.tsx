@@ -206,6 +206,7 @@ export const SettingsScreen = () => {
                                 value={settings.notificationsEnabled}
                                 onValueChange={toggleNotifications}
                                 trackColor={{ false: colors.muted, true: colors.primary }}
+                                testID="settings_notifications_switch"
                             />
                         }
                     />
@@ -253,6 +254,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={handleSecurityPress}
+                        testID="settings_security_item"
                     />
                     <ListItem
                         title={t('recurring.title')}
@@ -261,6 +263,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={() => router.push('/recurring-rules')}
+                        testID="settings_recurring_item"
                     />
                 </View>
             </View>
@@ -282,6 +285,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={changeDateFormat}
+                        testID="settings_date_format_item"
                     />
                     <ListItem
                         title={t('settings.firstDayOfWeek')}
@@ -320,6 +324,7 @@ export const SettingsScreen = () => {
                         }
                         showChevron
                         onPress={() => router.push('/export')}
+                        testID="settings_export_item"
                     />
                     <ListItem
                         title={t('settings.backupData')}

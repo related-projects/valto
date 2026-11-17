@@ -1,26 +1,28 @@
-# Maestro E2E Tests — Valto Budget Tracker
+# Maestro end-to-end flow - Valto
 #
-# Onboarding Flow
-# Verifies the complete onboarding experience for new users.
+# Onboarding
+# Goes through first launch: welcome, currency, back navigation, first wallet,
+# completion, and checks the wallet is listed on the dashboard.
 #
-# Prerequisites: Fresh app install (no previous data)
-# Run: maestro test .maestro/onboarding.yaml
+# Prerequisites: none; the app state is cleared at launch.
+# Synthetic data only.
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/onboarding.yaml
 
-appId: com.valto.app
+appId: com.renkakpo.valto.app
 ---
 
-# ── App Launch ──────────────────────────────────────────────────
+# --- App launch ---
 - launchApp:
     clearState: true
 
-# ── Welcome Screen ──────────────────────────────────────────────
+# --- Welcome screen ---
 - assertVisible:
     id: "onboarding_get_started"
 
 - tapOn:
     id: "onboarding_get_started"
 
-# ── Currency Selection ──────────────────────────────────────────
+# --- Currency selection ---
 # The list is long; filter to the target instead of scrolling to it.
 # Selecting a currency auto-advances - there is no separate "next" tap here.
 - assertVisible:
@@ -37,7 +39,7 @@ appId: com.valto.app
 - assertVisible:
     id: "onboarding_wallet_name"
 
-# ── Back Navigation (regression: the currency step used to dead-end) ─────
+# --- Back navigation (regression: the currency step used to dead-end) ---
 # Going back must leave a usable path forward: a different currency has to
 # take effect and advance again, with no stale search query in the way.
 - tapOn:
@@ -54,7 +56,7 @@ appId: com.valto.app
 - tapOn:
     id: "currency_item_EUR"
 
-# ── Wallet Setup ────────────────────────────────────────────────
+# --- Wallet setup ---
 - assertVisible:
     id: "onboarding_wallet_name"
 
@@ -65,11 +67,18 @@ appId: com.valto.app
 
 - tapOn:
     id: "onboarding_next_button"
-    
-# ── Completion ────────────────────────────────────────────────
+
+# --- Completion ---
 - tapOn:
     id: "onboarding_complete_button"
 
-# ── Verify Dashboard ────────────────────────────────────────────
+# --- Check the dashboard and the wallet created above ---
 - assertVisible:
     id: "dashboard_screen"
+
+- scrollUntilVisible:
+    element:
+      text: "Main Account"
+
+- assertVisible:
+    text: "Main Account"

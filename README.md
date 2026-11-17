@@ -103,9 +103,41 @@ npm test
 
 ## Testing & CI
 
-- Tests concentrate on the domain and data layers, plus five end-to-end flows in Maestro. Unit tests run on Node via `better-sqlite3` behind the same `SqlDatabase` port the app uses, so the rollback and concurrency tests exercise real SQLite transaction semantics.
+- Tests concentrate on the domain and data layers. Five Maestro end-to-end flows are run by hand on a local Android emulator (see [End-to-end tests](#end-to-end-tests-maestro)). Unit tests run on Node via `better-sqlite3` behind the same `SqlDatabase` port the app uses, so the rollback and concurrency tests exercise real SQLite transaction semantics.
 - CI enforces coverage floors per layer rather than a test count, which decays silently: `src/domain` at 96 percent statements, 93 branches, 93 functions, 96 lines; `src/data` at 66 / 56 / 77 / 66. Components and screens carry no threshold - they are deliberately not unit-tested, so a UI file can never redden the build.
 - **CI** (GitHub Actions, on every PR and on `develop`/`main`): lint (including the domain dependency barrier), type-check, and the full test suite with the coverage floors above. `expo-doctor` runs too, but advisory: it compares the installed versions against a remote registry that moves on its own, so it reports SDK drift without failing the pipeline.
+
+---
+
+## End-to-end tests (Maestro)
+
+Five Maestro flows in `.maestro/` drive the app on an Android emulator. They run locally, against the APK built by EAS with the `preview` profile; nothing is built on the local machine.
+
+| Flow | What it checks |
+| --- | --- |
+| `onboarding.yaml` | First launch from a cleared state: choosing a currency, going back and choosing another, naming the first wallet. The wallet is then listed on the dashboard. |
+| `create_wallet.yaml` | Adds a savings wallet from the Wallets tab. The wallet is then listed on the dashboard. |
+| `create_transaction.yaml` | Adds an expense. Its row is then listed with its category and its wallet. |
+| `change_settings.yaml` | Switches the theme to Dark and the date format to YYYY-MM-DD. Each row then shows the new value. |
+| `backup_restore.yaml` | Creates a backup and closes the share sheet, then opens both restore confirmations and cancels the second. Nothing is restored. |
+
+The flows share one app state and run in the order set in `.maestro/config.yaml`, onboarding first. They type synthetic data only. They select controls by testID where the app has one; native Android dialogs and some labels are matched by their text, so the emulator must be set to English.
+
+Prerequisites:
+
+- Java 17 or 21 (required by the Maestro CLI)
+- The Maestro CLI, with `maestro` on the PATH
+- The Android SDK platform-tools, with `adb` on the PATH
+- An Android Virtual Device on API 34, 35 or 36, started, and no other device attached
+- The preview APK, downloaded from the EAS build page
+
+Run:
+
+```bash
+scripts/run-e2e.sh path/to/valto-preview.apk
+```
+
+The script checks that exactly one emulator or device is attached, uninstalls the app if it is present, installs the APK and runs every flow. Uninstalling erases the app data on that device, so run it on an emulator, never on a phone that holds real data. The JUnit report is written to `e2e-results/report.xml`, and screenshots and logs to `e2e-results/artifacts/` (git-ignored). The exit status is non-zero if any flow fails.
 
 ---
 

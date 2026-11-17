@@ -27,6 +27,7 @@ export const MonthNavigator: React.FC<MonthNavigatorProps> = ({
         <View style={styles.container}>
             <TouchableOpacity
                 onPress={onPrevious}
+                testID="month_navigator_previous"
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={[styles.button, { backgroundColor: colors.secondary, borderRadius: spacing.sm }]}
             >
@@ -45,6 +46,7 @@ export const MonthNavigator: React.FC<MonthNavigatorProps> = ({
 
             <TouchableOpacity
                 onPress={onNext}
+                testID="month_navigator_next"
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={[styles.button, { backgroundColor: colors.secondary, borderRadius: spacing.sm }]}
             >

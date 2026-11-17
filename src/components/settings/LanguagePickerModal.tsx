@@ -75,6 +75,7 @@ export const LanguagePickerModal: React.FC<LanguagePickerModalProps> = ({
                             return (
                                 <TouchableOpacity
                                     key={lang.code}
+                                    testID={`language_picker_item_${lang.code}`}
                                     style={[
                                         styles.row,
                                         {

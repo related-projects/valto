@@ -1,36 +1,51 @@
-# Maestro E2E Tests — Valto Budget Tracker
+# Maestro end-to-end flow - Valto
 #
-# Change Settings Flow
-# Verifies changing language and currency settings.
+# Change settings
+# Changes the theme and the date format, and checks each row shows the new
+# value.
 #
-# Prerequisites: App with completed onboarding.
-# Run: maestro test .maestro/change_settings.yaml
+# Both choices open a native Android Alert, which has no testID. Its buttons
+# are matched by text: case-insensitively, since Android may draw dialog
+# buttons in upper case, and with a trailing ".*", since the current choice
+# carries a check mark suffix.
+#
+# Prerequisites: onboarding completed (see config.yaml).
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/change_settings.yaml
 
-appId: com.valto.app
+appId: com.renkakpo.valto.app
 ---
 
-# ── Launch ──────────────────────────────────────────────────────
+# --- Launch ---
 - launchApp
 
-# ── Navigate to Settings ────────────────────────────────────────
+# --- Navigate to Settings ---
 - tapOn:
     id: "tab_settings"
 
-# ── Change Theme ────────────────────────────────────────────────
+# --- Theme ---
 - tapOn:
     id: "settings_theme_item"
 
-# Theme selection appears as an alert — tap dark option
 - tapOn:
-    id: "theme-option-dark"
-    optional: true
+    text: "(?i)dark.*"
 
-# ── Change Date Format ──────────────────────────────────────────
-- tapOn:
-    text: "DD/MM/YYYY"
-    optional: true
-
-# ── Verify Settings Screen Still Shows ──────────────────────────
 - assertVisible:
-    id: "tab_settings"
-    timeout: 3000
+    id: "settings_theme_item"
+    containsDescendants:
+      - text: "Dark"
+
+# --- Date format ---
+- scrollUntilVisible:
+    element:
+      id: "settings_date_format_item"
+
+- tapOn:
+    id: "settings_date_format_item"
+
+- tapOn:
+    text: "YYYY-MM-DD.*"
+
+- assertVisible:
+    id: "settings_date_format_item"
+    containsDescendants:
+      - text: "YYYY-MM-DD"

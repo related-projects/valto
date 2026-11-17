@@ -1,0 +1,15 @@
+# Maestro workspace configuration - Valto end-to-end flows
+#
+# scripts/run-e2e.sh installs the APK fresh, so the flows share one app state
+# and must run in this order: onboarding creates the first wallet that the
+# others rely on. A failed flow stops the run, since the ones after it would
+# start from a state they do not expect.
+
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - onboarding
+    - create_wallet
+    - create_transaction
+    - change_settings
+    - backup_restore

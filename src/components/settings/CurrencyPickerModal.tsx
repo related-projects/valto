@@ -45,6 +45,7 @@ const CurrencyRow: React.FC<CurrencyRowProps> = React.memo(function CurrencyRow(
             style={[styles.row, { paddingVertical: spacing.sm + 4, paddingHorizontal: spacing.md }]}
             onPress={onPress}
             activeOpacity={0.6}
+            testID={`currency_picker_item_${item.code}`}
         >
             <View style={styles.rowLeft}>
                 <Text style={{ color: colors.foreground, fontSize: typography.sizes.md, fontWeight: '500', width: 48 }}>
