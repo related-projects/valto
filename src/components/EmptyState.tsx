@@ -22,6 +22,8 @@ interface EmptyStateProps {
     actionLabel?: string;
     /** Callback for CTA button */
     onAction?: () => void;
+    /** Optional testID for the CTA button */
+    actionTestID?: string;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -30,6 +32,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     description,
     actionLabel,
     onAction,
+    actionTestID,
 }) => {
     const { colors, spacing, typography, radius, shadows } = useTheme();
 
@@ -77,6 +80,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             {actionLabel && onAction && (
                 <TouchableOpacity
                     onPress={onAction}
+                    testID={actionTestID}
                     style={[
                         styles.actionButton,
                         {

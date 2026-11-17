@@ -1,47 +1,56 @@
-# Maestro E2E Tests — Valto Budget Tracker
+# Maestro end-to-end flow - Valto
 #
-# Create Transaction Flow
-# Verifies adding an expense transaction and seeing balance update.
+# Create transaction
+# Adds an expense from the Transactions tab and checks its row is listed.
 #
-# Prerequisites: App with completed onboarding and at least one wallet.
-# Run: maestro test .maestro/create_transaction.yaml
+# Prerequisites: onboarding completed, so the "Main Account" wallet exists and
+# is the first wallet (onboarding.yaml runs first, see config.yaml).
+# Synthetic data only.
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/create_transaction.yaml
 
-appId: com.valto.app
+appId: com.renkakpo.valto.app
 ---
 
-# ── Launch ──────────────────────────────────────────────────────
+# --- Launch ---
 - launchApp
 
-# ── Navigate to Transactions ────────────────────────────────────
+# --- Open the add-transaction sheet ---
 - tapOn:
     id: "tab_transactions"
 
-# ── Open Add Transaction Modal ──────────────────────────────────
 - tapOn:
     id: "fab_add_transaction"
 
 - assertVisible:
     id: "add_tx_amount_input"
 
-# ── Fill Transaction Form ───────────────────────────────────────
-# Select expense type (default)
+# --- Fill the form ---
 - tapOn:
     id: "add_tx_type_expense"
 
-# Enter amount
-- tapOn:
-    id: "add_tx_amount_input"
-
-- inputText: "25.50"
-
-# Select category
+# The category is picked before the amount, so no keyboard covers the picker.
+# Default categories are seeded as French literals (src/data/seed/seedData.ts);
+# "Transport" is one of them.
 - tapOn:
     id: "add_tx_category_picker"
 
 - tapOn:
-    text: "Food" # Will pick the first thing with Food text, e.g. Food & Dining
+    text: "Transport"
 
-# ── Save Transaction ───────────────────────────────────────────
+- tapOn:
+    id: "add_tx_amount_input"
+
+- inputText: "37"
+
+# --- Save (header button, above the keyboard) ---
 - tapOn:
     id: "add_tx_save_button"
-    timeout: 3000
+
+# --- Check the created transaction ---
+# A row names its category and its wallet; the wallet picker defaults to the
+# first wallet, the one onboarding created.
+- assertVisible:
+    id: "transaction_list_row_.*"
+    containsDescendants:
+      - text: "Transport"
+      - text: "Main Account"

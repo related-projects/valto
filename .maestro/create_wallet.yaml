@@ -1,29 +1,34 @@
-# Maestro E2E Tests — Valto Budget Tracker
+# Maestro end-to-end flow - Valto
 #
-# Create Wallet Flow
-# Verifies adding a new wallet and seeing it in the wallet list.
+# Create wallet
+# Adds a savings wallet from the Wallets tab and checks it is listed on the
+# dashboard.
 #
-# Prerequisites: App with completed onboarding.
-# Run: maestro test .maestro/create_wallet.yaml
+# Prerequisites: onboarding completed (onboarding.yaml runs first, see
+# config.yaml). Synthetic data only.
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/create_wallet.yaml
 
-appId: com.valto.app
+appId: com.renkakpo.valto.app
 ---
 
-# ── Launch ──────────────────────────────────────────────────────
+# --- Launch ---
 - launchApp
 
-# ── Navigate to Wallets ─────────────────────────────────────────
+# --- Open the add-wallet sheet ---
 - tapOn:
     id: "tab_wallets"
 
-# ── Open Add Wallet Modal ───────────────────────────────────────
 - tapOn:
-    text: "Add Wallet"
+    id: "wallets_add_button"
 
 - assertVisible:
     id: "add_wallet_name_input"
 
-# ── Fill Wallet Form ────────────────────────────────────────────
+# --- Fill the form ---
+# The type is picked first, before a keyboard can cover the type buttons.
+- tapOn:
+    id: "add_wallet_type_savings"
+
 - tapOn:
     id: "add_wallet_name_input"
 
@@ -34,10 +39,21 @@ appId: com.valto.app
 
 - inputText: "1000"
 
-# Select wallet type
-- tapOn:
-    id: "add_wallet_type_savings"
-
-# ── Save Wallet ────────────────────────────────────────────────
+# --- Save (header button, above the keyboard) ---
 - tapOn:
     id: "add_wallet_save_button"
+
+# --- Check the created wallet ---
+# The sheet closed, and the dashboard wallet list shows the new wallet.
+- assertNotVisible:
+    id: "add_wallet_name_input"
+
+- tapOn:
+    id: "tab_index"
+
+- scrollUntilVisible:
+    element:
+      text: "Savings Account"
+
+- assertVisible:
+    text: "Savings Account"

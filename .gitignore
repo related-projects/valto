@@ -48,6 +48,9 @@ coverage/
 # per-file jest timings, written by the CI test step and uploaded as an artifact
 jest-timings.json
 
+# Maestro end-to-end results, written by scripts/run-e2e.sh
+e2e-results/
+
 # Environment
 .env
 

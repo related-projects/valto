@@ -196,6 +196,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
           style={styles.overlayTouchable}
           activeOpacity={1}
           onPress={onClose}
+          testID="edit_wallet_overlay"
         />
         <View
           style={[
@@ -205,7 +206,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
         >
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={onClose} style={styles.headerButton}>
+            <TouchableOpacity onPress={onClose} style={styles.headerButton} testID="edit_wallet_close_button">
               <Ionicons name="close" size={24} color={colors.foreground} />
             </TouchableOpacity>
             <Text
@@ -221,6 +222,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
               onPress={handleSave}
               style={styles.headerButton}
               disabled={saving}
+              testID="edit_wallet_save_button"
             >
               {saving ? (
                 <ActivityIndicator size="small" color={colors.accent} />
@@ -278,6 +280,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
                     value={name}
                     onChangeText={setName}
                     autoCapitalize="words"
+                    testID="edit_wallet_name_input"
                   />
                 </View>
               </View>
@@ -305,6 +308,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={type.value}
+                        testID={`edit_wallet_type_${type.value}`}
                         style={[
                           styles.typeButton,
                           {
@@ -369,6 +373,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={color}
+                        testID={`edit_wallet_color_${color.replace("#", "").toLowerCase()}`}
                         style={[
                           styles.colorButton,
                           {
@@ -404,6 +409,7 @@ export const EditWalletModal: React.FC<EditWalletModalProps> = ({
                 ]}
                 onPress={handleDelete}
                 disabled={deleting}
+                testID="edit_wallet_delete_button"
               >
                 {deleting ? (
                   <ActivityIndicator size="small" color={colors.destructive} />

@@ -96,6 +96,7 @@ export const WalletsScreen = () => {
                 activeOpacity={0.9}
                 onPress={() => handleEditWallet(wallet)}
                 style={{ width: cardWidth }}
+                testID={`wallet_card_${wallet.id}`}
             >
                 <View
                     style={{
@@ -120,7 +121,7 @@ export const WalletsScreen = () => {
                         }}>
                             <Ionicons name="card-outline" size={22} color={colors.accentForeground} />
                         </View>
-                        <TouchableOpacity onPress={() => handleEditWallet(wallet)}>
+                        <TouchableOpacity onPress={() => handleEditWallet(wallet)} testID={`wallet_card_menu_${wallet.id}`}>
                             <Ionicons name="ellipsis-vertical" size={20} color={colors.accentForeground} />
                         </TouchableOpacity>
                     </View>
@@ -171,6 +172,7 @@ export const WalletsScreen = () => {
                 }}
                 onPress={handleAddWallet}
                 accessibilityRole="button"
+                testID="wallets_create_first"
             >
                 <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.md, fontWeight: '600' }}>
                     {t('wallets.createFirst')}
@@ -228,6 +230,7 @@ export const WalletsScreen = () => {
                         }}
                         onPress={handleAddWallet}
                         accessibilityRole="button"
+                        testID="wallets_add_button"
                     >
                         <Ionicons name="add" size={18} color={colors.accentForeground} />
                         <Text style={{ color: colors.accentForeground, fontSize: typography.sizes.sm, fontWeight: typography.weights.semibold }}>{t('wallets.add')}</Text>

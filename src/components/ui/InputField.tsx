@@ -74,6 +74,7 @@ export const InputField: React.FC<InputFieldProps> = ({
                     placeholderTextColor={colors.mutedForeground}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
+                    testID={testID ? `${testID}_input` : undefined}
                     {...props}
                 />
                 {rightIcon && (

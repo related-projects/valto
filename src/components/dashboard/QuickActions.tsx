@@ -24,6 +24,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             icon: 'arrow-down-outline' as const,
             label: t('components.quickActions.income'),
             onPress: onAddIncome,
+            testID: 'quick_action_income',
             bg: colors.successBackground,
             iconColor: colors.successText,
         },
@@ -31,6 +32,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             icon: 'arrow-up-outline' as const,
             label: t('components.quickActions.expense'),
             onPress: onAddExpense,
+            testID: 'quick_action_expense',
             bg: colors.destructiveBackground,
             iconColor: colors.destructiveText,
         },
@@ -38,6 +40,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             icon: 'swap-horizontal-outline' as const,
             label: t('components.quickActions.transfer'),
             onPress: onTransfer,
+            testID: 'quick_action_transfer',
             bg: colors.iconBadgeBackground,
             iconColor: colors.accent,
         },
@@ -52,6 +55,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
                 {actions.map((action, index) => (
                     <TouchableOpacity
                         key={index}
+                        testID={action.testID}
                         onPress={action.onPress}
                         style={[
                             styles.actionButton,

@@ -156,9 +156,10 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
         onClose();
     };
 
-    const renderWalletOption = (wallet: Wallet, isSelected: boolean, onSelect: () => void) => (
+    const renderWalletOption = (wallet: Wallet, isSelected: boolean, onSelect: () => void, testID: string) => (
         <TouchableOpacity
             key={wallet.id}
+            testID={testID}
             style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -204,11 +205,12 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                     style={styles.overlayTouchable}
                     activeOpacity={1}
                     onPress={handleClose}
+                    testID="transfer_overlay"
                 />
                 <View style={[styles.modalContainer, { backgroundColor: colors.card, height: windowHeight * MODAL_HEIGHT_RATIO }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
+                        <TouchableOpacity onPress={handleClose} style={styles.headerButton} testID="transfer_close_button">
                             <Ionicons name="close" size={24} color={colors.foreground} />
                         </TouchableOpacity>
                         <Text style={{ color: colors.foreground, fontSize: typography.sizes.lg, fontWeight: typography.weights.bold }}>
@@ -218,6 +220,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                             onPress={handleTransfer}
                             style={styles.headerButton}
                             disabled={transferring || !canTransfer}
+                            testID="transfer_send_button"
                         >
                             {transferring ? (
                                 <ActivityIndicator size="small" color={colors.accent} />
@@ -263,6 +266,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 setShowSourcePicker(!showSourcePicker);
                                                 setShowDestPicker(false);
                                             }}
+                                            testID="transfer_source_wallet_picker"
                                         >
                                             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                                 <Ionicons name="wallet-outline" size={20} color={sourceWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
@@ -295,7 +299,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                         () => {
                                                             setSourceWalletId(wallet.id);
                                                             setShowSourcePicker(false);
-                                                        }
+                                                        },
+                                                        `transfer_source_wallet_${wallet.id}`,
                                                     ))}
                                                 </ScrollView>
                                             </View>
@@ -327,6 +332,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 setShowDestPicker(!showDestPicker);
                                                 setShowSourcePicker(false);
                                             }}
+                                            testID="transfer_dest_wallet_picker"
                                         >
                                             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                                                 <Ionicons name="wallet-outline" size={20} color={destWallet?.color || colors.primary} style={{ marginRight: spacing.sm }} />
@@ -366,7 +372,8 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                             () => {
                                                                 setDestWalletId(wallet.id);
                                                                 setShowDestPicker(false);
-                                                            }
+                                                            },
+                                                            `transfer_dest_wallet_${wallet.id}`,
                                                         ))
                                                     )}
                                                 </ScrollView>
@@ -387,6 +394,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 keyboardType={decimals === 0 ? "number-pad" : "decimal-pad"}
                                                 value={amount}
                                                 onChangeText={setAmount}
+                                                testID="transfer_amount_input"
                                             />
                                         </View>
                                         {sourceWallet && (

@@ -91,7 +91,7 @@ const RuleCard: React.FC<{
     const typeColor = rule.type === 'income' ? (colors.success ?? '#22c55e') : (colors.destructive ?? '#ef4444');
 
     return (
-        <View style={{
+        <View testID={`recurring_rule_${rule.id}`} style={{
             backgroundColor: colors.card,
             borderRadius: radius.lg,
             padding: spacing.md,
@@ -166,12 +166,13 @@ const RuleCard: React.FC<{
                 marginTop: spacing.md,
                 gap: spacing.md,
             }}>
-                <Pressable onPress={() => onEdit(rule)} hitSlop={8} {...getButtonA11y(t('a11y.editRule'))}>
+                <Pressable onPress={() => onEdit(rule)} hitSlop={8} testID={`recurring_rule_edit_${rule.id}`} {...getButtonA11y(t('a11y.editRule'))}>
                     <Ionicons name="pencil-outline" size={20} color={colors.primary} />
                 </Pressable>
                 <Pressable
                     onPress={() => onTogglePause(rule)}
                     hitSlop={8}
+                    testID={`recurring_rule_toggle_pause_${rule.id}`}
                     {...getButtonA11y(rule.isPaused ? t('a11y.resumeRule') : t('a11y.pauseRule'))}
                 >
                     <Ionicons
@@ -180,7 +181,7 @@ const RuleCard: React.FC<{
                         color={colors.primary}
                     />
                 </Pressable>
-                <Pressable onPress={() => onDelete(rule)} hitSlop={8} {...getButtonA11y(t('a11y.deleteRule'))}>
+                <Pressable onPress={() => onDelete(rule)} hitSlop={8} testID={`recurring_rule_delete_${rule.id}`} {...getButtonA11y(t('a11y.deleteRule'))}>
                     <Ionicons name="trash-outline" size={20} color={colors.destructive ?? '#ef4444'} />
                 </Pressable>
             </View>
@@ -422,6 +423,7 @@ export const RecurringRulesScreen: React.FC = () => {
             description={t('recurring.emptyDescription')}
             actionLabel={t('recurring.createRule')}
             onAction={handleCreate}
+            actionTestID="recurring_empty_create_button"
         />
     );
 
@@ -440,6 +442,7 @@ export const RecurringRulesScreen: React.FC = () => {
                     <TouchableOpacity
                         onPress={() => router.back()}
                         style={{ marginRight: spacing.md }}
+                        testID="recurring_back_button"
                         {...getButtonA11y(t('a11y.backButton'))}
                     >
                         <Ionicons name="arrow-back" size={24} color={colors.foreground} />
@@ -483,6 +486,7 @@ export const RecurringRulesScreen: React.FC = () => {
                         ...shadows.elevated,
                     }}
                     onPress={handleCreate}
+                    testID="recurring_add_button"
                     {...getButtonA11y(t('a11y.addRecurringRule'))}
                 >
                     <Ionicons name="add" size={30} color={colors.accentForeground} />

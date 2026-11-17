@@ -58,15 +58,15 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
     const isEdit = !!existingRule;
 
     const TYPE_SEGMENTS: Segment<TransactionType>[] = [
-        { key: 'expense', label: t('recurring.segmentExpense'), value: TransactionType.EXPENSE },
-        { key: 'income', label: t('recurring.segmentIncome'), value: TransactionType.INCOME },
+        { key: 'expense', label: t('recurring.segmentExpense'), value: TransactionType.EXPENSE, testID: 'recurring_form_type_expense' },
+        { key: 'income', label: t('recurring.segmentIncome'), value: TransactionType.INCOME, testID: 'recurring_form_type_income' },
     ];
 
     const FREQUENCY_SEGMENTS: Segment<RecurrenceFrequency>[] = [
-        { key: 'daily', label: t('recurring.segmentDaily'), value: RecurrenceFrequency.DAILY },
-        { key: 'weekly', label: t('recurring.segmentWeekly'), value: RecurrenceFrequency.WEEKLY },
-        { key: 'monthly', label: t('recurring.segmentMonthly'), value: RecurrenceFrequency.MONTHLY },
-        { key: 'yearly', label: t('recurring.segmentYearly'), value: RecurrenceFrequency.YEARLY },
+        { key: 'daily', label: t('recurring.segmentDaily'), value: RecurrenceFrequency.DAILY, testID: 'recurring_form_frequency_daily' },
+        { key: 'weekly', label: t('recurring.segmentWeekly'), value: RecurrenceFrequency.WEEKLY, testID: 'recurring_form_frequency_weekly' },
+        { key: 'monthly', label: t('recurring.segmentMonthly'), value: RecurrenceFrequency.MONTHLY, testID: 'recurring_form_frequency_monthly' },
+        { key: 'yearly', label: t('recurring.segmentYearly'), value: RecurrenceFrequency.YEARLY, testID: 'recurring_form_frequency_yearly' },
     ];
 
     // ─── State ────────────────────────────────────────────────────────
@@ -101,8 +101,8 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
         return true;
     });
 
-    const walletItems: DropdownItem[] = wallets.map(w => ({ id: w.id, label: w.name }));
-    const categoryItems: DropdownItem[] = filteredCategories.map(c => ({ id: c.id, label: c.name }));
+    const walletItems: DropdownItem[] = wallets.map(w => ({ id: w.id, label: w.name, testID: `recurring_form_wallet_${w.id}` }));
+    const categoryItems: DropdownItem[] = filteredCategories.map(c => ({ id: c.id, label: c.name, testID: `recurring_form_category_${c.id}` }));
 
     // ─── Frequency label keys ─────────────────────────────────────────
     const FREQ_KEYS: Record<RecurrenceFrequency, string> = {
@@ -203,6 +203,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
         value: Date,
         onDismiss: () => void,
         onChangeDate: (date: Date) => void,
+        doneTestID: string,
         minimumDate?: Date,
     ) => {
         if (!visible) return null;
@@ -227,6 +228,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                     />
                     <TouchableOpacity
                         onPress={onDismiss}
+                        testID={doneTestID}
                         style={{
                             alignSelf: 'center',
                             backgroundColor: colors.primary,
@@ -275,7 +277,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                 justifyContent: 'space-between',
                 alignItems: 'center',
             }}>
-                <TouchableOpacity onPress={onCancel} style={{ padding: 4 }} {...getButtonA11y(t('a11y.closeButton'))}>
+                <TouchableOpacity onPress={onCancel} style={{ padding: 4 }} testID="recurring_form_close_button" {...getButtonA11y(t('a11y.closeButton'))}>
                     <Ionicons name="close" size={24} color={colors.foreground} />
                 </TouchableOpacity>
                 <Text style={{
@@ -308,6 +310,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                 <View style={{ marginTop: spacing.md }}>
                     <InputField
                         label={t('recurring.amount')}
+                        testID="recurring_form_amount"
                         placeholder={amountPlaceholder}
                         value={amount}
                         onChangeText={setAmount}
@@ -324,6 +327,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         onSelect={setWalletId}
                         placeholder={t('recurring.selectWallet')}
                         emptyText={t('recurring.noWallets')}
+                        testID="recurring_form_wallet_picker"
                     />
                 </View>
 
@@ -336,6 +340,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         onSelect={setCategoryId}
                         placeholder={t('recurring.selectCategory')}
                         emptyText={t('recurring.noCategories')}
+                        testID="recurring_form_category_picker"
                     />
                 </View>
 
@@ -343,6 +348,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                 <View style={{ marginTop: spacing.md }}>
                     <InputField
                         label={t('recurring.description')}
+                        testID="recurring_form_description"
                         placeholder={t('recurring.descriptionPlaceholder')}
                         value={description}
                         onChangeText={setDescription}
@@ -365,6 +371,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                 <View style={{ marginTop: spacing.md }}>
                     <InputField
                         label={t('recurring.repeatEvery')}
+                        testID="recurring_form_interval"
                         placeholder="1"
                         value={interval}
                         onChangeText={setInterval}
@@ -383,6 +390,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         </Text>
                         <Pressable
                             onPress={() => setShowStartPicker(!showStartPicker)}
+                            testID="recurring_form_start_date_button"
                             style={{
                                 backgroundColor: colors.card,
                                 borderRadius: radius.md,
@@ -404,6 +412,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                             startDate,
                             () => setShowStartPicker(false),
                             setStartDate,
+                            'recurring_form_start_date_done',
                         )}
                     </View>
                 )}
@@ -423,6 +432,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                             }
                         }}
                         style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}
+                        testID="recurring_form_end_date_toggle"
                         {...getButtonA11y(t('a11y.toggleEndDate'))}
                     >
                         <Ionicons
@@ -438,6 +448,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         <>
                             <Pressable
                                 onPress={() => setShowEndPicker(!showEndPicker)}
+                                testID="recurring_form_end_date_button"
                                 style={{
                                     backgroundColor: colors.card,
                                     borderRadius: radius.md,
@@ -459,6 +470,7 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                                 endDate ?? new Date(),
                                 () => setShowEndPicker(false),
                                 (date) => setEndDate(date),
+                                'recurring_form_end_date_done',
                                 startDate,
                             )}
                         </>
@@ -471,11 +483,13 @@ export const RecurringRuleForm: React.FC<RecurringRuleFormProps> = ({
                         title={isEdit ? t('recurring.updateRule') : t('recurring.createRule')}
                         onPress={handleSubmit}
                         loading={submitting}
+                        testID="recurring_form_save_button"
                     />
                     <Button
                         title={t('common.cancel')}
                         variant="secondary"
                         onPress={onCancel}
+                        testID="recurring_form_cancel_button"
                     />
                 </View>
             </ScrollView>

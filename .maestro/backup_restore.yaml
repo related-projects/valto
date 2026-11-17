@@ -1,48 +1,63 @@
-# Maestro E2E Tests — Valto Budget Tracker
+# Maestro end-to-end flow - Valto
 #
-# Backup & Restore Flow
-# Verifies the backup creation flow (restore requires file picker interaction).
+# Backup and restore
+# Creates a backup and closes the share sheet, then opens both restore
+# confirmations and cancels the second one. Nothing is restored: the
+# "Restore Now" button is never pressed, and the file picker is never opened.
 #
-# Prerequisites: App with some data (wallets, transactions).
-# Run: maestro test .maestro/backup_restore.yaml
+# The confirmations are native Android Alerts, matched by text
+# case-insensitively (Android may draw dialog buttons in upper case).
+#
+# Prerequisites: onboarding completed (see config.yaml).
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/backup_restore.yaml
 
-appId: com.valto.app
+appId: com.renkakpo.valto.app
 ---
 
-# ── Launch ──────────────────────────────────────────────────────
+# --- Launch ---
 - launchApp
 
-# ── Navigate to Settings ────────────────────────────────────────
+# --- Navigate to Settings ---
 - tapOn:
     id: "tab_settings"
 
-# ── Trigger Backup ──────────────────────────────────────────────
+# --- Backup ---
+- scrollUntilVisible:
+    element:
+      id: "settings_backup_item"
+
 - tapOn:
     id: "settings_backup_item"
 
-# Backup should trigger share sheet or save — wait briefly
-- runFlow:
-    when:
-      visible:
-        id: "settings_backup_item"
-    commands: []
+# The backup is written, then handed to the Android share sheet (system UI).
+# On failure the app shows an alert titled "Backup Failed" instead.
+- waitForAnimationToEnd:
+    timeout: 5000
 
-# ── Trigger Restore (first confirmation) ────────────────────────
+- assertNotVisible:
+    text: "Backup Failed"
+
+# Close the share sheet without sharing anything.
+- back
+
+- assertVisible:
+    id: "settings_backup_item"
+
+# --- Restore: confirm the first alert, cancel the second ---
 - tapOn:
     id: "settings_restore_item"
 
-# First alert should appear — alert interactions in Maestro
-# are platform-specific. On iOS, tap the destructive action.
 - tapOn:
-    label: "Continue"
-    optional: true
+    text: "(?i)continue"
 
-# Cancel the second confirmation to avoid actual restore in test
-- tapOn:
-    label: "Cancel"
-    optional: true
-
-# ── Verify Still on Settings ────────────────────────────────────
 - assertVisible:
-    id: "tab_settings"
-    timeout: 3000
+    text: "Are you absolutely sure.*"
+
+- tapOn:
+    text: "(?i)cancel"
+
+- assertNotVisible:
+    text: "Are you absolutely sure.*"
+
+- assertVisible:
+    id: "settings_restore_item"

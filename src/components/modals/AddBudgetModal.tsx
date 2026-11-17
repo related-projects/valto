@@ -171,6 +171,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
     return (
       <TouchableOpacity
         key={category.id}
+        testID={`add_budget_category_${category.id}`}
         style={[
           styles.categoryItem,
           {
@@ -306,6 +307,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
                     value={limitAmount}
                     onChangeText={setLimitAmount}
                     autoFocus
+                    testID="add_budget_amount_input"
                   />
                 </View>
               </View>

@@ -165,6 +165,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         const renderFlatItem = ({ item }: ListRenderItemInfo<Transaction>) => (
             <TouchableOpacity
                 onPress={() => router.push(`/transaction/${item.id}`)}
+                testID={`transaction_list_row_${item.id}`}
                 style={[
                     styles.transactionItem,
                     {
@@ -239,6 +240,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         return (
             <TouchableOpacity
                 onPress={() => router.push(`/transaction/${transaction.id}`)}
+                testID={`transaction_list_row_${transaction.id}`}
                 style={[
                     styles.transactionItem,
                     {
