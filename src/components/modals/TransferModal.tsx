@@ -292,7 +292,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 marginTop: spacing.xs,
                                                 maxHeight: 200,
                                             }}>
-                                                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                                                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                                                     {wallets.map((wallet) => renderWalletOption(
                                                         wallet,
                                                         sourceWalletId === wallet.id,
@@ -358,7 +358,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ visible, onClose, 
                                                 marginTop: spacing.xs,
                                                 maxHeight: 200,
                                             }}>
-                                                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                                                <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                                                     {availableDestWallets.length === 0 ? (
                                                         <View style={{ padding: spacing.md, alignItems: 'center' }}>
                                                             <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm }}>

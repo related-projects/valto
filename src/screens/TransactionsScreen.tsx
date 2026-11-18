@@ -177,7 +177,7 @@ export const TransactionsScreen = () => {
                 />
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.md }}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: spacing.sm }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: spacing.sm }} keyboardShouldPersistTaps="handled">
                         <FilterPill label={t('transactions.filterAll')} isActive={activeFilter === 'all'} onPress={() => handleQuickFilter('all')} />
                         <FilterPill label={t('transactions.filterIncome')} isActive={activeFilter === 'income'} onPress={() => handleQuickFilter('income')} />
                         <FilterPill label={t('transactions.filterExpense')} isActive={activeFilter === 'expense'} onPress={() => handleQuickFilter('expense')} />
@@ -198,6 +198,7 @@ export const TransactionsScreen = () => {
                     paddingBottom: spacing.tabBarOffset,
                 }}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
             >
                 <View style={{
                     marginTop: spacing.sm,

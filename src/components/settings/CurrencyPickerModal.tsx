@@ -189,6 +189,7 @@ export const CurrencyPickerModal: React.FC<CurrencyPickerModalProps> = ({
                         windowSize={10}
                         getItemLayout={(_, index) => ({ length: 60, offset: 60 * index, index })}
                         contentContainerStyle={{ paddingBottom: insets.bottom + spacing.lg }}
+                        keyboardShouldPersistTaps="handled"
                     />
                 )}
             </View>

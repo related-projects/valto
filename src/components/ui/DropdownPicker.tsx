@@ -115,7 +115,7 @@ export const DropdownPicker: React.FC<DropdownPickerProps> = ({
                     marginTop: sp.xs,
                     maxHeight,
                 }}>
-                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                    <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         {items.length === 0 ? (
                             <View style={{ padding: sp.md, alignItems: 'center' }}>
                                 <Text style={{ color: colors.mutedForeground, fontSize: tp.sizes.sm }}>

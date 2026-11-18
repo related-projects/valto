@@ -187,7 +187,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ visible, onClose, 
                                 <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, marginBottom: spacing.xs }}>
                                     {t('modals.category.color')}
                                 </Text>
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                                     {COLORS.map((c) => (
                                         <TouchableOpacity
                                             key={c}

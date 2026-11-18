@@ -272,6 +272,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 data={filteredCurrencies}
                 keyExtractor={item => item.code}
                 contentContainerStyle={{ paddingHorizontal: spacing.lg }}
+                keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                     <TouchableOpacity
                         onPress={() => handleCurrencySelect(item)}
