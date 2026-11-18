@@ -171,6 +171,7 @@ export const DashboardScreen = () => {
                 paddingBottom: spacing.tabBarOffset,
             }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }

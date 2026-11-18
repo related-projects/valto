@@ -110,6 +110,7 @@ export const SettingsScreen = () => {
                 paddingHorizontal: spacing.md,
             }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
         >
             {/* Screen Title */}
             <Text style={[styles.title, { color: colors.foreground, fontSize: typography.sizes['2xl'] }]}>

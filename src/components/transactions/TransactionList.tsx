@@ -281,6 +281,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             maxToRenderPerBatch={15}
             windowSize={7}
             scrollEnabled={false}
+            keyboardShouldPersistTaps="handled"
             onEndReached={onEndReached}
             onEndReachedThreshold={0.3}
             ListFooterComponent={renderFooter}
