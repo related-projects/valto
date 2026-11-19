@@ -13,3 +13,8 @@ executionOrder:
     - create_transaction
     - change_settings
     - backup_restore
+    - transaction_dates
+    - amount_cap_compact
+    - wallet_delete_anyway
+    - category_type_switch
+    - settings_reachability

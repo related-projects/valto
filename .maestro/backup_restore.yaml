@@ -1,9 +1,19 @@
 # Maestro end-to-end flow - Valto
 #
 # Backup and restore
-# Creates a backup and closes the share sheet, then opens both restore
-# confirmations and cancels the second one. Nothing is restored: the
-# "Restore Now" button is never pressed, and the file picker is never opened.
+# Creates a backup, checks the Android share sheet opened on the backup file
+# and closes it, then opens both restore confirmations and cancels the second
+# one. Nothing is restored: the "Restore Now" button is never pressed, and the
+# file picker is never opened.
+#
+# The tab bar is drawn over the bottom of the Settings list, and the system
+# gesture area lies under it. Maestro counts a row cut by the screen edge as
+# visible, so a row is scrolled to the middle of the screen (centerElement)
+# before it is tapped: tapped where it first appeared, the Backup row took a
+# tap meant for it into the gesture area (run 2, 18/11).
+#
+# The share sheet is system UI (com.android.intentresolver on API 36). It is
+# matched by the file name it previews, so it is the backup's own sheet.
 #
 # The confirmations are native Android Alerts, matched by text
 # case-insensitively (Android may draw dialog buttons in upper case).
@@ -17,6 +27,13 @@ appId: com.renkakpo.valto.app
 # --- Launch ---
 - launchApp
 
+# A cold start can take tens of seconds on a loaded host (pass 96 runs): wait
+# for the tab bar before the first tap.
+- extendedWaitUntil:
+    visible:
+      id: "tab_index"
+    timeout: 60000
+
 # --- Navigate to Settings ---
 - tapOn:
     id: "tab_settings"
@@ -25,25 +42,36 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       id: "settings_backup_item"
+    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "settings_backup_item"
 
-# The backup is written, then handed to the Android share sheet (system UI).
-# On failure the app shows an alert titled "Backup Failed" instead.
-- waitForAnimationToEnd:
-    timeout: 5000
-
-- assertNotVisible:
-    text: "Backup Failed"
+# The backup is written, then handed to the Android share sheet. On failure
+# the app shows an alert titled "Backup Failed" instead, and no sheet opens.
+- extendedWaitUntil:
+    visible:
+      id: "com.android.intentresolver:id/content_preview_filename"
+      text: "valto-backup-.*\\.json"
+    timeout: 10000
 
 # Close the share sheet without sharing anything.
 - back
+
+- assertNotVisible:
+    id: "com.android.intentresolver:id/content_preview_filename"
 
 - assertVisible:
     id: "settings_backup_item"
 
 # --- Restore: confirm the first alert, cancel the second ---
+- scrollUntilVisible:
+    element:
+      id: "settings_restore_item"
+    centerElement: true
+    visibilityPercentage: 100
+
 - tapOn:
     id: "settings_restore_item"
 

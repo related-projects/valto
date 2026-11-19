@@ -1,0 +1,139 @@
+# Maestro end-to-end flow - Valto
+#
+# Amount cap and compact display
+# A 13-digit amount is refused with the "too large" message and nothing is
+# saved. Then 1999999 is saved: the list shows it compact and truncated
+# ("1.9M"), the detail screen shows it exactly ("1,999,999.00").
+# Coverage of REGISTRE V-128.
+#
+# A list row carries the exact amount as its accessibility label and the
+# compact one as its text. Maestro matches a text selector against both, so
+# the compact pattern below can only match the text.
+#
+# Amounts are matched with "." in place of the currency sign (flows are ASCII).
+#
+# Prerequisites: onboarding completed (see config.yaml).
+# Synthetic data only.
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/amount_cap_compact.yaml
+
+appId: com.renkakpo.valto.app
+---
+
+# --- Launch ---
+- launchApp
+
+# A cold start can take tens of seconds on a loaded host (pass 96 runs): wait
+# for the tab bar before the first tap.
+- extendedWaitUntil:
+    visible:
+      id: "tab_index"
+    timeout: 60000
+
+- tapOn:
+    id: "tab_transactions"
+
+# --- A 13-digit amount is refused ---
+- tapOn:
+    id: "fab_add_transaction"
+
+- assertVisible:
+    id: "add_tx_amount_input"
+
+- tapOn:
+    id: "add_tx_type_expense"
+
+- tapOn:
+    id: "add_tx_category_picker"
+
+- tapOn:
+    id: "add_tx_category_[0-9a-f]{8}-.*"
+    containsDescendants:
+      - text: "Logement"
+
+- tapOn:
+    id: "add_tx_amount_input"
+
+- inputText: "1234567890123"
+
+- tapOn:
+    id: "add_tx_save_button"
+
+- assertVisible:
+    text: "Invalid Amount"
+
+- assertVisible:
+    text: "Amount too large\\. The maximum is .*"
+
+- tapOn:
+    text: "(?i)ok"
+
+# The sheet is still open: the refused amount did not close it.
+- assertVisible:
+    id: "add_tx_amount_input"
+
+- tapOn:
+    id: "add_tx_close_button"
+
+- assertNotVisible:
+    id: "add_tx_amount_input"
+
+# Nothing was saved: no row shows the amount, compact or exact.
+- assertNotVisible:
+    text: ".*1\\.2T"
+
+- assertNotVisible:
+    text: ".*1,234,567,890,123.*"
+
+# --- 1999999 is saved ---
+- tapOn:
+    id: "fab_add_transaction"
+
+- assertVisible:
+    id: "add_tx_amount_input"
+
+- tapOn:
+    id: "add_tx_type_expense"
+
+- tapOn:
+    id: "add_tx_category_picker"
+
+- tapOn:
+    id: "add_tx_category_[0-9a-f]{8}-.*"
+    containsDescendants:
+      - text: "Logement"
+
+- tapOn:
+    id: "add_tx_amount_input"
+
+- inputText: "1999999"
+
+- tapOn:
+    id: "add_tx_save_button"
+
+- assertNotVisible:
+    id: "add_tx_amount_input"
+
+# --- The list: compact and truncated ---
+- assertVisible:
+    id: "transaction_list_row_.*"
+    containsDescendants:
+      - text: "Logement"
+      - id: "transaction_row_amount"
+        text: "-.1\\.9M"
+
+# --- The detail: exact ---
+- tapOn:
+    id: "transaction_list_row_.*"
+    containsDescendants:
+      - text: "Logement"
+      - id: "transaction_row_amount"
+        text: "-.1\\.9M"
+
+- assertVisible:
+    id: "transaction_row_amount"
+    text: "-.1,999,999\\.00"
+
+- assertNotVisible:
+    text: ".*1\\.9M"
+
+- back
