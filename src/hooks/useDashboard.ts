@@ -8,7 +8,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState, type AppStateStatus } from 'react-native';
-import { Category, TransactionType, getCurrentMonth } from '../domain/entities';
+import { Category, TransactionType } from '../domain/entities';
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey, periodKeyOf, shiftPeriodKey } from '../domain/period';
 import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
@@ -46,17 +47,6 @@ const DEFAULT_COLORS = [
     '#81C784', '#FF8A65', '#A1887F', '#90A4AE', '#F06292',
 ];
 
-const getPreviousMonth = (currentMonthStr: string) => {
-    const [year, month] = currentMonthStr.split('-').map(Number);
-    let prevMonth = month - 1;
-    let prevYear = year;
-    if (prevMonth === 0) {
-        prevMonth = 12;
-        prevYear -= 1;
-    }
-    return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
-};
-
 /**
  * Hook for dashboard aggregated data
  */
@@ -70,7 +60,7 @@ export function useDashboard(): UseDashboardResult {
     // State, not a read inside the memo: the Dashboard tab stays mounted, so an
     // app left in the background across a month boundary must come back on the
     // new month (V-99). Same pattern as useBudgets.
-    const [currentMonth, setCurrentMonth] = useState(getCurrentMonth);
+    const [currentMonth, setCurrentMonth] = useState(() => currentPeriodKey(DEFAULT_PERIOD_START_DAY));
     const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
     // Foreground return: only on the transition INTO 'active', since AppState
@@ -82,7 +72,7 @@ export function useDashboard(): UseDashboardResult {
             appStateRef.current = nextState;
 
             if (previousState !== 'active' && nextState === 'active') {
-                setCurrentMonth(getCurrentMonth());
+                setCurrentMonth(currentPeriodKey(DEFAULT_PERIOD_START_DAY));
             }
         });
 
@@ -91,7 +81,7 @@ export function useDashboard(): UseDashboardResult {
 
     // Financial Intelligence Aggregation
     const aggregatedData = useMemo(() => {
-        const previousMonth = getPreviousMonth(currentMonth);
+        const previousMonth = shiftPeriodKey(currentMonth, -1);
 
         let currentMonthIncome = 0;
         let currentMonthExpense = 0;
@@ -102,9 +92,9 @@ export function useDashboard(): UseDashboardResult {
         const currentMonthCategoryTotals = new Map<string, number>();
 
         transactions.forEach(t => {
-            // Local calendar, to match getCurrentMonth: a Valto month is the
-            // device's month (V-91).
-            const txMonthStr = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match currentMonth: a Valto month is the
+            // device's month (V-91), computed by src/domain/period.
+            const txMonthStr = periodKeyOf(t.date, DEFAULT_PERIOD_START_DAY);
 
             if (txMonthStr === currentMonth) {
                 if (t.type === TransactionType.INCOME) {

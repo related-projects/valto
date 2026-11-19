@@ -6,6 +6,7 @@
  */
 
 import { Transaction, TransactionType } from '../entities';
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey, parsePeriodKey, periodOf } from '../period';
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -42,7 +43,9 @@ export interface YearToDateSummary {
  *
  * A year is read off the device's LOCAL calendar, like every other Valto
  * bucket (V-91): a transaction entered just after local midnight on 1 January
- * belongs to the new year, whatever its UTC date still says.
+ * belongs to the new year, whatever its UTC date still says. The year is the
+ * year of the period a row falls in (src/domain/period); at the default start
+ * day, 1, that is its calendar year.
  *
  * @param transactions Full list of transactions (will be filtered internally)
  * @param year The year to summarize. Defaults to the current local year.
@@ -52,14 +55,14 @@ export function calculateYearToDateSummary(
     transactions: Transaction[],
     year?: number,
 ): YearToDateSummary {
-    const targetYear = year ?? new Date().getFullYear();
+    const targetYear = year ?? parsePeriodKey(currentPeriodKey(DEFAULT_PERIOD_START_DAY)).year;
 
     let totalIncome = 0;
     let totalExpenses = 0;
     let transactionCount = 0;
 
     for (const t of transactions) {
-        if (t.date.getFullYear() !== targetYear) continue;
+        if (periodOf(t.date, DEFAULT_PERIOD_START_DAY).year !== targetYear) continue;
 
         transactionCount += 1;
 

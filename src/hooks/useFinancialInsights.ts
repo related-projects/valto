@@ -17,6 +17,7 @@ import {
     evaluateCategoryRisk,
     evaluateSavingsHealth,
 } from '../domain/insights';
+import { DEFAULT_PERIOD_START_DAY, daysElapsedInPeriod, daysInPeriod } from '../domain/period';
 import { useBudgets } from './useBudgets';
 import { useDashboard } from './useDashboard';
 
@@ -83,14 +84,12 @@ export function useFinancialInsights(): FinancialInsights {
     const budgetPace = useMemo(() => {
         if (!hasBudgets) return null;
 
-        const [year, month] = currentMonth.split('-').map(Number); // month 1-indexed
-        const totalDays = new Date(year, month, 0).getDate();
+        const totalDays = daysInPeriod(currentMonth, DEFAULT_PERIOD_START_DAY);
 
         // Only the day comes off the clock, and only while the clock is still in
-        // that month; past it, the budgets on screen are for a month that is over.
-        const now = new Date();
-        const inMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
-        const daysElapsed = inMonth ? now.getDate() : totalDays;
+        // that month; past it, the budgets on screen are for a month that is over
+        // and every day of it counts (src/domain/period daysElapsedInPeriod).
+        const daysElapsed = daysElapsedInPeriod(currentMonth, DEFAULT_PERIOD_START_DAY, new Date());
 
         return evaluateBudgetPace(totalBudgetSpent, totalBudgetLimit, daysElapsed, totalDays);
     }, [totalBudgetSpent, totalBudgetLimit, hasBudgets, currentMonth]);

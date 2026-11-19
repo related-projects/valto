@@ -11,7 +11,6 @@ import { v4 as uuidv4 } from 'uuid';
 import {
     Budget,
     CreateBudgetDTO,
-    getCurrentMonth,
     isValidBudgetMonth,
     UpdateBudgetDTO,
 } from '../../domain/entities/Budget';
@@ -28,6 +27,7 @@ import type { IBudgetRepository } from '../../domain/repositories';
 import { MAX_ENTRY_AMOUNT_MINOR } from '../../domain/constants/amounts';
 import { BudgetMonthClosedError } from '../../domain/useCases/errors';
 import { isEntryAmountWithinCap } from '../../domain/validators/EntryAmountValidator';
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey } from '../../domain/period';
 import type { SqlDatabase } from '../storage/sql/SqlDatabase';
 import { RepositoryError, RepositoryErrorType } from './IRepository';
 
@@ -161,7 +161,7 @@ export class BudgetRepository implements IBudgetRepository {
 
         // A past month is closed: its budget stays as the user lived with it.
         // YYYY-MM compares correctly as a string.
-        const currentMonth = getCurrentMonth();
+        const currentMonth = currentPeriodKey(DEFAULT_PERIOD_START_DAY);
         if (existing.month < currentMonth || (dto.month !== undefined && dto.month < currentMonth)) {
             throw new BudgetMonthClosedError();
         }

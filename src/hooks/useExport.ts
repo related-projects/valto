@@ -13,6 +13,7 @@
 import { useCallback, useState } from 'react';
 import { container } from '../core/di/container';
 import { shareCSV, shareMonthlyPDF } from '../data/services/export/TransactionExportService';
+import { DEFAULT_PERIOD_START_DAY, periodBounds, toPeriodKey } from '../domain/period';
 
 export function useExport() {
     const [loading, setLoading] = useState(false);
@@ -38,8 +39,11 @@ export function useExport() {
     const exportMonthlyPDF = useCallback(async (year: number, month: number) => {
         setLoading(true);
         try {
-            const startDate = new Date(year, month - 1, 1);
-            const endDate = new Date(year, month, 0, 23, 59, 59, 999); // Last moment of month
+            // First and last moment of the month, local time (src/domain/period).
+            const { start: startDate, end: endDate } = periodBounds(
+                toPeriodKey({ year, month }),
+                DEFAULT_PERIOD_START_DAY,
+            );
 
             const [transactions, wallets, categories] = await Promise.all([
                 transactionRepo.getByDateRange(startDate, endDate),
