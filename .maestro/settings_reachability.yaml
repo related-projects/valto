@@ -1,0 +1,59 @@
+# Maestro end-to-end flow - Valto
+#
+# Settings reachability
+# Scrolls Settings to its last row, "About Valto", requires it fully visible
+# and above the tab bar, and taps it: the About screen must open.
+#
+# The tab bar is drawn over the bottom of the list, so the last row is only
+# usable if the list ends with enough room under it. A tap on a row hidden by
+# the tab bar would reach the tab bar instead, and About would not open.
+#
+# The last row can never reach the middle of the screen, so centerElement here
+# makes Maestro scroll to the end of the list and retry the centring; once the
+# retries are spent it accepts the row if it is 100% visible. On Maestro
+# 2.12.1 a retry takes about 4.5 s, and the default 20 s timeout ran out
+# before the retries did, so the timeout is raised.
+#
+# Maestro's "above" compares top edges only: it shows the row starts above
+# the tab bar. That the whole row clears the tab bar is shown by the tap
+# opening About, and by the row and tab bar bounds in the pass 96 report.
+#
+# Prerequisites: onboarding completed (see config.yaml).
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/settings_reachability.yaml
+
+appId: com.renkakpo.valto.app
+---
+
+# --- Launch ---
+- launchApp
+
+# A cold start can take tens of seconds on a loaded host (pass 96 runs): wait
+# for the tab bar before the first tap.
+- extendedWaitUntil:
+    visible:
+      id: "tab_index"
+    timeout: 60000
+
+# --- Navigate to Settings ---
+- tapOn:
+    id: "tab_settings"
+
+# --- Scroll to the last row ---
+- scrollUntilVisible:
+    element:
+      text: "About Valto"
+    centerElement: true
+    visibilityPercentage: 100
+    timeout: 40000
+
+- assertVisible:
+    text: "About Valto"
+    above:
+      id: "tab_settings"
+
+# --- Tap it ---
+- tapOn:
+    text: "About Valto"
+
+- assertVisible:
+    id: "about_app_logo"

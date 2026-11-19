@@ -1,0 +1,116 @@
+# Maestro end-to-end flow - Valto
+#
+# Category type switch
+# Picks an expense category, switches the form to income and saves: the saved
+# transaction carries an income category. Then opens "Income" from the
+# Dashboard quick action: the preselected category is an income category.
+# Coverage of REGISTRE V-129 follow-up (pass 92b).
+#
+# The seeded income categories are "Salaire", "Freelance" and "Autre"
+# (src/data/seed/seedData.ts); any of them passes. The expense category picked
+# is "Transport", not the first one, so the pick is a choice the switch must
+# undo.
+#
+# Amounts are matched with "." in place of the currency sign (flows are ASCII).
+#
+# Prerequisites: onboarding completed (see config.yaml).
+# Synthetic data only.
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/category_type_switch.yaml
+
+appId: com.renkakpo.valto.app
+---
+
+# --- Launch ---
+- launchApp
+
+# A cold start can take tens of seconds on a loaded host (pass 96 runs): wait
+# for the tab bar before the first tap.
+- extendedWaitUntil:
+    visible:
+      id: "tab_index"
+    timeout: 60000
+
+- tapOn:
+    id: "tab_transactions"
+
+# --- Expense category, then income ---
+- tapOn:
+    id: "fab_add_transaction"
+
+- assertVisible:
+    id: "add_tx_amount_input"
+
+- tapOn:
+    id: "add_tx_type_expense"
+
+- tapOn:
+    id: "add_tx_category_picker"
+
+- tapOn:
+    id: "add_tx_category_[0-9a-f]{8}-.*"
+    containsDescendants:
+      - text: "Transport"
+
+- assertVisible:
+    id: "add_tx_category_picker"
+    containsDescendants:
+      - text: "Transport"
+
+- tapOn:
+    id: "add_tx_type_income"
+
+- assertVisible:
+    id: "add_tx_category_picker"
+    containsDescendants:
+      - text: "Salaire|Freelance|Autre"
+
+- tapOn:
+    id: "add_tx_amount_input"
+
+- inputText: "41.17"
+
+- tapOn:
+    id: "add_tx_save_button"
+
+- assertNotVisible:
+    id: "add_tx_amount_input"
+
+# --- The saved income carries an income category ---
+- assertVisible:
+    id: "transaction_list_row_.*"
+    containsDescendants:
+      - id: "transaction_row_title"
+        text: "Salaire|Freelance|Autre"
+      - text: "\\+.41\\.17"
+
+- assertNotVisible:
+    id: "transaction_list_row_.*"
+    containsDescendants:
+      - text: "Transport"
+      - text: "\\+.41\\.17"
+
+# --- Dashboard quick action "Income" ---
+- tapOn:
+    id: "tab_index"
+
+- scrollUntilVisible:
+    element:
+      id: "quick_action_income"
+    centerElement: true
+
+- tapOn:
+    id: "quick_action_income"
+
+- assertVisible:
+    id: "add_tx_amount_input"
+
+- assertVisible:
+    id: "add_tx_category_picker"
+    containsDescendants:
+      - text: "Salaire|Freelance|Autre"
+
+- tapOn:
+    id: "add_tx_close_button"
+
+- assertNotVisible:
+    id: "add_tx_amount_input"
