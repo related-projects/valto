@@ -11,7 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { AppState, type AppStateStatus } from 'react-native';
 import { getBudgetRepository, getUseCaseDeps } from '../core/di';
 import { dataEvents } from '../core/events';
-import { Budget, CreateBudgetDTO, TransactionType, UpdateBudgetDTO, getCurrentMonth } from '../domain/entities';
+import { Budget, CreateBudgetDTO, TransactionType, UpdateBudgetDTO } from '../domain/entities';
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey, periodKeyOf } from '../domain/period';
 import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
@@ -74,7 +75,7 @@ export function useBudgets(): UseBudgetsResult {
 
     // State, not a mount-time constant: the Dashboard tab stays mounted, so an
     // app left open across a month boundary must move to the new month.
-    const [currentMonth, setCurrentMonth] = useState(getCurrentMonth);
+    const [currentMonth, setCurrentMonth] = useState(() => currentPeriodKey(DEFAULT_PERIOD_START_DAY));
     const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
     /**
@@ -82,7 +83,7 @@ export function useBudgets(): UseBudgetsResult {
      * re-creates loadBudgets, and the effect below reloads for the new month.
      */
     const syncMonth = useCallback((): boolean => {
-        const now = getCurrentMonth();
+        const now = currentPeriodKey(DEFAULT_PERIOD_START_DAY);
         if (now === currentMonth) return false;
         setCurrentMonth(now);
         return true;
@@ -115,9 +116,9 @@ export function useBudgets(): UseBudgetsResult {
         transactions.forEach(t => {
             if (t.type !== TransactionType.EXPENSE) return;
 
-            // Local calendar, to match getCurrentMonth: a Valto month is the
-            // device's month (V-91).
-            const txMonth = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match currentMonth: a Valto month is the
+            // device's month (V-91), computed by src/domain/period.
+            const txMonth = periodKeyOf(t.date, DEFAULT_PERIOD_START_DAY);
             if (txMonth !== currentMonth) return;
 
             const current = spending.get(t.categoryId) || 0;

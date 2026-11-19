@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PdfRenderTimeoutError } from '../data/services/export/TransactionExportService';
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey, parsePeriodKey, shiftPeriodKey, toPeriodKey } from '../domain/period';
 import { useExport } from '../hooks/useExport';
 import { useTheme } from '../theme/theme';
 import { getButtonA11y } from '../utils/accessibility';
@@ -34,9 +35,9 @@ export const ExportScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { exportCSV, exportMonthlyPDF, loading } = useExport();
 
-    const now = new Date();
-    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+    const now = parsePeriodKey(currentPeriodKey(DEFAULT_PERIOD_START_DAY));
+    const [selectedYear, setSelectedYear] = useState(now.year);
+    const [selectedMonth, setSelectedMonth] = useState(now.month);
 
     const handleExportCSV = useCallback(async () => {
         try {
@@ -60,12 +61,11 @@ export const ExportScreen: React.FC = () => {
     }, [exportMonthlyPDF, selectedYear, selectedMonth, t]);
 
     const adjustMonth = (delta: number) => {
-        let m = selectedMonth + delta;
-        let y = selectedYear;
-        if (m > 12) { m = 1; y++; }
-        if (m < 1) { m = 12; y--; }
-        setSelectedMonth(m);
-        setSelectedYear(y);
+        const { year, month } = parsePeriodKey(
+            shiftPeriodKey(toPeriodKey({ year: selectedYear, month: selectedMonth }), delta),
+        );
+        setSelectedMonth(month);
+        setSelectedYear(year);
     };
 
     return (

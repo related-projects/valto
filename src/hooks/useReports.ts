@@ -13,7 +13,14 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { getBudgetRepository } from '../core/di';
 import { dataEvents } from '../core/events';
 import { calculateYearToDateSummary, YearToDateSummary } from '../domain/calculations/ytdSummary';
-import { Budget, getCurrentMonth, TransactionType } from '../domain/entities';
+import { Budget, TransactionType } from '../domain/entities';
+import {
+    DEFAULT_PERIOD_START_DAY,
+    currentPeriodKey,
+    parsePeriodKey,
+    periodKeyOf,
+    shiftPeriodKey,
+} from '../domain/period';
 import { MISSING_CATEGORY_LABEL_KEY, UNRESOLVED_CATEGORY_ID } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
 import { useTransactions } from './useTransactions';
@@ -90,17 +97,8 @@ const MONTH_KEYS = [
  * to be current instead of the caller's.
  */
 function formatMonthLabel(monthStr: string, t: TFunction): string {
-    const [year, month] = monthStr.split('-').map(Number);
+    const { year, month } = parsePeriodKey(monthStr);
     return `${t(MONTH_KEYS[month - 1])} ${year}`;
-}
-
-function shiftMonth(monthStr: string, delta: number): string {
-    const [year, month] = monthStr.split('-').map(Number);
-    let newMonth = month + delta;
-    let newYear = year;
-    while (newMonth > 12) { newMonth -= 12; newYear += 1; }
-    while (newMonth < 1) { newMonth += 12; newYear -= 1; }
-    return `${newYear}-${String(newMonth).padStart(2, '0')}`;
 }
 
 // ─── Hook ──────────────────────────────────────────────────────────────
@@ -111,7 +109,7 @@ export function useReports(): UseReportsResult {
     // Reports tab stays mounted, and a return to the foreground in a new month
     // moves the selection only if it was still on this one (V-99, Owner
     // decision 2). A user who navigated elsewhere keeps their month.
-    const [currentMonth, setCurrentMonth] = useState(getCurrentMonth);
+    const [currentMonth, setCurrentMonth] = useState(() => currentPeriodKey(DEFAULT_PERIOD_START_DAY));
     const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -144,16 +142,16 @@ export function useReports(): UseReportsResult {
     const monthLabel = useMemo(() => formatMonthLabel(selectedMonth, t), [selectedMonth, t]);
 
     const goToPreviousMonth = useCallback(() => {
-        setSelectedMonth(prev => shiftMonth(prev, -1));
+        setSelectedMonth(prev => shiftPeriodKey(prev, -1));
     }, []);
 
     const goToNextMonth = useCallback(() => {
-        setSelectedMonth(prev => shiftMonth(prev, 1));
+        setSelectedMonth(prev => shiftPeriodKey(prev, 1));
     }, []);
 
     /** Re-read the calendar month; carry the selection along only if it was on the old one. */
     const syncMonth = useCallback(() => {
-        const now = getCurrentMonth();
+        const now = currentPeriodKey(DEFAULT_PERIOD_START_DAY);
         if (now === currentMonth) return;
         setSelectedMonth(prev => (prev === currentMonth ? now : prev));
         setCurrentMonth(now);
@@ -183,9 +181,9 @@ export function useReports(): UseReportsResult {
         const categoryTotals = new Map<string, number>();
 
         transactions.forEach(t => {
-            // Local calendar, to match getCurrentMonth: a Valto month is the
-            // device's month (V-91).
-            const txMonth = `${t.date.getFullYear()}-${String(t.date.getMonth() + 1).padStart(2, '0')}`;
+            // Local calendar, to match currentMonth: a Valto month is the
+            // device's month (V-91), computed by src/domain/period.
+            const txMonth = periodKeyOf(t.date, DEFAULT_PERIOD_START_DAY);
             if (txMonth !== selectedMonth) return;
 
             // Counted above the type branch, so a transfer keeps the month from
@@ -270,7 +268,7 @@ export function useReports(): UseReportsResult {
     // Derived from the selection, not from the wall clock: the annual card is a
     // consumer of the same filter as every other element on the screen, so
     // navigating into a past year must move it too.
-    const ytdYear = useMemo(() => Number(selectedMonth.split('-')[0]), [selectedMonth]);
+    const ytdYear = useMemo(() => parsePeriodKey(selectedMonth).year, [selectedMonth]);
     const ytdSummary = useMemo(
         () => calculateYearToDateSummary(transactions, ytdYear),
         [transactions, ytdYear],

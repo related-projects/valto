@@ -19,9 +19,9 @@ import {
   Budget,
   Category,
   CreateBudgetDTO,
-  getCurrentMonth,
   UpdateBudgetDTO,
 } from "../../domain/entities";
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey } from "../../domain/period";
 import { BudgetMonthClosedError } from "../../domain/useCases/errors";
 import { useCategories } from "../../hooks/useCategories";
 import { useFormatting } from "../../hooks/useFormatting";
@@ -146,7 +146,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
       setSaving(true);
       await onCreateBudget({
         categoryId: selectedCategoryId,
-        month: getCurrentMonth(),
+        month: currentPeriodKey(DEFAULT_PERIOD_START_DAY),
         limitAmount: amountNum,
       });
       resetForm();

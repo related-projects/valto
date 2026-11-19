@@ -5,6 +5,8 @@
  * This entity is UI-agnostic and contains only business logic.
  */
 
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey } from '../period';
+
 /**
  * Budget entity interface
  * Represents a monthly spending limit for an expense category
@@ -108,10 +110,11 @@ export function isValidBudgetMonth(month: string): boolean {
  * month stored on a new budget (AddBudgetModal), and the "a past month is
  * closed" gate in BudgetRepository.updateFromDTO. Values already stored are
  * left exactly as they are - there is no migration.
+ *
+ * The computation lives in src/domain/period (C20): this is the current
+ * period at the default start day, 1, which is the calendar month. Those two
+ * callers now ask the period module directly.
  */
 export function getCurrentMonth(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+    return currentPeriodKey(DEFAULT_PERIOD_START_DAY);
 }

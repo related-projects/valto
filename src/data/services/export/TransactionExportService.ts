@@ -19,6 +19,7 @@ import type { Wallet } from '../../../domain/entities/Wallet';
 import type { Category } from '../../../domain/entities/Category';
 import { getCurrencyByCode, type CurrencyDefinition } from '../../../domain/constants/currencies';
 import { ledgerEffect } from '../../../domain/ledger/ledgerEffect';
+import { toPeriodKey } from '../../../domain/period';
 import {
     TRANSFER_IN_CATEGORY_ID,
     TRANSFER_OUT_CATEGORY_ID,
@@ -359,10 +360,12 @@ async function printToFileWithTimeout(html: string): Promise<Print.FilePrintResu
 
 /**
  * The name the shared PDF carries: the reported month, not the export date.
- * Fixed ASCII and untranslated, like the CSV and backup names (V-95).
+ * Fixed ASCII and untranslated, like the CSV and backup names (V-95). The
+ * month is its 'YYYY-MM' period key (src/domain/period), the form the cache
+ * cleanup expects (backupCopies.ts EXPORT_FILE).
  */
 function reportFileName(year: number, month: number): string {
-    return `valto_report_${year}-${String(month).padStart(2, '0')}.pdf`;
+    return `valto_report_${toPeriodKey({ year, month })}.pdf`;
 }
 
 /**
