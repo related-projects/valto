@@ -25,6 +25,12 @@ interface YtdSummaryCardProps {
      * was never taken.
      */
     hasActivity: boolean;
+    /**
+     * The dates of the year's 12 periods, e.g. "20 Dec 2025 - 19 Dec 2026",
+     * shown under the title when the month start day is not 1 (REGISTRE C20).
+     * Absent or null: the year is the calendar year and nothing is shown.
+     */
+    periodLabel?: string | null;
 }
 
 export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
@@ -34,6 +40,7 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
     savingsRate,
     year,
     hasActivity,
+    periodLabel,
 }) => {
     const { t } = useTranslation();
     const { colors, spacing, typography, radius, shadows } = useTheme();
@@ -62,15 +69,31 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
         color: colors.foreground,
         fontSize: typography.sizes.md,
         fontWeight: typography.weights.semibold,
-        marginBottom: spacing.sm,
+        marginBottom: periodLabel ? 0 : spacing.sm,
     };
+
+    // The title stays "Annual Total (2026)"; the period dates, when there are
+    // any to state, are secondary text under it.
+    const header = (
+        <>
+            <Text style={titleStyle}>
+                {t('reports.ytdSummary.title', { year })}
+            </Text>
+            {periodLabel ? (
+                <Text
+                    testID="ytd_summary_period"
+                    style={{ color: colors.mutedForeground, fontSize: typography.sizes.xs, marginBottom: spacing.sm }}
+                >
+                    {periodLabel}
+                </Text>
+            ) : null}
+        </>
+    );
 
     if (!hasActivity) {
         return (
             <View style={cardStyle}>
-                <Text style={titleStyle}>
-                    {t('reports.ytdSummary.title', { year })}
-                </Text>
+                {header}
                 <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
                     <Text style={{ color: colors.mutedForeground, fontSize: typography.sizes.sm, textAlign: 'center' }}>
                         {t('reports.ytdSummary.noActivity')}
@@ -82,9 +105,7 @@ export const YtdSummaryCard: React.FC<YtdSummaryCardProps> = ({
 
     return (
         <View style={cardStyle}>
-            <Text style={titleStyle}>
-                {t('reports.ytdSummary.title', { year })}
-            </Text>
+            {header}
 
             {/* Grid of metrics */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>

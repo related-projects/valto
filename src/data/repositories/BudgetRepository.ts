@@ -140,7 +140,12 @@ export class BudgetRepository implements IBudgetRepository {
         return this.save(budget);
     }
 
-    async updateFromDTO(dto: UpdateBudgetDTO): Promise<Budget> {
+    /**
+     * `startDay` is the user's month start day (C20), the one the caller
+     * computed its current period with: it decides which period is current,
+     * so which budgets are closed. Defaults to 1, the calendar month.
+     */
+    async updateFromDTO(dto: UpdateBudgetDTO, startDay: number = DEFAULT_PERIOD_START_DAY): Promise<Budget> {
         const existing = await this.getById(dto.id);
         if (!existing) {
             throw new RepositoryError(RepositoryErrorType.NOT_FOUND, `Budget with id ${dto.id} not found`);
@@ -159,9 +164,9 @@ export class BudgetRepository implements IBudgetRepository {
             throw limitAboveCap();
         }
 
-        // A past month is closed: its budget stays as the user lived with it.
+        // A past period is closed: its budget stays as the user lived with it.
         // YYYY-MM compares correctly as a string.
-        const currentMonth = currentPeriodKey(DEFAULT_PERIOD_START_DAY);
+        const currentMonth = currentPeriodKey(startDay);
         if (existing.month < currentMonth || (dto.month !== undefined && dto.month < currentMonth)) {
             throw new BudgetMonthClosedError();
         }

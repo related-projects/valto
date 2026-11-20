@@ -21,10 +21,7 @@
         "helpFaq": "المساعدة",
         "aboutValto": "حول Valto",
         "dateFormat": "تنسيق التاريخ",
-        "firstDayOfWeek": "أول يوم في الأسبوع",
-        "decimalSeparator": "فاصل عشري",
-        "monday": "الاثنين",
-        "sunday": "الأحد"
+        "decimalSeparator": "فاصل عشري"
     },
     "alerts": {
         "cancel": "إلغاء",

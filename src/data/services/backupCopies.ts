@@ -23,9 +23,11 @@
  * The CSV and PDF exports are the same ledger in the same cache root
  * (TransactionExportService.ts): shareCSV writes
  * `valto_transactions_<YYYY-MM-DD>.csv` and shareMonthlyPDF moves expo-print's
- * output to `valto_report_<YYYY-MM>.pdf`. discardExportCopies deletes those
- * names in the cache root, and nothing else. It runs at app start, before an
- * export is written, and at the data resets (pass 84b).
+ * output to `valto_report_<YYYY-MM>.pdf` with month start day 1, or to
+ * `valto_report_<YYYY-MM-DD>_<YYYY-MM-DD>.pdf` (the period's first and last
+ * day) with any other (REGISTRE C20, pass 98). discardExportCopies deletes
+ * those names in the cache root, and nothing else. It runs at app start,
+ * before an export is written, and at the data resets (pass 84b).
  *
  * NOT when the share sheet returns: on Android it returns once a target is
  * chosen, and the receiving app may still be reading the file through the
@@ -52,8 +54,8 @@ const PICKER_DIRECTORY = 'DocumentPicker';
  */
 const PICKER_COPY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[^/]*$/;
 
-/** The names shareCSV and shareMonthlyPDF give the files they share. */
-const EXPORT_FILE = /^(valto_transactions_\d{4}-\d{2}-\d{2}\.csv|valto_report_\d{4}-\d{2}\.pdf)$/;
+/** The names shareCSV and shareMonthlyPDF give the files they share; the PDF in both its forms. */
+const EXPORT_FILE = /^(valto_transactions_\d{4}-\d{2}-\d{2}\.csv|valto_report_\d{4}-\d{2}(-\d{2}_\d{4}-\d{2}-\d{2})?\.pdf)$/;
 
 /** Delete the files directly in `directory` whose name matches `name`. */
 function discardMatching(directory: Directory, name: RegExp): void {

@@ -45,7 +45,11 @@ export function useFinancialInsights(): FinancialInsights {
         totalBudgetLimit,
         hasBudgets,
         currentMonth,
+        periodStartDay,
     } = useBudgets();
+    // The start day currentMonth was computed with, so the pace and the totals
+    // always describe the same period (C20).
+    const startDay = periodStartDay ?? DEFAULT_PERIOD_START_DAY;
 
     // --- Savings Health ---
     const savingsHealth = useMemo(
@@ -84,15 +88,16 @@ export function useFinancialInsights(): FinancialInsights {
     const budgetPace = useMemo(() => {
         if (!hasBudgets) return null;
 
-        const totalDays = daysInPeriod(currentMonth, DEFAULT_PERIOD_START_DAY);
+        // The real length of the period, 28 to 31 days.
+        const totalDays = daysInPeriod(currentMonth, startDay);
 
         // Only the day comes off the clock, and only while the clock is still in
-        // that month; past it, the budgets on screen are for a month that is over
-        // and every day of it counts (src/domain/period daysElapsedInPeriod).
-        const daysElapsed = daysElapsedInPeriod(currentMonth, DEFAULT_PERIOD_START_DAY, new Date());
+        // that period; past it, the budgets on screen are for a period that is
+        // over and every day of it counts (src/domain/period daysElapsedInPeriod).
+        const daysElapsed = daysElapsedInPeriod(currentMonth, startDay, new Date());
 
         return evaluateBudgetPace(totalBudgetSpent, totalBudgetLimit, daysElapsed, totalDays);
-    }, [totalBudgetSpent, totalBudgetLimit, hasBudgets, currentMonth]);
+    }, [totalBudgetSpent, totalBudgetLimit, hasBudgets, currentMonth, startDay]);
 
     return { savingsHealth, spendingTrend, categoryRisk, budgetPace };
 }

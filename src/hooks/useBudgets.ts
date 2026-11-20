@@ -12,9 +12,10 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { getBudgetRepository, getUseCaseDeps } from '../core/di';
 import { dataEvents } from '../core/events';
 import { Budget, CreateBudgetDTO, TransactionType, UpdateBudgetDTO } from '../domain/entities';
-import { DEFAULT_PERIOD_START_DAY, currentPeriodKey, periodKeyOf } from '../domain/period';
+import { currentPeriodKey, periodKeyOf } from '../domain/period';
 import { MISSING_CATEGORY_LABEL_KEY } from '../utils/missingCategory';
 import { useCategories } from './useCategories';
+import { useMonthStartDay } from './useMonthStartDay';
 import { useTransactions } from './useTransactions';
 
 /**
@@ -46,8 +47,10 @@ interface UseBudgetsResult {
     loading: boolean;
     /** Error message */
     error: string | null;
-    /** Current month string (YYYY-MM) */
+    /** Current period key (YYYY-MM, src/domain/period) */
     currentMonth: string;
+    /** The month start day currentMonth was computed with (C20) */
+    periodStartDay: number;
     /** Create a new budget */
     createBudget: (dto: CreateBudgetDTO) => Promise<Budget>;
     /** Update an existing budget (refused on a past month by the repository) */
@@ -73,21 +76,32 @@ export function useBudgets(): UseBudgetsResult {
     const { transactions } = useTransactions();
     const { categories } = useCategories();
 
+    // The user's month start day (C20): the current period starts on it.
+    const startDay = useMonthStartDay();
+
     // State, not a mount-time constant: the Dashboard tab stays mounted, so an
     // app left open across a month boundary must move to the new month.
-    const [currentMonth, setCurrentMonth] = useState(() => currentPeriodKey(DEFAULT_PERIOD_START_DAY));
+    const [currentMonth, setCurrentMonth] = useState(() => currentPeriodKey(startDay));
     const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
     /**
-     * Re-read the calendar month. Returns true when it changed; the change
-     * re-creates loadBudgets, and the effect below reloads for the new month.
+     * Re-read the current period. Returns true when it changed; the change
+     * re-creates loadBudgets, and the effect below reloads for the new period.
      */
     const syncMonth = useCallback((): boolean => {
-        const now = currentPeriodKey(DEFAULT_PERIOD_START_DAY);
+        const now = currentPeriodKey(startDay);
         if (now === currentMonth) return false;
         setCurrentMonth(now);
         return true;
-    }, [currentMonth]);
+    }, [currentMonth, startDay]);
+
+    // A changed start day regroups at once (the 'settings' event, read by
+    // useMonthStartDay). Budgets keep their stored key: the one shown is the
+    // one named by the new current period.
+    // Setting the same key again is a no-op.
+    useEffect(() => {
+        setCurrentMonth(currentPeriodKey(startDay));
+    }, [startDay]);
 
     /**
      * Load budgets for current month from repository
@@ -118,7 +132,7 @@ export function useBudgets(): UseBudgetsResult {
 
             // Local calendar, to match currentMonth: a Valto month is the
             // device's month (V-91), computed by src/domain/period.
-            const txMonth = periodKeyOf(t.date, DEFAULT_PERIOD_START_DAY);
+            const txMonth = periodKeyOf(t.date, startDay);
             if (txMonth !== currentMonth) return;
 
             const current = spending.get(t.categoryId) || 0;
@@ -126,7 +140,7 @@ export function useBudgets(): UseBudgetsResult {
         });
 
         return spending;
-    }, [transactions, currentMonth]);
+    }, [transactions, currentMonth, startDay]);
 
     /**
      * Build enriched budget summaries with spending data
@@ -210,7 +224,8 @@ export function useBudgets(): UseBudgetsResult {
         try {
             // Through the runner (REGISTRE V-109), as createBudget. Verified by
             // writesThroughRunner.test.ts - "V-109 c10".
-            const budget = await getUseCaseDeps().runInTransaction(() => budgetRepo.updateFromDTO(dto));
+            // The closed-period gate reads the same start day as currentMonth.
+            const budget = await getUseCaseDeps().runInTransaction(() => budgetRepo.updateFromDTO(dto, startDay));
             await loadBudgets();
             dataEvents.emit('budgets');
             return budget;
@@ -219,7 +234,7 @@ export function useBudgets(): UseBudgetsResult {
             // Rethrow the ORIGINAL error - see createBudget above.
             throw err;
         }
-    }, [budgetRepo, loadBudgets]);
+    }, [budgetRepo, loadBudgets, startDay]);
 
     /**
      * Delete a budget
@@ -286,6 +301,7 @@ export function useBudgets(): UseBudgetsResult {
         loading,
         error,
         currentMonth,
+        periodStartDay: startDay,
         createBudget,
         updateBudget,
         deleteBudget,

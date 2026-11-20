@@ -18,3 +18,4 @@ executionOrder:
     - wallet_delete_anyway
     - category_type_switch
     - settings_reachability
+    - month_start_day

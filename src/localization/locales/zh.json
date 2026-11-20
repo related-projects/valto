@@ -31,10 +31,7 @@
         "helpFaq": "帮助与常见问题",
         "aboutValto": "关于 Valto",
         "dateFormat": "日期格式",
-        "firstDayOfWeek": "每周第一天",
         "decimalSeparator": "小数分隔符",
-        "monday": "星期一",
-        "sunday": "星期日",
         "dot": "点 (1,000.00)",
         "comma": "逗号 (1.000,00)",
         "space": "空格 (1\u00a0000,00)"

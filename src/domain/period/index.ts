@@ -12,5 +12,6 @@ export {
     periodStartDayIn,
     shiftPeriodKey,
     toPeriodKey,
+    toPeriodStartDay,
 } from './period';
 export type { PeriodBounds, PeriodRef } from './period';

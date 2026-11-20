@@ -7,23 +7,29 @@
  * passed. A period starts on a start day (1-31) of a calendar month and runs to
  * the day before the next period starts.
  *
- * C20 step 1: every caller passes DEFAULT_PERIOD_START_DAY (1), and with 1 a
- * period is exactly the calendar month the inline code computed before
- * (verified by src/domain/__tests__/period.test.ts, every day of 2024-2027).
- * The user setting is step 2.
+ * C20 step 1 routed every caller through this module with start day 1, and
+ * with 1 a period is exactly the calendar month the inline code computed
+ * before (verified by src/domain/__tests__/period.test.ts, every day of
+ * 2024-2027). Step 2: callers pass the user's stored start day, the settings
+ * field monthStartDay (absent or invalid -> 1, toPeriodStartDay).
  *
  * Rules:
  *  - Local time, like every Valto bucket (V-91). A Date is read only through
  *    getFullYear, getMonth and getDate - the getters tests/helpers/zoneClock
  *    moves into another zone - so a transaction is filed by the calendar of the
  *    device zone at the time it is read, as before.
- *  - The key is 'YYYY-MM': the calendar month the period STARTS in. With start
- *    day 1 that is the calendar month itself, so stored budgets.month values,
- *    the PDF file name and the closed-month gate keep their meaning.
+ *  - The key is 'YYYY-MM': the calendar month holding most of the period's
+ *    days, by the Owner rule (C20 design decisions 19/11): start days 1-15
+ *    name the period by the month it starts in, 16-31 by the month after.
+ *    Example, start day 20: 20 Oct - 19 Nov 2026 is '2026-11'. With start
+ *    day 1 the key is the calendar month itself, so stored budgets.month
+ *    values, the PDF file name and the closed-month gate keep their meaning;
+ *    with another start day a stored budget keeps its key, which then names
+ *    the period of that key.
  *  - Start days 29-31 clamp: in a month shorter than the start day, the period
  *    starts on that month's last day. Periods stay contiguous, 28 to 31 days
  *    long, and start day 31 means "the last day of the month". Example, start
- *    day 31: 2025-01 runs 31 Jan to 27 Feb, 2025-02 runs 28 Feb to 30 Mar.
+ *    day 31: 2025-02 runs 31 Jan to 27 Feb, 2025-03 runs 28 Feb to 30 Mar.
  *  - Bounds are local Dates built with the local constructor, the end being
  *    23:59:59.999 of the last day (inclusive), as useExport built them. Like
  *    that constructor, years 0-99 are not supported.
@@ -31,10 +37,13 @@
  *    DST change cannot move them.
  */
 
-/** The start day every caller passes until the setting exists (C20 step 2), and the default after. */
+/** The start day of an install that has not chosen one: the calendar month. */
 export const DEFAULT_PERIOD_START_DAY = 1;
 
-/** A period, named by the calendar month it starts in. */
+/** Start days from this one on name a period by the month after the one it starts in. */
+const NEXT_MONTH_NAMING_FROM = 16;
+
+/** A period, named by its key's calendar month (see the naming rule above). */
 export interface PeriodRef {
     readonly year: number;
     /** 1-12. */
@@ -57,6 +66,11 @@ const PERIOD_KEY = /^(\d+)-(\d{2})$/;
 /** Whether `startDay` is a start day a period can have: an integer from 1 to 31. */
 export function isValidPeriodStartDay(startDay: number): boolean {
     return Number.isInteger(startDay) && startDay >= 1 && startDay <= 31;
+}
+
+/** A stored start day as a usable one: itself when valid, DEFAULT_PERIOD_START_DAY otherwise (absent, malformed). */
+export function toPeriodStartDay(value: unknown): number {
+    return typeof value === 'number' && isValidPeriodStartDay(value) ? value : DEFAULT_PERIOD_START_DAY;
 }
 
 function assertStartDay(startDay: number): void {
@@ -103,6 +117,17 @@ export function parsePeriodKey(key: string): PeriodRef {
     return { year, month };
 }
 
+/** How many months the name of a period is after the month it starts in: 0 or 1. */
+function namingOffset(startDay: number): number {
+    return startDay >= NEXT_MONTH_NAMING_FROM ? 1 : 0;
+}
+
+/** The calendar month the period named `key` starts in. */
+function startMonthOf(key: string, startDay: number): PeriodRef {
+    assertStartDay(startDay);
+    return parsePeriodKey(shiftPeriodKey(key, -namingOffset(startDay)));
+}
+
 /** The key `n` periods after `key` (before it when `n` is negative). */
 export function shiftPeriodKey(key: string, n: number): string {
     if (!Number.isInteger(n)) {
@@ -130,10 +155,11 @@ export function periodOf(date: Date, startDay: number): PeriodRef {
     if (startDay === 1 || Number.isNaN(month)) {
         return { year, month };
     }
-    if (date.getDate() >= periodStartDayIn(year, month, startDay)) {
-        return { year, month };
-    }
-    return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+    // The calendar month the period of `date` starts in: this one from its
+    // effective start day on, the one before until then.
+    const startsThisMonth = date.getDate() >= periodStartDayIn(year, month, startDay);
+    const offset = (startsThisMonth ? 0 : -1) + namingOffset(startDay);
+    return parsePeriodKey(shiftPeriodKey(toPeriodKey({ year, month }), offset));
 }
 
 /** The 'YYYY-MM' key of the period `date` falls in. */
@@ -148,8 +174,8 @@ export function currentPeriodKey(startDay: number, now: Date = new Date()): stri
 
 /** First moment (00:00:00.000 of its first day) and last moment (23:59:59.999 of its last day) of a period, local time. */
 export function periodBounds(key: string, startDay: number): PeriodBounds {
-    const { year, month } = parsePeriodKey(key);
-    const next = parsePeriodKey(shiftPeriodKey(key, 1));
+    const { year, month } = startMonthOf(key, startDay);
+    const next = startMonthOf(shiftPeriodKey(key, 1), startDay);
     const firstDay = periodStartDayIn(year, month, startDay);
     const nextFirstDay = periodStartDayIn(next.year, next.month, startDay);
 
@@ -168,8 +194,8 @@ function dayNumber(year: number, month: number, day: number): number {
 
 /** Number of days in a period. */
 export function daysInPeriod(key: string, startDay: number): number {
-    const { year, month } = parsePeriodKey(key);
-    const next = parsePeriodKey(shiftPeriodKey(key, 1));
+    const { year, month } = startMonthOf(key, startDay);
+    const next = startMonthOf(shiftPeriodKey(key, 1), startDay);
     return dayNumber(next.year, next.month, periodStartDayIn(next.year, next.month, startDay))
         - dayNumber(year, month, periodStartDayIn(year, month, startDay));
 }
@@ -184,7 +210,7 @@ export function daysElapsedInPeriod(key: string, startDay: number, now: Date = n
     if (periodKeyOf(now, startDay) !== key) {
         return total;
     }
-    const { year, month } = parsePeriodKey(key);
+    const { year, month } = startMonthOf(key, startDay);
     const today = dayNumber(now.getFullYear(), now.getMonth() + 1, now.getDate());
     return today - dayNumber(year, month, periodStartDayIn(year, month, startDay)) + 1;
 }

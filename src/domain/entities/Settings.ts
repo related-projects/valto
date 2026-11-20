@@ -62,4 +62,15 @@ export interface AppSettings {
      * before it existed, and backups taken from them, do not carry it.
      */
     dateFormatLocaleApplied?: boolean;
+    /**
+     * The day of the month the user's month starts on, 1-31 (REGISTRE C20):
+     * every period the dashboard, budgets, reports and export compute starts
+     * on it (src/domain/period). In a month shorter than it, the period starts
+     * on that month's last day.
+     *
+     * Optional because it is additive (registry policy no. 10): blobs and
+     * backups written before it existed do not carry it, and nothing writes it
+     * at upgrade. loadSettings returns 1 when it is absent or invalid.
+     */
+    monthStartDay?: number;
 }

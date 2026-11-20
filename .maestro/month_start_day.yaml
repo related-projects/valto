@@ -1,0 +1,317 @@
+# Maestro end-to-end flow - Valto
+#
+# Month start day
+# Sets "Month starts on" to day 20 in Settings > Budget, adds two expenses
+# dated the 19th and the 20th of the same month, and checks that Reports puts
+# them in two different periods, each labelled with its dates
+# ("20 Jul - 19 Aug 2026"). Then sets the day back to 1 and checks that the
+# Reports label is a month name again. Coverage of REGISTRE C20 step 2
+# (pass 98 item 10).
+#
+# Date rule: month M is three calendar months before the run date, clear of
+# the data the earlier flows add (today, and the 15th of the previous month).
+# With start day 20 (start days 16-31 name a period by the month after its
+# start):
+#  - the 19th of M is in the period 20 (M-1) - 19 M, named M;
+#  - the 20th of M is in the period 20 M - 19 (M+1), named M+1.
+# A label names both years when its period crosses 1 January. The values are
+# computed from the clock in UTC, the emulator's time zone (GMT on
+# valto_e2e_api36). The calendar cells are tapped by their description
+# ("19 August 2026"), so a calendar not on month M fails at that tap.
+#
+# The confirmation is matched by its first two sentences: when the change
+# moves the current period (it depends on the run date), a sentence on the
+# budgets follows (pass 98b), so the rest of the text is left open.
+#
+# Amounts are matched with "." in place of the currency sign (flows are ASCII).
+#
+# Prerequisites: create_wallet passed (see config.yaml): "Main Account" exists.
+# Synthetic data only.
+# Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/month_start_day.yaml
+
+appId: com.renkakpo.valto.app
+---
+
+# --- Month M and the two period labels ---
+- evalScript: >-
+    ${output.p = (function () {
+      var months = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+      var shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var now = new Date();
+      function monthAt(offset) {
+        var index = now.getUTCFullYear() * 12 + now.getUTCMonth() + offset;
+        return { year: Math.floor(index / 12), month: index - Math.floor(index / 12) * 12 };
+      }
+      function label(from, to) {
+        var start = '20 ' + shortMonths[from.month];
+        var end = '19 ' + shortMonths[to.month];
+        return from.year === to.year
+          ? start + ' - ' + end + ' ' + to.year
+          : start + ' ' + from.year + ' - ' + end + ' ' + to.year;
+      }
+      var before = monthAt(-4);
+      var m = monthAt(-3);
+      var after = monthAt(-2);
+      return {
+        cell19: '19 ' + months[m.month] + ' ' + m.year,
+        cell20: '20 ' + months[m.month] + ' ' + m.year,
+        label19: label(before, m),
+        label20: label(m, after)
+      };
+    })()}
+
+# --- Launch ---
+- launchApp
+
+# A cold start can take tens of seconds on a loaded host (pass 96 runs): wait
+# for the tab bar before the first tap.
+- extendedWaitUntil:
+    visible:
+      id: "tab_index"
+    timeout: 60000
+
+# --- Settings > Budget > Month starts on: day 20 ---
+- tapOn:
+    id: "tab_settings"
+
+- scrollUntilVisible:
+    element:
+      id: "settings_month_start_item"
+    centerElement: true
+
+- assertVisible:
+    id: "settings_month_start_helper"
+
+- tapOn:
+    id: "settings_month_start_item"
+
+- scrollUntilVisible:
+    element:
+      id: "month_start_day_option_20"
+    centerElement: true
+
+- tapOn:
+    id: "month_start_day_option_20"
+
+- assertVisible:
+    text: "(?s)Your months will be regrouped from day 20\\. Budgets keep their month\\..*"
+
+- tapOn:
+    text: "(?i)continue"
+
+- assertVisible:
+    id: "settings_month_start_item"
+    containsDescendants:
+      - text: "Day 20"
+
+# --- Expense on the 19th of M: Transport, 19.19, Main Account ---
+- tapOn:
+    id: "tab_transactions"
+
+- tapOn:
+    id: "fab_add_transaction"
+
+- assertVisible:
+    id: "add_tx_amount_input"
+
+- tapOn:
+    id: "add_tx_type_expense"
+
+- tapOn:
+    id: "add_tx_category_picker"
+
+- tapOn:
+    id: "add_tx_category_[0-9a-f]{8}-.*"
+    containsDescendants:
+      - text: "Transport"
+
+- tapOn:
+    id: "add_tx_wallet_picker"
+
+- tapOn:
+    id: "add_tx_wallet_[0-9a-f]{8}-.*"
+    containsDescendants:
+      - text: "Main Account"
+
+- scrollUntilVisible:
+    element:
+      id: "add_tx_date_button"
+    centerElement: true
+
+- tapOn:
+    id: "add_tx_date_button"
+
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: "android:id/prev"
+
+- tapOn:
+    text: "${output.p.cell19}"
+
+- tapOn:
+    id: "android:id/button1"
+
+- scrollUntilVisible:
+    element:
+      id: "add_tx_amount_input"
+    direction: UP
+
+- tapOn:
+    id: "add_tx_amount_input"
+
+- inputText: "19.19"
+
+- tapOn:
+    id: "add_tx_save_button"
+
+- assertNotVisible:
+    id: "add_tx_amount_input"
+
+# --- Expense on the 20th of M: Transport, 20.20, Main Account ---
+- tapOn:
+    id: "fab_add_transaction"
+
+- assertVisible:
+    id: "add_tx_amount_input"
+
+- tapOn:
+    id: "add_tx_type_expense"
+
+- tapOn:
+    id: "add_tx_category_picker"
+
+- tapOn:
+    id: "add_tx_category_[0-9a-f]{8}-.*"
+    containsDescendants:
+      - text: "Transport"
+
+- tapOn:
+    id: "add_tx_wallet_picker"
+
+- tapOn:
+    id: "add_tx_wallet_[0-9a-f]{8}-.*"
+    containsDescendants:
+      - text: "Main Account"
+
+- scrollUntilVisible:
+    element:
+      id: "add_tx_date_button"
+    centerElement: true
+
+- tapOn:
+    id: "add_tx_date_button"
+
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: "android:id/prev"
+
+- tapOn:
+    text: "${output.p.cell20}"
+
+- tapOn:
+    id: "android:id/button1"
+
+- scrollUntilVisible:
+    element:
+      id: "add_tx_amount_input"
+    direction: UP
+
+- tapOn:
+    id: "add_tx_amount_input"
+
+- inputText: "20.20"
+
+- tapOn:
+    id: "add_tx_save_button"
+
+- assertNotVisible:
+    id: "add_tx_amount_input"
+
+# --- Reports: the two expenses are in two periods, labelled by their dates ---
+- tapOn:
+    id: "tab_reports"
+
+- extendedWaitUntil:
+    visible:
+      id: "month_navigator_label"
+    timeout: 20000
+
+# The period of the 20th is two or three periods back, depending on the run date.
+- repeat:
+    times: 6
+    while:
+      notVisible:
+        id: "month_navigator_label"
+        text: "${output.p.label20}"
+    commands:
+      - tapOn:
+          id: "month_navigator_previous"
+
+- assertVisible:
+    id: "month_navigator_label"
+    text: "${output.p.label20}"
+
+- assertVisible:
+    text: ".*20\\.20.*"
+
+- assertNotVisible:
+    text: ".*19\\.19.*"
+
+# The period before it holds the 19th, and only the 19th.
+- tapOn:
+    id: "month_navigator_previous"
+
+- assertVisible:
+    id: "month_navigator_label"
+    text: "${output.p.label19}"
+
+- assertVisible:
+    text: ".*19\\.19.*"
+
+- assertNotVisible:
+    text: ".*20\\.20.*"
+
+# --- Back to day 1: the label is a month name again ---
+- tapOn:
+    id: "tab_settings"
+
+- scrollUntilVisible:
+    element:
+      id: "settings_month_start_item"
+    centerElement: true
+
+- tapOn:
+    id: "settings_month_start_item"
+
+- scrollUntilVisible:
+    element:
+      id: "month_start_day_option_1"
+    direction: UP
+    centerElement: true
+
+- tapOn:
+    id: "month_start_day_option_1"
+
+- assertVisible:
+    text: "(?s)Your months will be regrouped from day 1\\. Budgets keep their month\\..*"
+
+- tapOn:
+    text: "(?i)continue"
+
+- assertVisible:
+    id: "settings_month_start_item"
+    containsDescendants:
+      - text: "Day 1"
+
+- tapOn:
+    id: "tab_reports"
+
+- assertVisible:
+    id: "month_navigator_label"
+    text: "(January|February|March|April|May|June|July|August|September|October|November|December) \\d{4}"

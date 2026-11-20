@@ -7,7 +7,7 @@
  * The structure checks run on the list each locale's user is shown: the one
  * i18next resolves for t('faq.items', { returnObjects: true }), the call
  * HelpFAQScreen makes. A partial bundle carries no faq (pass 83, item 7), so
- * its users are shown en.json's list, and that list is what must hold 12
+ * its users are shown en.json's list, and that list is what must hold 13
  * answered items. i18next does not fill a missing field of an item from
  * en.json: the list comes whole from one bundle.
  */
@@ -29,12 +29,13 @@ import ur from '../../localization/locales/ur.json';
 import bn from '../../localization/locales/bn.json';
 
 const ALL_LOCALES: Record<string, any> = { en, fr, es, ar, hi, zh, ru, pt, ur, bn };
-const EXPECTED_FAQ_COUNT = 12;
+const EXPECTED_FAQ_COUNT = 13;
 const EXPECTED_IDS = [
     'add-transaction',
     'create-wallet',
     'transfer-funds',
     'set-budget',
+    'month-start',
     'backup-data',
     'restore-data',
     'change-currency',

@@ -8,10 +8,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SecuritySetupModal } from '../components/security/SecuritySetupModal';
 import { CurrencyPickerModal } from '../components/settings/CurrencyPickerModal';
 import { LanguagePickerModal } from '../components/settings/LanguagePickerModal';
+import { MonthStartDayPickerModal } from '../components/settings/MonthStartDayPickerModal';
 import { IconBadge } from '../components/ui/IconBadge';
 import { ListItem } from '../components/ui/ListItem';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useSecurity } from '../core/security/SecurityContext';
+import { toPeriodStartDay } from '../domain/period';
 import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../theme/theme';
 import { getButtonA11y } from '../utils/accessibility';
@@ -47,7 +49,7 @@ export const SettingsScreen = () => {
         resetCurrency,
         cancelCurrencyReset,
         changeDateFormat,
-        changeFirstDayOfWeek,
+        changeMonthStartDay,
         changeDecimalSeparator,
         loading,
     } = useSettings();
@@ -55,6 +57,7 @@ export const SettingsScreen = () => {
     const [securitySetupVisible, setSecuritySetupVisible] = useState(false);
     const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
     const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
+    const [monthStartPickerVisible, setMonthStartPickerVisible] = useState(false);
 
     // Security subtitle
     const securitySubtitle = isSecurityEnabled
@@ -98,8 +101,9 @@ export const SettingsScreen = () => {
 
     // Date format display label
     const dateFormatLabel = settings.dateFormat;
-    const firstDayLabel = t(`settings.${settings.firstDayOfWeek}`);
     const decimalLabel = t(`settings.${settings.decimalSeparator}`);
+    // REGISTRE C20: the day the user's month starts on, 1 when none is stored.
+    const monthStartDay = toPeriodStartDay(settings.monthStartDay);
 
     return (
         <ScrollView
@@ -289,15 +293,6 @@ export const SettingsScreen = () => {
                         testID="settings_date_format_item"
                     />
                     <ListItem
-                        title={t('settings.firstDayOfWeek')}
-                        subtitle={firstDayLabel}
-                        leftIcon={
-                            <IconBadge icon={<Ionicons name="today-outline" size={20} color={colors.primary} />} />
-                        }
-                        showChevron
-                        onPress={changeFirstDayOfWeek}
-                    />
-                    <ListItem
                         title={t('settings.decimalSeparator')}
                         subtitle={decimalLabel}
                         leftIcon={
@@ -306,6 +301,53 @@ export const SettingsScreen = () => {
                         showChevron
                         onPress={changeDecimalSeparator}
                     />
+                </View>
+            </View>
+
+            {/* Budget */}
+            <View style={{ marginBottom: spacing.xl }}>
+                <SectionHeader title={t('settings.sections.budget')} />
+                <View style={{
+                    backgroundColor: colors.card,
+                    borderRadius: radius.md,
+                    paddingHorizontal: spacing.md,
+                    ...shadows.card,
+                }}>
+                    <ListItem
+                        title={t('settings.monthStartDay')}
+                        subtitle={t('settings.monthStartDayValue', { day: monthStartDay })}
+                        leftIcon={
+                            <IconBadge icon={<Ionicons name="calendar-number-outline" size={20} color={colors.primary} />} />
+                        }
+                        showChevron
+                        onPress={() => setMonthStartPickerVisible(true)}
+                        testID="settings_month_start_item"
+                    />
+                    <Text
+                        testID="settings_month_start_helper"
+                        style={{
+                            color: colors.mutedForeground,
+                            fontSize: typography.sizes.xs,
+                            lineHeight: 18,
+                            paddingBottom: spacing.sm,
+                        }}
+                    >
+                        {t('settings.monthStartDayHelper')}
+                    </Text>
+                    {/* 29-31 start on the last day of a shorter month. */}
+                    {monthStartDay >= 29 && (
+                        <Text
+                            testID="settings_month_start_short_months_note"
+                            style={{
+                                color: colors.mutedForeground,
+                                fontSize: typography.sizes.xs,
+                                lineHeight: 18,
+                                paddingBottom: spacing.sm,
+                            }}
+                        >
+                            {t('settings.monthStartDayShortMonths')}
+                        </Text>
+                    )}
                 </View>
             </View>
 
@@ -417,6 +459,12 @@ export const SettingsScreen = () => {
                 onClose={() => setLanguagePickerVisible(false)}
                 onSelect={handleLanguageSelect}
                 selectedCode={settings.language}
+            />
+            <MonthStartDayPickerModal
+                visible={monthStartPickerVisible}
+                onClose={() => setMonthStartPickerVisible(false)}
+                onSelect={changeMonthStartDay}
+                selectedDay={monthStartDay}
             />
         </ScrollView>
     );
