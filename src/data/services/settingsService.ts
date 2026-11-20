@@ -9,6 +9,7 @@ import { DEFAULT_CURRENCY_CODE } from '../../domain/constants/currencies';
 import { dateFormatForLocale } from '../../domain/constants/dateFormats';
 import { DEFAULT_LANGUAGE_CODE, getDeviceLanguage, getDeviceLocale, isSupportedLanguage } from '../../domain/constants/languages';
 import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES, numberFormatForLocale } from '../../domain/constants/numberFormats';
+import { DEFAULT_PERIOD_START_DAY, isValidPeriodStartDay } from '../../domain/period';
 import { asyncStorageAdapter, StorageKeys } from '../storage';
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ export function getDefaultSettings(): AppSettings {
         firstDayOfWeek: 'monday',
         decimalSeparator: DEFAULT_NUMBER_FORMAT,
         onboardingCompleted: false,
+        monthStartDay: DEFAULT_PERIOD_START_DAY,
     };
 }
 
@@ -210,6 +212,11 @@ export async function loadSettings(): Promise<AppSettings> {
         }
         if (!VALID_DECIMAL_SEPS.includes(merged.decimalSeparator)) {
             merged.decimalSeparator = DEFAULT_NUMBER_FORMAT;
+        }
+        // Absent (a blob from before the field: the default above) or invalid
+        // -> 1, the calendar month (REGISTRE C20). Nothing is written here.
+        if (typeof merged.monthStartDay !== 'number' || !isValidPeriodStartDay(merged.monthStartDay)) {
+            merged.monthStartDay = DEFAULT_PERIOD_START_DAY;
         }
 
         // Validate onboardingCompleted

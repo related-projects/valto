@@ -35,6 +35,7 @@ export const MonthNavigator: React.FC<MonthNavigatorProps> = ({
             </TouchableOpacity>
 
             <Text
+                testID="month_navigator_label"
                 style={{
                     color: colors.foreground,
                     fontSize: typography.sizes.lg,

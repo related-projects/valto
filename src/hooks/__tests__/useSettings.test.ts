@@ -217,7 +217,6 @@ describe('useSettings', () => {
         expect(typeof result.current.toggleNotifications).toBe('function');
         expect(typeof result.current.resetCurrency).toBe('function');
         expect(typeof result.current.changeDateFormat).toBe('function');
-        expect(typeof result.current.changeFirstDayOfWeek).toBe('function');
         expect(typeof result.current.changeDecimalSeparator).toBe('function');
     });
 

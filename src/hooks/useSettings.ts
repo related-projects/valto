@@ -26,7 +26,6 @@ import {
     type AppSettings,
     type DateFormatPreference,
     type DecimalSeparator,
-    type FirstDayOfWeek,
     loadSettings,
     selectAndLockCurrency,
     type ThemePreference,
@@ -35,9 +34,11 @@ import {
 import { type CurrencyDefinition, getCurrencyByCode } from '../domain/constants/currencies';
 import { getLanguageByCode, type LanguageDefinition } from '../domain/constants/languages';
 import { DEFAULT_NUMBER_FORMAT, NUMBER_FORMAT_PROFILES } from '../domain/constants/numberFormats';
+import { currentPeriodKey, toPeriodStartDay } from '../domain/period';
 import { useTheme } from '../theme/theme';
 import { errorKind } from '../utils/errorKind';
 import { type NotificationPermissionStatus, shouldShowBlockedNotice } from '../utils/notificationPermission';
+import { formatPeriodLabel } from '../utils/periodLabel';
 
 /** Minimal shape of the i18next `t` this file uses. */
 type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -129,7 +130,8 @@ export interface UseSettingsResult {
     resetCurrency: () => void;
     cancelCurrencyReset: () => void;
     changeDateFormat: () => void;
-    changeFirstDayOfWeek: () => void;
+    /** Ask to confirm, then store the month start day and emit 'settings' (C20). */
+    changeMonthStartDay: (day: number) => void;
     changeDecimalSeparator: () => void;
     loading: boolean;
 }
@@ -550,26 +552,56 @@ export function useSettings(): UseSettingsResult {
         );
     }, [settings.dateFormat, t]);
 
-    // ── First Day of Week ─────────────────────────────────────────────
-    const changeFirstDayOfWeek = useCallback(() => {
-        const options: FirstDayOfWeek[] = ['monday', 'sunday'];
+    // --- Month Start Day ---------------------------------------------
+    // REGISTRE C20. The current day changes nothing and asks nothing. Any other
+    // day regroups every period, so it is confirmed first; Continue stores it
+    // and emits 'settings', which the period hooks re-read (useMonthStartDay).
+    // Budgets keep their stored month key.
+    //
+    // Budgets are never carried from one period to the next: the user creates
+    // each one for one key (AddBudgetModal -> useBudgets.createBudget ->
+    // BudgetRepository.create), and a period shows the budgets stored under its
+    // key only. So when the change moves the key of the current period, the
+    // budgets the user sees now leave the current period, and the confirmation
+    // says where (Owner decision 19/11, option A: warn, no copy). Keys are
+    // 'YYYY-MM' and compare as strings, as the closed-period gate does.
+    const changeMonthStartDay = useCallback((day: number) => {
+        const oldDay = toPeriodStartDay(settings.monthStartDay);
+        if (day === oldDay) return;
+
+        const parts = [t('settings.monthStartDayConfirm', { day })];
+
+        const oldKey = currentPeriodKey(oldDay);
+        const newKey = currentPeriodKey(day);
+        if (newKey !== oldKey) {
+            const period = formatPeriodLabel(oldKey, oldDay, t);
+            parts.push(newKey > oldKey
+                ? t('settings.monthStartDayBudgetsPrevious', { period })
+                : t('settings.monthStartDayBudgetsNext', { period }));
+        }
+
+        // 29-31 clamp to the last day of a shorter month: said here, before it applies.
+        if (day >= 29) {
+            parts.push(t('settings.monthStartDayShortMonths'));
+        }
+        const message = parts.join('\n\n');
 
         Alert.alert(
-            t('settings.firstDayOfWeek'),
-            undefined,
+            t('settings.monthStartDay'),
+            message,
             [
-                ...options.map(opt => ({
-                    text: t(`settings.${opt}`) + (settings.firstDayOfWeek === opt ? ' ✓' : ''),
+                { text: t('alerts.cancel'), style: 'cancel' },
+                {
+                    text: t('alerts.continue'),
                     onPress: async () => {
-                        const updated = await updateSetting('firstDayOfWeek', opt);
+                        const updated = await updateSetting('monthStartDay', day);
                         setSettings(updated);
                         dataEvents.emit('settings');
                     },
-                })),
-                { text: t('alerts.cancel'), style: 'cancel' },
+                },
             ],
         );
-    }, [settings.firstDayOfWeek, t]);
+    }, [settings.monthStartDay, t]);
 
     // ── Decimal Separator ─────────────────────────────────────────────
     const changeDecimalSeparator = useCallback(() => {
@@ -610,7 +642,7 @@ export function useSettings(): UseSettingsResult {
         resetCurrency,
         cancelCurrencyReset,
         changeDateFormat,
-        changeFirstDayOfWeek,
+        changeMonthStartDay,
         changeDecimalSeparator,
         loading,
     };

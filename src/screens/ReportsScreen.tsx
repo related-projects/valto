@@ -36,6 +36,7 @@ export const ReportsScreen = () => {
         hasMonthActivity,
         ytdSummary,
         ytdYear,
+        ytdPeriodLabel,
     } = useReports();
 
     // Transform breakdown for the donut chart
@@ -114,6 +115,7 @@ export const ReportsScreen = () => {
                     net={ytdSummary.net}
                     savingsRate={ytdSummary.savingsRate}
                     year={ytdYear}
+                    periodLabel={ytdPeriodLabel}
                     hasActivity={ytdSummary.transactionCount > 0}
                 />
             </View>

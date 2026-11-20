@@ -68,7 +68,7 @@ async function wipeFinancialData(): Promise<void> {
  *
  * This deletes DATA, not the app. The settings blob is deliberately untouched -
  * currency, currencyLocked, language, theme, dateFormat, firstDayOfWeek,
- * decimalSeparator, onboardingCompleted and notificationsEnabled all survive, as
+ * decimalSeparator, monthStartDay, onboardingCompleted and notificationsEnabled all survive, as
  * does the security config that keeps the app lock on. Removing the blob was the
  * old behaviour and it was wrong in three separate ways: the base currency
  * silently became USD, an explicit number-format choice was re-derived from the

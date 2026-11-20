@@ -12,10 +12,12 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PdfRenderTimeoutError } from '../data/services/export/TransactionExportService';
-import { DEFAULT_PERIOD_START_DAY, currentPeriodKey, parsePeriodKey, shiftPeriodKey, toPeriodKey } from '../domain/period';
+import { DEFAULT_PERIOD_START_DAY, currentPeriodKey, parsePeriodKey, shiftPeriodKey } from '../domain/period';
 import { useExport } from '../hooks/useExport';
+import { useMonthStartDay } from '../hooks/useMonthStartDay';
 import { useTheme } from '../theme/theme';
 import { getButtonA11y } from '../utils/accessibility';
+import { formatPeriodLabel } from '../utils/periodLabel';
 
 // ─── Month Keys (i18n) ────────────────────────────────────────────────
 
@@ -35,9 +37,12 @@ export const ExportScreen: React.FC = () => {
     const insets = useSafeAreaInsets();
     const { exportCSV, exportMonthlyPDF, loading } = useExport();
 
-    const now = parsePeriodKey(currentPeriodKey(DEFAULT_PERIOD_START_DAY));
-    const [selectedYear, setSelectedYear] = useState(now.year);
-    const [selectedMonth, setSelectedMonth] = useState(now.month);
+    // The user's month start day (C20). Until the user steps, the selection is
+    // the current period, so it follows the start day once it is read.
+    const startDay = useMonthStartDay();
+    const [steppedKey, setSteppedKey] = useState<string | null>(null);
+    const selectedKey = steppedKey ?? currentPeriodKey(startDay);
+    const { year: selectedYear, month: selectedMonth } = parsePeriodKey(selectedKey);
 
     const handleExportCSV = useCallback(async () => {
         try {
@@ -61,11 +66,7 @@ export const ExportScreen: React.FC = () => {
     }, [exportMonthlyPDF, selectedYear, selectedMonth, t]);
 
     const adjustMonth = (delta: number) => {
-        const { year, month } = parsePeriodKey(
-            shiftPeriodKey(toPeriodKey({ year: selectedYear, month: selectedMonth }), delta),
-        );
-        setSelectedMonth(month);
-        setSelectedYear(year);
+        setSteppedKey(shiftPeriodKey(selectedKey, delta));
     };
 
     return (
@@ -209,7 +210,9 @@ export const ExportScreen: React.FC = () => {
                         minWidth: 140,
                         textAlign: 'center',
                     }}>
-                        {t(MONTH_KEYS[selectedMonth - 1])} {selectedYear}
+                        {startDay === DEFAULT_PERIOD_START_DAY
+                            ? <>{t(MONTH_KEYS[selectedMonth - 1])} {selectedYear}</>
+                            : formatPeriodLabel(selectedKey, startDay, t)}
                     </Text>
                     <Pressable
                         onPress={() => adjustMonth(1)}

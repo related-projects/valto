@@ -21,10 +21,11 @@ import {
   CreateBudgetDTO,
   UpdateBudgetDTO,
 } from "../../domain/entities";
-import { DEFAULT_PERIOD_START_DAY, currentPeriodKey } from "../../domain/period";
+import { currentPeriodKey } from "../../domain/period";
 import { BudgetMonthClosedError } from "../../domain/useCases/errors";
 import { useCategories } from "../../hooks/useCategories";
 import { useFormatting } from "../../hooks/useFormatting";
+import { useMonthStartDay } from "../../hooks/useMonthStartDay";
 import { amountRefusalMessage } from "../../utils/amountRefusalMessage";
 import { radius } from "../../theme/radius";
 import { spacing } from "../../theme/spacing";
@@ -62,6 +63,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
   const { t } = useTranslation();
   const { expenseCategories } = useCategories();
   const { parseAmountToCentsResult, centsToMajor, amountPlaceholder, maxEntryAmount, decimals } = useFormatting();
+  const monthStartDay = useMonthStartDay();
 
   // Form state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -146,7 +148,8 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({
       setSaving(true);
       await onCreateBudget({
         categoryId: selectedCategoryId,
-        month: currentPeriodKey(DEFAULT_PERIOD_START_DAY),
+        // The current period of the user's month start day (C20).
+        month: currentPeriodKey(monthStartDay),
         limitAmount: amountNum,
       });
       resetForm();

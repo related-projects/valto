@@ -6,7 +6,6 @@
  * and savings rate. Fully reactive to transaction, budget, and category changes.
  */
 
-import type { TFunction } from 'i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppState, type AppStateStatus } from 'react-native';
@@ -15,14 +14,15 @@ import { dataEvents } from '../core/events';
 import { calculateYearToDateSummary, YearToDateSummary } from '../domain/calculations/ytdSummary';
 import { Budget, TransactionType } from '../domain/entities';
 import {
-    DEFAULT_PERIOD_START_DAY,
     currentPeriodKey,
     parsePeriodKey,
     periodKeyOf,
     shiftPeriodKey,
 } from '../domain/period';
 import { MISSING_CATEGORY_LABEL_KEY, UNRESOLVED_CATEGORY_ID } from '../utils/missingCategory';
+import { formatPeriodLabel, formatYearPeriodsLabel } from '../utils/periodLabel';
 import { useCategories } from './useCategories';
+import { useMonthStartDay } from './useMonthStartDay';
 import { useTransactions } from './useTransactions';
 
 // ─── Public Types ──────────────────────────────────────────────────────
@@ -42,7 +42,10 @@ export interface CategoryBreakdownItem {
 export interface UseReportsResult {
     /** Currently selected month (YYYY-MM) */
     selectedMonth: string;
-    /** Human-readable month label, e.g. "February 2026" */
+    /**
+     * Human-readable period label: "February 2026" at start day 1, the
+     * period's dates otherwise, e.g. "20 Jan - 19 Feb 2026" (src/utils/periodLabel).
+     */
     monthLabel: string;
     /** Navigate to previous month */
     goToPreviousMonth: () => void;
@@ -63,6 +66,11 @@ export interface UseReportsResult {
     ytdSummary: YearToDateSummary;
     /** Year the annual summary covers - the year of the selected month */
     ytdYear: number;
+    /**
+     * The span of that year's 12 periods, e.g. "20 Dec 2025 - 19 Dec 2026";
+     * null at start day 1, where the year is the calendar year.
+     */
+    ytdPeriodLabel: string | null;
 
     /** Whether there is any expense data for the selected month */
     hasExpenseData: boolean;
@@ -76,40 +84,17 @@ export interface UseReportsResult {
     loading: boolean;
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────
-
-/**
- * The same ordered keys the export service and the Export screen already use.
- * Reports and Export are one tap apart, so a second set of month names here
- * would be a second thing to translate and a second thing to get wrong.
- */
-const MONTH_KEYS = [
-    'export.months.january', 'export.months.february', 'export.months.march',
-    'export.months.april', 'export.months.may', 'export.months.june',
-    'export.months.july', 'export.months.august', 'export.months.september',
-    'export.months.october', 'export.months.november', 'export.months.december',
-] as const;
-
-/**
- * `t` is a parameter rather than a closure, for the reason generateReportHTML
- * takes one: the label belongs to the app language, and a helper that reached
- * for a module-level i18n instance would be reading whatever language happened
- * to be current instead of the caller's.
- */
-function formatMonthLabel(monthStr: string, t: TFunction): string {
-    const { year, month } = parsePeriodKey(monthStr);
-    return `${t(MONTH_KEYS[month - 1])} ${year}`;
-}
-
 // ─── Hook ──────────────────────────────────────────────────────────────
 
 export function useReports(): UseReportsResult {
     const { t } = useTranslation();
-    // The calendar month as of the last sync, held apart from the selection: the
+    // The user's month start day (C20): every period below starts on it.
+    const startDay = useMonthStartDay();
+    // The current period as of the last sync, held apart from the selection: the
     // Reports tab stays mounted, and a return to the foreground in a new month
     // moves the selection only if it was still on this one (V-99, Owner
     // decision 2). A user who navigated elsewhere keeps their month.
-    const [currentMonth, setCurrentMonth] = useState(() => currentPeriodKey(DEFAULT_PERIOD_START_DAY));
+    const [currentMonth, setCurrentMonth] = useState(() => currentPeriodKey(startDay));
     const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -139,7 +124,11 @@ export function useReports(): UseReportsResult {
     }, [loadBudgets]);
 
     // ── Month navigation ───────────────────────────────────────────────
-    const monthLabel = useMemo(() => formatMonthLabel(selectedMonth, t), [selectedMonth, t]);
+    // `t` is passed, not reached for: the label belongs to the app language.
+    const monthLabel = useMemo(
+        () => formatPeriodLabel(selectedMonth, startDay, t),
+        [selectedMonth, startDay, t],
+    );
 
     const goToPreviousMonth = useCallback(() => {
         setSelectedMonth(prev => shiftPeriodKey(prev, -1));
@@ -149,13 +138,21 @@ export function useReports(): UseReportsResult {
         setSelectedMonth(prev => shiftPeriodKey(prev, 1));
     }, []);
 
-    /** Re-read the calendar month; carry the selection along only if it was on the old one. */
+    /** Re-read the current period; carry the selection along only if it was on the old one. */
     const syncMonth = useCallback(() => {
-        const now = currentPeriodKey(DEFAULT_PERIOD_START_DAY);
+        const now = currentPeriodKey(startDay);
         if (now === currentMonth) return;
         setSelectedMonth(prev => (prev === currentMonth ? now : prev));
         setCurrentMonth(now);
-    }, [currentMonth]);
+    }, [currentMonth, startDay]);
+
+    // A changed start day regroups at once, by the same rule as a foreground
+    // return: the selection follows only if it was on the current period.
+    // syncMonth is re-created with each new start day; with an unchanged
+    // current period the call is a no-op.
+    useEffect(() => {
+        syncMonth();
+    }, [syncMonth]);
 
     // Foreground return: only on the transition INTO 'active' (pattern of
     // useBudgets), since AppState also fires for 'inactive' and 'background'.
@@ -183,7 +180,7 @@ export function useReports(): UseReportsResult {
         transactions.forEach(t => {
             // Local calendar, to match currentMonth: a Valto month is the
             // device's month (V-91), computed by src/domain/period.
-            const txMonth = periodKeyOf(t.date, DEFAULT_PERIOD_START_DAY);
+            const txMonth = periodKeyOf(t.date, startDay);
             if (txMonth !== selectedMonth) return;
 
             // Counted above the type branch, so a transfer keeps the month from
@@ -262,16 +259,22 @@ export function useReports(): UseReportsResult {
             categoryBreakdown: breakdown,
             transactionCount,
         };
-    }, [transactions, categories, budgets, selectedMonth, t]);
+    }, [transactions, categories, budgets, selectedMonth, startDay, t]);
 
     // ── Annual Summary ──────────────────────────────────────────────────
     // Derived from the selection, not from the wall clock: the annual card is a
     // consumer of the same filter as every other element on the screen, so
     // navigating into a past year must move it too.
+    // The year is the year of the selected period's key, and its 12 periods
+    // YYYY-01 to YYYY-12 (C20: YTD = 12 periods).
     const ytdYear = useMemo(() => parsePeriodKey(selectedMonth).year, [selectedMonth]);
     const ytdSummary = useMemo(
-        () => calculateYearToDateSummary(transactions, ytdYear),
-        [transactions, ytdYear],
+        () => calculateYearToDateSummary(transactions, ytdYear, startDay),
+        [transactions, ytdYear, startDay],
+    );
+    const ytdPeriodLabel = useMemo(
+        () => formatYearPeriodsLabel(ytdYear, startDay, t),
+        [ytdYear, startDay, t],
     );
 
     return {
@@ -282,6 +285,7 @@ export function useReports(): UseReportsResult {
         ...aggregated,
         ytdSummary,
         ytdYear,
+        ytdPeriodLabel,
         hasExpenseData: aggregated.categoryBreakdown.length > 0,
         hasMonthActivity: aggregated.transactionCount > 0,
         loading,

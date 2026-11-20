@@ -19,7 +19,7 @@ import type { Wallet } from '../../../domain/entities/Wallet';
 import type { Category } from '../../../domain/entities/Category';
 import { getCurrencyByCode, type CurrencyDefinition } from '../../../domain/constants/currencies';
 import { ledgerEffect } from '../../../domain/ledger/ledgerEffect';
-import { toPeriodKey } from '../../../domain/period';
+import { DEFAULT_PERIOD_START_DAY, periodBounds, toPeriodKey, toPeriodStartDay } from '../../../domain/period';
 import {
     TRANSFER_IN_CATEGORY_ID,
     TRANSFER_OUT_CATEGORY_ID,
@@ -31,6 +31,7 @@ import { formatAmount } from '../../../utils/formatAmount';
 import { formatDate } from '../../../utils/formatDate';
 import { MISSING_CATEGORY_LABEL_KEY } from '../../../utils/missingCategory';
 import { centsToMajor } from '../../../utils/normalizeAmount';
+import { formatPeriodLabel } from '../../../utils/periodLabel';
 import { discardExportCopies } from '../backupCopies';
 
 // ─── CSV Export ───────────────────────────────────────────────────────
@@ -207,6 +208,11 @@ function escapeHTML(value: string): string {
  * HTML-escaped. Verified by
  * src/data/__tests__/exportService.datesTransfersEscaping.test.ts (T3 transfer
  * legs, T4 escaping).
+ *
+ * `year`-`month` is a period key (src/domain/period) of the user's month
+ * `startDay` (REGISTRE C20). At 1 the report names its calendar month as
+ * before; at any other day it names the period by its dates, "20 Nov - 19 Dec
+ * 2026" (src/utils/periodLabel; exportService.monthStartDay.test.ts).
  */
 export function generateReportHTML(
     year: number,
@@ -218,11 +224,14 @@ export function generateReportHTML(
     separator: DecimalSeparator,
     dateFormat: DateFormatPreference,
     t: TFunction,
+    startDay: number = DEFAULT_PERIOD_START_DAY,
 ): string {
     const walletNames = buildNameMap(wallets);
     const categoryNames = buildNameMap(categories);
 
-    const period = `${t(MONTH_KEYS[month - 1])} ${year}`;
+    const period = startDay === DEFAULT_PERIOD_START_DAY
+        ? `${t(MONTH_KEYS[month - 1])} ${year}`
+        : formatPeriodLabel(toPeriodKey({ year, month }), startDay, t);
 
     let totalIncome = 0;
     let totalExpense = 0;
@@ -358,14 +367,28 @@ async function printToFileWithTimeout(html: string): Promise<Print.FilePrintResu
     }
 }
 
+/** 'YYYY-MM-DD' of a local Date, ASCII. */
+function isoDay(date: Date): string {
+    const pad2 = (n: number): string => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
 /**
- * The name the shared PDF carries: the reported month, not the export date.
- * Fixed ASCII and untranslated, like the CSV and backup names (V-95). The
- * month is its 'YYYY-MM' period key (src/domain/period), the form the cache
- * cleanup expects (backupCopies.ts EXPORT_FILE).
+ * The name the shared PDF carries: the reported period, not the export date.
+ * Fixed ASCII and untranslated, like the CSV and backup names (V-95). At start
+ * day 1 it is the 'YYYY-MM' period key (src/domain/period), as before; at any
+ * other start day the key would name a month the period does not match, so
+ * it is the period's first and last day, valto_report_<YYYY-MM-DD>_<YYYY-MM-DD>.pdf
+ * (REGISTRE C20). Both forms are the ones the cache cleanup expects
+ * (backupCopies.ts EXPORT_FILE).
  */
-function reportFileName(year: number, month: number): string {
-    return `valto_report_${toPeriodKey({ year, month })}.pdf`;
+function reportFileName(year: number, month: number, startDay: number): string {
+    const key = toPeriodKey({ year, month });
+    if (startDay === DEFAULT_PERIOD_START_DAY) {
+        return `valto_report_${key}.pdf`;
+    }
+    const { start, end } = periodBounds(key, startDay);
+    return `valto_report_${isoDay(start)}_${isoDay(end)}.pdf`;
 }
 
 /**
@@ -374,8 +397,8 @@ function reportFileName(year: number, month: number): string {
  * previous export of the same month is removed first: a re-export replaces it.
  * Returns the uri to share.
  */
-function nameReportFile(printedUri: string, year: number, month: number): string {
-    const report = new ExpoFile(Paths.cache, reportFileName(year, month));
+function nameReportFile(printedUri: string, year: number, month: number, startDay: number): string {
+    const report = new ExpoFile(Paths.cache, reportFileName(year, month, startDay));
     if (report.exists) {
         report.delete();
     }
@@ -384,7 +407,9 @@ function nameReportFile(printedUri: string, year: number, month: number): string
 }
 
 /**
- * Generate and share a PDF monthly report.
+ * Generate and share a PDF report of the period `year`-`month`, a period key
+ * of the stored month start day (settings monthStartDay, REGISTRE C20), read
+ * here with the currency and the language.
  */
 export async function shareMonthlyPDF(
     year: number,
@@ -398,15 +423,16 @@ export async function shareMonthlyPDF(
     // The persisted language is the one app/_layout.tsx hands to i18n at startup;
     // fixing `t` to it keeps the report off the device locale (exportService.language.test.ts).
     const t = i18n.getFixedT(settings.language);
+    const startDay = toPeriodStartDay(settings.monthStartDay);
     const html = generateReportHTML(
         year, month, transactions, wallets, categories, currency,
-        settings.decimalSeparator, settings.dateFormat, t,
+        settings.decimalSeparator, settings.dateFormat, t, startDay,
     );
 
     const { uri: printedUri } = await printToFileWithTimeout(html);
     // Earlier exports go now, for the reason given in shareCSV. Never throws.
     discardExportCopies();
-    const uri = nameReportFile(printedUri, year, month);
+    const uri = nameReportFile(printedUri, year, month, startDay);
 
     if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, {

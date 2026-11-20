@@ -16,13 +16,17 @@ import {
 } from '../period';
 
 /**
- * The period module (REGISTRE C20, step 1).
+ * The period module (REGISTRE C20, steps 1 and 2).
  *
  * Step 1 moves every "which month is this" computation into src/domain/period
  * and calls it with a start day of 1. The first block proves that, with a
  * start day of 1, the module returns what the inline code it replaces returned
  * at 4443dce, for every day of 2024-2027: the oracles below are copies of that
  * inline code, not a second implementation of the module.
+ *
+ * Step 2 names a period by the month holding most of its days (Owner design
+ * decisions 19/11): start days 1-15 by the month it starts in, 16-31 by the
+ * month after. The tests below that encode a name follow that rule.
  *
  * Zones. The process zone cannot be set from a test (jest copies process.env),
  * so the blocks marked "process zone" are run under TZ=UTC, Africa/Lagos and
@@ -247,8 +251,9 @@ describe('startDay 1 at month boundaries in a named zone (zone-explicit; holds u
 
     it('moves a start-day boundary with the zone, as a month boundary moves today', () => {
         // 2026-10-27T23:30Z is 28 October 00:30 in Lagos but still 27 October in UTC.
-        expect(periodKeyOf(dateInZone(Date.UTC(2026, 9, 27, 23, 30), LAGOS), 28)).toBe('2026-10');
-        expect(periodKeyOf(dateInZone(Date.UTC(2026, 9, 27, 23, 30), 'UTC'), 28)).toBe('2026-09');
+        // Start day 28: the period starting 28 October is named November.
+        expect(periodKeyOf(dateInZone(Date.UTC(2026, 9, 27, 23, 30), LAGOS), 28)).toBe('2026-11');
+        expect(periodKeyOf(dateInZone(Date.UTC(2026, 9, 27, 23, 30), 'UTC'), 28)).toBe('2026-10');
     });
 });
 
@@ -298,25 +303,25 @@ describe('start days 29-31 clamp to the last day of a shorter month (process zon
     });
 
     it.each([
-        // [startDay, key, first day, last day, days]
-        [31, '2024-01', '2024-01-31', '2024-02-28', 29],
-        [31, '2024-02', '2024-02-29', '2024-03-30', 31],
-        [31, '2025-01', '2025-01-31', '2025-02-27', 28],
-        [31, '2025-02', '2025-02-28', '2025-03-30', 31],
-        [31, '2025-03', '2025-03-31', '2025-04-29', 30],
-        [31, '2025-04', '2025-04-30', '2025-05-30', 31],
-        [31, '2025-12', '2025-12-31', '2026-01-30', 31],
-        [30, '2024-01', '2024-01-30', '2024-02-28', 30],
-        [30, '2024-02', '2024-02-29', '2024-03-29', 30],
-        [30, '2025-01', '2025-01-30', '2025-02-27', 29],
-        [30, '2025-02', '2025-02-28', '2025-03-29', 30],
-        [30, '2025-04', '2025-04-30', '2025-05-29', 30],
-        [29, '2024-01', '2024-01-29', '2024-02-28', 31],
-        [29, '2024-02', '2024-02-29', '2024-03-28', 29],
-        [29, '2025-01', '2025-01-29', '2025-02-27', 30],
-        [29, '2025-02', '2025-02-28', '2025-03-28', 29],
-        [25, '2025-12', '2025-12-25', '2026-01-24', 31],
-        [28, '2026-10', '2026-10-28', '2026-11-27', 31],
+        // [startDay, key, first day, last day, days]; start days 16-31 name the month after the start
+        [31, '2024-02', '2024-01-31', '2024-02-28', 29],
+        [31, '2024-03', '2024-02-29', '2024-03-30', 31],
+        [31, '2025-02', '2025-01-31', '2025-02-27', 28],
+        [31, '2025-03', '2025-02-28', '2025-03-30', 31],
+        [31, '2025-04', '2025-03-31', '2025-04-29', 30],
+        [31, '2025-05', '2025-04-30', '2025-05-30', 31],
+        [31, '2026-01', '2025-12-31', '2026-01-30', 31],
+        [30, '2024-02', '2024-01-30', '2024-02-28', 30],
+        [30, '2024-03', '2024-02-29', '2024-03-29', 30],
+        [30, '2025-02', '2025-01-30', '2025-02-27', 29],
+        [30, '2025-03', '2025-02-28', '2025-03-29', 30],
+        [30, '2025-05', '2025-04-30', '2025-05-29', 30],
+        [29, '2024-02', '2024-01-29', '2024-02-28', 31],
+        [29, '2024-03', '2024-02-29', '2024-03-28', 29],
+        [29, '2025-02', '2025-01-29', '2025-02-27', 30],
+        [29, '2025-03', '2025-02-28', '2025-03-28', 29],
+        [25, '2026-01', '2025-12-25', '2026-01-24', 31],
+        [28, '2026-11', '2026-10-28', '2026-11-27', 31],
     ])('startDay %i: period %s runs %s to %s (%i days)', (startDay, key, first, last, days) => {
         const { start, end } = periodBounds(key, startDay);
 
@@ -328,53 +333,54 @@ describe('start days 29-31 clamp to the last day of a shorter month (process zon
     });
 
     it.each([
-        // [startDay, year, month, day, key]
-        [31, 2024, 2, 28, '2024-01'],
-        [31, 2024, 2, 29, '2024-02'],
-        [31, 2025, 2, 27, '2025-01'],
-        [31, 2025, 2, 28, '2025-02'],
-        [31, 2025, 3, 30, '2025-02'],
-        [31, 2025, 3, 31, '2025-03'],
-        [31, 2026, 1, 1, '2025-12'],
-        [31, 2026, 1, 30, '2025-12'],
-        [31, 2026, 1, 31, '2026-01'],
-        [30, 2024, 2, 28, '2024-01'],
-        [30, 2024, 2, 29, '2024-02'],
-        [30, 2025, 2, 27, '2025-01'],
-        [30, 2025, 2, 28, '2025-02'],
-        [30, 2025, 3, 29, '2025-02'],
-        [30, 2025, 3, 30, '2025-03'],
-        [29, 2025, 2, 27, '2025-01'],
-        [29, 2025, 2, 28, '2025-02'],
-        [29, 2025, 3, 28, '2025-02'],
-        [29, 2025, 3, 29, '2025-03'],
-        [25, 2025, 12, 24, '2025-11'],
-        [25, 2025, 12, 25, '2025-12'],
-        [25, 2026, 1, 10, '2025-12'],
-        [25, 2026, 1, 25, '2026-01'],
+        // [startDay, year, month, day, key]; start days 16-31 name the month after the start
+        [31, 2024, 2, 28, '2024-02'],
+        [31, 2024, 2, 29, '2024-03'],
+        [31, 2025, 2, 27, '2025-02'],
+        [31, 2025, 2, 28, '2025-03'],
+        [31, 2025, 3, 30, '2025-03'],
+        [31, 2025, 3, 31, '2025-04'],
+        [31, 2026, 1, 1, '2026-01'],
+        [31, 2026, 1, 30, '2026-01'],
+        [31, 2026, 1, 31, '2026-02'],
+        [30, 2024, 2, 28, '2024-02'],
+        [30, 2024, 2, 29, '2024-03'],
+        [30, 2025, 2, 27, '2025-02'],
+        [30, 2025, 2, 28, '2025-03'],
+        [30, 2025, 3, 29, '2025-03'],
+        [30, 2025, 3, 30, '2025-04'],
+        [29, 2025, 2, 27, '2025-02'],
+        [29, 2025, 2, 28, '2025-03'],
+        [29, 2025, 3, 28, '2025-03'],
+        [29, 2025, 3, 29, '2025-04'],
+        [25, 2025, 12, 24, '2025-12'],
+        [25, 2025, 12, 25, '2026-01'],
+        [25, 2026, 1, 10, '2026-01'],
+        [25, 2026, 1, 25, '2026-02'],
     ])('startDay %i files %i-%i-%i under %s', (startDay, year, month, day, key) => {
         expect(periodKeyOf(noon(year, month, day), startDay)).toBe(key);
         expect(periodKeyOf(new Date(year, month - 1, day, 0, 0, 0, 0), startDay)).toBe(key);
         expect(periodKeyOf(new Date(year, month - 1, day, 23, 59, 59, 999), startDay)).toBe(key);
     });
 
-    it('names a period by the month it starts in, so a period crossing 1 January keeps the old year', () => {
-        expect(periodOf(noon(2026, 1, 10), 25)).toEqual({ year: 2025, month: 12 });
+    it('names a period starting on day 16-31 by the month after its start, so a period crossing 1 January takes the new year', () => {
+        // Start day 25: 10 January 2026 is in the period 25 Dec 2025 - 24 Jan 2026.
+        expect(periodOf(noon(2026, 1, 10), 25)).toEqual({ year: 2026, month: 1 });
     });
 
     it('places the Owner example (start day 28) as the brief describes', () => {
-        // 19 November 2026 sits in the period that began on 28 October.
-        expect(periodKeyOf(noon(2026, 11, 19), 28)).toBe('2026-10');
-        expect(daysElapsedInPeriod('2026-10', 28, noon(2026, 11, 19))).toBe(23);
+        // 19 November 2026 sits in the period that began on 28 October, named November.
+        expect(periodKeyOf(noon(2026, 11, 19), 28)).toBe('2026-11');
+        expect(daysElapsedInPeriod('2026-11', 28, noon(2026, 11, 19))).toBe(23);
         // A salary paid early, on 25 November, falls in the period before the
         // official payday; one paid late, on 8 December, in the period after it.
-        expect(periodKeyOf(noon(2026, 11, 25), 28)).toBe('2026-10');
-        expect(periodKeyOf(noon(2026, 12, 8), 28)).toBe('2026-11');
+        expect(periodKeyOf(noon(2026, 11, 25), 28)).toBe('2026-11');
+        expect(periodKeyOf(noon(2026, 12, 8), 28)).toBe('2026-12');
     });
 
     it('counts the whole period as elapsed when the clock is outside it, as budgetPace does today', () => {
-        expect(daysElapsedInPeriod('2026-10', 28, noon(2026, 12, 1))).toBe(31);
-        expect(daysElapsedInPeriod('2026-12', 28, noon(2026, 11, 19))).toBe(daysInPeriod('2026-12', 28));
+        expect(daysElapsedInPeriod('2026-11', 28, noon(2026, 12, 1))).toBe(31);
+        expect(daysElapsedInPeriod('2027-01', 28, noon(2026, 11, 19))).toBe(daysInPeriod('2027-01', 28));
     });
 });
 
@@ -388,12 +394,13 @@ describe('every start day 1-31 tiles 2024-2027 with contiguous periods (process 
         };
 
         // Every key whose period touches 2024-2027.
-        for (let key = '2023-12'; key <= '2027-12'; key = shiftPeriodKey(key, 1)) {
+        for (let key = '2023-12'; key <= '2028-01'; key = shiftPeriodKey(key, 1)) {
             const { start, end } = periodBounds(key, startDay);
             const days = daysInPeriod(key, startDay);
-            const { year, month } = parsePeriodKey(key);
+            // The month the period starts in: its own for start days 1-15, the one before for 16-31.
+            const { year, month } = parsePeriodKey(startDay >= 16 ? shiftPeriodKey(key, -1) : key);
 
-            check(`${key} starts in its own month`, start.getFullYear() === year && start.getMonth() + 1 === month);
+            check(`${key} starts in the month the naming rule gives`, start.getFullYear() === year && start.getMonth() + 1 === month);
             check(`${key} starts on the effective day`, start.getDate() === periodStartDayIn(year, month, startDay));
             check(`${key} start is in ${key}`, periodKeyOf(start, startDay) === key);
             check(`${key} end is in ${key}`, periodKeyOf(end, startDay) === key);
@@ -426,6 +433,35 @@ describe('every start day 1-31 tiles 2024-2027 with contiguous periods (process 
         }
 
         expect(mismatches).toEqual([]);
+    });
+});
+
+// --- 4b. Naming rule (C20 step 2) ----------------------------------------
+
+describe('naming rule: the month holding most of the period (start days 1-15 the start month, 16-31 the next) (process zone)', () => {
+    it('names the period of 25 November 2026, and of key 2026-01, for every start day 1-31', () => {
+        const actual = Array.from({ length: 31 }, (_, i) => {
+            const startDay = i + 1;
+            return {
+                startDay,
+                key: periodKeyOf(noon(2026, 11, 25), startDay),
+                januaryStarts: dayOf(periodBounds('2026-01', startDay).start),
+            };
+        });
+        const expected = Array.from({ length: 31 }, (_, i) => {
+            const startDay = i + 1;
+            // 25 Nov: start days 1-25 start the period in November (1-15 named
+            // November, 16-25 December); 26-31 started it in October, named November.
+            const key = startDay <= 15 ? '2026-11' : startDay <= 25 ? '2026-12' : '2026-11';
+            // Key 2026-01 starts in January for 1-15, in December 2025 for 16-31.
+            const januaryStarts = startDay <= 15 ? `2026-01-${pad2(startDay)}` : `2025-12-${pad2(startDay)}`;
+            return { startDay, key, januaryStarts };
+        });
+
+        expect(actual).toEqual(expected);
+        // Crossing 1 January: start day 20, 25 December 2026 is in 20 Dec 2026 - 19 Jan 2027.
+        expect(periodKeyOf(noon(2026, 12, 25), 20)).toBe('2027-01');
+        expect(dayOf(periodBounds('2027-01', 20).end)).toBe('2027-01-19');
     });
 });
 

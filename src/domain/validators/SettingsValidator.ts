@@ -7,6 +7,7 @@
 
 import { NUMBER_FORMAT_PROFILES } from '../constants/numberFormats';
 import type { AppSettings } from '../entities/Settings';
+import { isValidPeriodStartDay } from '../period';
 import { ValidationError } from './ValidationError';
 
 const VALID_THEMES = ['light', 'dark', 'system'] as const;
@@ -49,6 +50,14 @@ export function validateSettings(settings: AppSettings): void {
 
     if (!(VALID_DECIMAL_SEPS as readonly string[]).includes(settings.decimalSeparator)) {
         throw new ValidationError('Settings', 'decimalSeparator', settings.decimalSeparator, `Settings decimalSeparator must be one of: ${VALID_DECIMAL_SEPS.join(', ')}`);
+    }
+
+    // Optional (policy 10): absent is valid. When present, an integer 1-31.
+    if (
+        settings.monthStartDay !== undefined
+        && (typeof settings.monthStartDay !== 'number' || !isValidPeriodStartDay(settings.monthStartDay))
+    ) {
+        throw new ValidationError('Settings', 'monthStartDay', settings.monthStartDay, 'Settings monthStartDay must be an integer from 1 to 31');
     }
 
     if (typeof settings.onboardingCompleted !== 'boolean') {

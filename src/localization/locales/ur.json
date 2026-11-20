@@ -21,10 +21,7 @@
         "helpFaq": "مدد",
         "aboutValto": "Valto کے بارے میں",
         "dateFormat": "تاریخ کا فارمیٹ",
-        "firstDayOfWeek": "ہفتے کا پہلا دن",
-        "decimalSeparator": "اعشاریہ",
-        "monday": "پیر",
-        "sunday": "اتوار"
+        "decimalSeparator": "اعشاریہ"
     },
     "alerts": {
         "cancel": "منسوخ",
