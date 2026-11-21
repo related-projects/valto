@@ -15,6 +15,9 @@ appId: com.renkakpo.valto.app
 - launchApp:
     clearState: true
 
+# An Android "isn't responding" dialog, if one is up, is answered "Wait".
+- runFlow: subflows/dismiss_not_responding.yaml
+
 # --- Welcome screen ---
 - assertVisible:
     id: "onboarding_get_started"

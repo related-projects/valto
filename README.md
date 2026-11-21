@@ -103,7 +103,7 @@ npm test
 
 ## Testing & CI
 
-- Tests concentrate on the domain and data layers. Five Maestro end-to-end flows are run by hand on a local Android emulator (see [End-to-end tests](#end-to-end-tests-maestro)). Unit tests run on Node via `better-sqlite3` behind the same `SqlDatabase` port the app uses, so the rollback and concurrency tests exercise real SQLite transaction semantics.
+- Tests concentrate on the domain and data layers. Eleven Maestro end-to-end flows are run by hand on a local Android emulator (see [End-to-end tests](#end-to-end-tests-maestro)). Unit tests run on Node via `better-sqlite3` behind the same `SqlDatabase` port the app uses, so the rollback and concurrency tests exercise real SQLite transaction semantics.
 - CI enforces coverage floors per layer rather than a test count, which decays silently: `src/domain` at 96 percent statements, 93 branches, 93 functions, 96 lines; `src/data` at 66 / 56 / 77 / 66. Components and screens carry no threshold - they are deliberately not unit-tested, so a UI file can never redden the build.
 - **CI** (GitHub Actions, on every PR and on `develop`/`main`): lint (including the domain dependency barrier), type-check, and the full test suite with the coverage floors above. `expo-doctor` runs too, but advisory: it compares the installed versions against a remote registry that moves on its own, so it reports SDK drift without failing the pipeline.
 
@@ -111,7 +111,7 @@ npm test
 
 ## End-to-end tests (Maestro)
 
-Five Maestro flows in `.maestro/` drive the app on an Android emulator. They run locally, against the APK built by EAS with the `preview` profile; nothing is built on the local machine.
+Eleven Maestro flows in `.maestro/` drive the app on an Android emulator. They run locally, against the APK built by EAS with the `preview` profile; nothing is built on the local machine.
 
 | Flow | What it checks |
 | --- | --- |
@@ -120,8 +120,14 @@ Five Maestro flows in `.maestro/` drive the app on an Android emulator. They run
 | `create_transaction.yaml` | Adds an expense. Its row is then listed with its category and its wallet. |
 | `change_settings.yaml` | Switches the theme to Dark and the date format to YYYY-MM-DD. Each row then shows the new value. |
 | `backup_restore.yaml` | Creates a backup and closes the share sheet, then opens both restore confirmations and cancels the second. Nothing is restored. |
+| `transaction_dates.yaml` | Adds an expense, an income and a transfer, each on a picked date that is not today. The list shows them under that date's header, each detail screen shows that date, and both transfer legs show the typed note. |
+| `amount_cap_compact.yaml` | A 13-digit amount is refused with the "too large" message and nothing is saved. A saved 1999999 is then shown compact in the list ("1.9M") and exact on the detail screen. |
+| `wallet_delete_anyway.yaml` | Creates a wallet with two expenses and deletes it with "Delete Anyway". Both expenses remain, labelled with an unknown wallet, and the other wallets' balances do not change. |
+| `category_type_switch.yaml` | Switching the add form from expense to income replaces the expense category with an income one, and the Dashboard "Income" quick action preselects an income category. |
+| `settings_reachability.yaml` | Scrolls Settings to its last row, "About Valto", which must sit above the tab bar, and taps it. The About screen then opens. |
+| `month_start_day.yaml` | Sets the month start day to 20: two expenses dated the 19th and the 20th then fall in two Reports periods, each labelled with its dates. Set back to day 1, the label is a month name again. |
 
-The flows share one app state and run in the order set in `.maestro/config.yaml`, onboarding first. They type synthetic data only. They select controls by testID where the app has one; native Android dialogs and some labels are matched by their text, so the emulator must be set to English.
+The flows share one app state and run in the order set in `.maestro/config.yaml`, onboarding first. Every flow runs even when an earlier one fails, so one run reports the whole suite; a flow that uses data made by an earlier one (listed in `config.yaml`) can fail because that one did, so read a failure against the earlier results first. They type synthetic data only. They select controls by testID where the app has one; native Android dialogs and some labels are matched by their text, so the emulator must be set to English. Once the app has launched, each flow answers "Wait" to an Android "isn't responding" dialog if one is up (`.maestro/subflows/dismiss_not_responding.yaml`); that step never touches the app.
 
 Prerequisites:
 
@@ -131,13 +137,19 @@ Prerequisites:
 - An Android Virtual Device on API 34, 35 or 36, started, and no other device attached
 - The preview APK, downloaded from the EAS build page
 
+Start the emulator with hardware rendering, and close other applications before a run. Under software rendering on a loaded host, frames slow down, each scroll can take seconds, and Android may stop the run with a "System UI isn't responding" dialog. For the AVD `valto_e2e_api36` (`-no-snapshot` boots it cold, `-gpu host` renders with the host GPU):
+
+```bash
+emulator -avd valto_e2e_api36 -no-snapshot -gpu host
+```
+
 Run:
 
 ```bash
 scripts/run-e2e.sh path/to/valto-preview.apk
 ```
 
-The script checks that exactly one emulator or device is attached, uninstalls the app if it is present, installs the APK and runs every flow. Uninstalling erases the app data on that device, so run it on an emulator, never on a phone that holds real data. The JUnit report is written to `e2e-results/report.xml`, and screenshots and logs to `e2e-results/artifacts/` (git-ignored). The exit status is non-zero if any flow fails.
+The script checks that exactly one emulator or device is attached, then waits until Android reports that it has finished booting (`sys.boot_completed`), for up to `VALTO_E2E_BOOT_TIMEOUT` seconds (600 by default), and lets the system settle for `VALTO_E2E_SETTLE_SECONDS` seconds (120 by default) before it touches the app: a device that adb lists can still be starting up. It then uninstalls the app if it is present, installs the APK and runs every flow. Uninstalling erases the app data on that device, so run it on an emulator, never on a phone that holds real data. The JUnit report is written to `e2e-results/report.xml`, and screenshots and logs to `e2e-results/artifacts/` (git-ignored). The exit status is non-zero if any flow fails.
 
 ---
 

@@ -18,6 +18,9 @@ appId: com.renkakpo.valto.app
 # --- Launch ---
 - launchApp
 
+# An Android "isn't responding" dialog, if one is up, is answered "Wait".
+- runFlow: subflows/dismiss_not_responding.yaml
+
 # --- Navigate to Settings ---
 - tapOn:
     id: "tab_settings"

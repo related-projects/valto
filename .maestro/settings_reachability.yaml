@@ -8,11 +8,16 @@
 # usable if the list ends with enough room under it. A tap on a row hidden by
 # the tab bar would reach the tab bar instead, and About would not open.
 #
-# The last row can never reach the middle of the screen, so centerElement here
-# makes Maestro scroll to the end of the list and retry the centring; once the
-# retries are spent it accepts the row if it is 100% visible. On Maestro
-# 2.12.1 a retry takes about 4.5 s, and the default 20 s timeout ran out
-# before the retries did, so the timeout is raised.
+# The last row can never reach the middle of the screen, so it is not
+# centred: a centring scroll only ended once its retries were spent, and on
+# a loaded host they can run past the timeout (pass 99). Nor is "fully
+# visible" enough on its own: the tab bar is drawn over the list, Android
+# reports a row under it with its full bounds, and Maestro counts that row
+# as fully visible. So the row is first scrolled to until fully visible,
+# then one slow drag takes the list to its end: once the row is on screen,
+# less than half the drag is left to scroll (about 420 of 960 px on
+# valto_e2e_api36). The row is then checked where the list ends, the
+# position the app controls.
 #
 # Maestro's "above" compares top edges only: it shows the row starts above
 # the tab bar. That the whole row clears the tab bar is shown by the tap
@@ -34,6 +39,9 @@ appId: com.renkakpo.valto.app
       id: "tab_index"
     timeout: 60000
 
+# An Android "isn't responding" dialog, if one is up, is answered "Wait".
+- runFlow: subflows/dismiss_not_responding.yaml
+
 # --- Navigate to Settings ---
 - tapOn:
     id: "tab_settings"
@@ -42,9 +50,12 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       text: "About Valto"
-    centerElement: true
     visibilityPercentage: 100
-    timeout: 40000
+
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+    duration: 1500
 
 - assertVisible:
     text: "About Valto"

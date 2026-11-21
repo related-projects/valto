@@ -21,6 +21,14 @@
 #
 # Amounts are matched with "." in place of the currency sign (flows are ASCII).
 #
+# The add form is a sheet drawn over the tab bar. Its date button and its
+# notes field are scrolled to until fully visible, without centring: the
+# notes field is the last field and can never reach the middle of the
+# screen, so a centring scroll only ended once its retries were spent, and
+# on a loaded host they ran past the timeout (run of 20/11, pass 99). The
+# list header of the picked date is still centred, so that the rows under
+# it clear the tab bar.
+#
 # Prerequisites: create_wallet and change_settings passed (see config.yaml):
 # two wallets, and the YYYY-MM-DD date format on the detail screen.
 # Synthetic data only.
@@ -63,6 +71,9 @@ appId: com.renkakpo.valto.app
       id: "tab_index"
     timeout: 60000
 
+# An Android "isn't responding" dialog, if one is up, is answered "Wait".
+- runFlow: subflows/dismiss_not_responding.yaml
+
 - tapOn:
     id: "tab_transactions"
 
@@ -95,7 +106,7 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       id: "add_tx_date_button"
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "add_tx_date_button"
@@ -154,7 +165,7 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       id: "add_tx_date_button"
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "add_tx_date_button"
@@ -213,7 +224,7 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       id: "add_tx_date_button"
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "add_tx_date_button"
@@ -240,7 +251,7 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       id: "add_tx_notes_input"
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "add_tx_notes_input"

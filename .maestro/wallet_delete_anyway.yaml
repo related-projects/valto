@@ -32,6 +32,9 @@ appId: com.renkakpo.valto.app
       id: "tab_index"
     timeout: 60000
 
+# An Android "isn't responding" dialog, if one is up, is answered "Wait".
+- runFlow: subflows/dismiss_not_responding.yaml
+
 # --- Read the other wallets' balances ---
 - tapOn:
     id: "tab_wallets"
@@ -186,6 +189,9 @@ appId: com.renkakpo.valto.app
       id: "tab_index"
     timeout: 60000
 
+# An Android "isn't responding" dialog, if one is up, is answered "Wait".
+- runFlow: subflows/dismiss_not_responding.yaml
+
 - tapOn:
     id: "tab_wallets"
 
@@ -208,10 +214,13 @@ appId: com.renkakpo.valto.app
 - assertVisible:
     id: "edit_wallet_name_input"
 
+# The delete button is the last control of the edit sheet, which is drawn
+# over the tab bar: it can never reach the middle of the screen, so it is
+# scrolled to until fully visible, without centring (pass 99).
 - scrollUntilVisible:
     element:
       id: "edit_wallet_delete_button"
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "edit_wallet_delete_button"
