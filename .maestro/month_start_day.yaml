@@ -25,6 +25,12 @@
 #
 # Amounts are matched with "." in place of the currency sign (flows are ASCII).
 #
+# The add form is a sheet drawn over the tab bar, and its date button sits
+# near the end of the form, where it may not reach the middle of the
+# screen: it is scrolled to until fully visible, without centring (pass 99).
+# The Settings row and day 20 are still centred, to clear the tab bar and
+# the gesture strip.
+#
 # Prerequisites: create_wallet passed (see config.yaml): "Main Account" exists.
 # Synthetic data only.
 # Run: scripts/run-e2e.sh <apk>, or maestro test .maestro/month_start_day.yaml
@@ -71,6 +77,9 @@ appId: com.renkakpo.valto.app
     visible:
       id: "tab_index"
     timeout: 60000
+
+# An Android "isn't responding" dialog, if one is up, is answered "Wait".
+- runFlow: subflows/dismiss_not_responding.yaml
 
 # --- Settings > Budget > Month starts on: day 20 ---
 - tapOn:
@@ -138,7 +147,7 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       id: "add_tx_date_button"
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "add_tx_date_button"
@@ -200,7 +209,7 @@ appId: com.renkakpo.valto.app
 - scrollUntilVisible:
     element:
       id: "add_tx_date_button"
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "add_tx_date_button"
@@ -289,11 +298,15 @@ appId: com.renkakpo.valto.app
 - tapOn:
     id: "settings_month_start_item"
 
+# Day 1 is the first row of the picker, which opens at its top: it can never
+# reach the middle of the screen, so it is scrolled to until fully visible,
+# without centring (pass 99). Day 20 above is centred: the picker's list
+# runs under the gesture strip at the bottom of the screen.
 - scrollUntilVisible:
     element:
       id: "month_start_day_option_1"
     direction: UP
-    centerElement: true
+    visibilityPercentage: 100
 
 - tapOn:
     id: "month_start_day_option_1"

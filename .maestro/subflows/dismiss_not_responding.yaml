@@ -1,0 +1,29 @@
+# Maestro subflow - Valto
+#
+# Dismiss "isn't responding"
+# On a loaded host, Android may put up an "<app> isn't responding" dialog
+# (for the System UI, or for any other process) over the screen a flow is
+# driving (run of 20/11 03:01). If one is up, this taps its "Wait" button, so
+# the process keeps running and the flow can go on.
+#
+# The dialog is found by its own button id, android:id/aerr_wait, which no
+# screen of the app carries, so nothing in the app is touched. When no dialog
+# is up the step does nothing; the check waits up to 7 s for one (Maestro's
+# optional lookup timeout). The tap is optional, in case the dialog closes on
+# its own between the check and the tap.
+#
+# Called by every flow once the app has launched:
+#   - runFlow: subflows/dismiss_not_responding.yaml
+# It lives in a subfolder, so the workspace run does not take it for a flow.
+
+appId: com.renkakpo.valto.app
+---
+
+- runFlow:
+    when:
+      visible:
+        id: "android:id/aerr_wait"
+    commands:
+      - tapOn:
+          id: "android:id/aerr_wait"
+          optional: true
