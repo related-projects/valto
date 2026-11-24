@@ -218,8 +218,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
     const renderSectionedItem = ({ item }: ListRenderItemInfo<ListItem>) => {
         if (item.type === 'header') {
+            // The theme's background token: '#f7f8f7' in the light theme, as the
+            // fixed colour was, and the dark background in the dark theme (C44).
             return (
-                <View style={{ backgroundColor: '#f7f8f7', paddingVertical: 12, paddingHorizontal: 20 }}>
+                <View style={{ backgroundColor: colors.background, paddingVertical: 12, paddingHorizontal: 20 }}>
                     <Text
                         style={{
                             color: colors.mutedForeground,

@@ -342,7 +342,7 @@
       {
         "id": "set-budget",
         "question": "How do budgets work?",
-        "answer": "Budgets are set per category per month. Go to the Dashboard tab and tap \"Create a budget\" in the Monthly Budget section. You'll see a progress bar showing how much of each budget you've used."
+        "answer": "Budgets are set per category per month. The month starts on the day chosen in Settings > Month starts on. Go to the Dashboard tab and tap \"Create a budget\" in the Monthly Budget section. You'll see a progress bar showing how much of each budget you've used."
       },
       {
         "id": "month-start",

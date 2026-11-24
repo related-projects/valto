@@ -342,7 +342,7 @@
       {
         "id": "set-budget",
         "question": "¿Cómo funcionan los presupuestos?",
-        "answer": "Los presupuestos se establecen por categoría y por mes. Ve a la pestaña Panel y toca «Crear un presupuesto» en la sección Presupuesto mensual. Verás una barra de progreso que muestra cuánto has usado de cada presupuesto."
+        "answer": "Los presupuestos se establecen por categoría y por mes. El mes empieza el día elegido en Configuración > El mes empieza el. Ve a la pestaña Panel y toca «Crear un presupuesto» en la sección Presupuesto mensual. Verás una barra de progreso que muestra cuánto has usado de cada presupuesto."
       },
       {
         "id": "month-start",

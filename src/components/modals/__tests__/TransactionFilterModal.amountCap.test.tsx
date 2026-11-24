@@ -13,9 +13,10 @@ import { TransactionFilterModal } from '../TransactionFilterModal';
  * 999 999 999 999 minor units could never match a transaction entered in the
  * app, and the number may not even be exact; the sheet now shows the tooLarge
  * sentence, naming the maximum in the user's currency, and applies nothing.
- * Other unreadable input is still dropped without a message, as before. The
- * tests named "control" pass before the fix: the cap itself is applied
- * unchanged.
+ * A negative bound is still dropped without a message; a bound the parser
+ * cannot read is refused too since pass 101b item 4 (REGISTRE C27, see
+ * TransactionFilterModal.unreadableAmount.test.tsx). The tests named
+ * "control" pass before the fix: the cap itself is applied unchanged.
  *
  * Real here: useFormatting and the parser. The write is the onApply prop.
  */
@@ -106,8 +107,8 @@ describe('V-128 TransactionFilterModal amount cap', () => {
         );
     });
 
-    it('control: unreadable input is still dropped without a message', async () => {
-        const { alertSpy } = await apply(CAP_CASES[1], 'min', 'abc');
+    it('control: a negative bound is still dropped without a message', async () => {
+        const { alertSpy } = await apply(CAP_CASES[1], 'min', '-5');
 
         expect(alertSpy).not.toHaveBeenCalled();
         expect(onApply).toHaveBeenCalledWith({});

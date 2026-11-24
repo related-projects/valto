@@ -116,7 +116,7 @@
     "searchPlaceholder": "Rechercher des transactions...",
     "transferNote": {
       "to": "Transfert vers",
-      "from": "Transfert de"
+      "from": "Transfert depuis"
     },
     "filterAll": "Tout",
     "filterIncome": "Revenus",
@@ -342,7 +342,7 @@
       {
         "id": "set-budget",
         "question": "Comment fonctionnent les budgets ?",
-        "answer": "Les budgets sont définis par catégorie et par mois. Allez dans l'onglet Accueil et appuyez sur « Créer un budget » dans la section Budget mensuel. Vous verrez une barre de progression indiquant la part de chaque budget utilisée."
+        "answer": "Les budgets sont définis par catégorie et par mois. Le mois commence le jour choisi dans Paramètres > Le mois commence le. Allez dans l'onglet Accueil et appuyez sur « Créer un budget » dans la section Budget mensuel. Vous verrez une barre de progression indiquant la part de chaque budget utilisée."
       },
       {
         "id": "month-start",
@@ -520,7 +520,7 @@
     "back": "Retour",
     "somethingWentWrong": "Something went wrong",
     "fatalError": "The app encountered an unexpected error. You can try reloading to continue.",
-    "reloadApp": "Reload App",
+    "reloadApp": "Relancer l'application",
     "percentOver": "plus de {{limit}}",
     "percentBelow": "moins de {{limit}}"
   },

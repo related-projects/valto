@@ -12,7 +12,8 @@
  * any other note is shown exactly as typed (controls).
  *
  * Real fr and en resources. French expected strings are ASCII ("Transfert
- * vers", "Transfert de"). Harness from TransactionDetailsModal.exactAmount.test.tsx.
+ * vers"); the incoming prefix is read from fr.json (pass 101b item 6 changed
+ * its value). Harness from TransactionDetailsModal.exactAmount.test.tsx.
  */
 
 import { render, screen } from '@testing-library/react-native';
@@ -20,6 +21,7 @@ import React from 'react';
 
 import { getDefaultSettings } from '../../../data/services/settingsService';
 import i18n from '../../../localization/i18n';
+import frBundle from '../../../localization/locales/fr.json';
 import { TransactionDetailsModal } from '../TransactionDetailsModal';
 
 // `mock` prefix so jest.mock() hoisting allows the reference.
@@ -92,11 +94,11 @@ describe('C38 TransactionDetailsModal transfer note', () => {
         expect(screen.queryByText('Transfer to Banque - loyer')).toBeNull();
     });
 
-    it('fr: the incoming leg reads "Transfert de Caisse"', async () => {
+    it('fr: the incoming leg reads the fr incoming prefix followed by "Caisse"', async () => {
         mockId = 'leg-in';
         render(<TransactionDetailsModal />);
 
-        expect(await screen.findByText('Transfert de Caisse')).toBeTruthy();
+        expect(await screen.findByText(`${frBundle.transactions.transferNote.from} Caisse`)).toBeTruthy();
     });
 
     it('control: en shows the stored note byte for byte', async () => {

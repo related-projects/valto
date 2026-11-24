@@ -150,14 +150,15 @@ describe('TransactionFilterModal — amount filter units', () => {
         expect(idsMatching(filters, [justUnder, atBound])).toEqual(['at-bound']);
     });
 
-    describe('invalid or empty input leaves that bound unapplied', () => {
-        // Silently dropping unparseable input is the established behaviour (no Alert,
-        // no copy change) - these lock in that the dropped bound simply doesn't constrain.
+    describe('a negative or zero bound is left unapplied', () => {
+        // A bound that is negative or zero is dropped without a message - these lock in
+        // that the dropped bound simply doesn't constrain. A bound the parser cannot read
+        // (not a number, too many decimals) is refused with a message instead and applies
+        // nothing (REGISTRE C27, pass 101b item 4): see
+        // TransactionFilterModal.unreadableAmount.test.tsx.
         it.each([
-            ['non-numeric', 'abc'],
             ['negative', '-5'],
-            ['ambiguous grouping', '1,2,3'],
-            ['bare separator', '.'],
+            ['zero', '0'],
         ])('a %s min is dropped, so nothing is excluded from below', async (_label, min) => {
             const filters = await applyAmountFilter(min, '');
 
@@ -167,15 +168,15 @@ describe('TransactionFilterModal — amount filter units', () => {
             ]);
         });
 
-        it('drops an invalid min without applying it or blocking a valid max', async () => {
-            const filters = await applyAmountFilter('abc', '50');
+        it('drops a negative min without applying it or blocking a valid max', async () => {
+            const filters = await applyAmountFilter('-5', '50');
 
             // Only the max bound survives: $0.60 stays, $60.00 is cut.
             expect(idsMatching(filters, [SIXTY_CENTS, SIXTY_DOLLARS])).toEqual(['tx-60c']);
         });
 
-        it('applies no amount constraint at all when both bounds are invalid', async () => {
-            const filters = await applyAmountFilter('abc', 'xyz');
+        it('applies no amount constraint at all when both bounds are negative', async () => {
+            const filters = await applyAmountFilter('-5', '-1');
 
             expect(idsMatching(filters, [SIXTY_CENTS, SIXTY_DOLLARS])).toEqual([
                 'tx-60c',
