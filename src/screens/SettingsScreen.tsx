@@ -9,10 +9,13 @@ import { SecuritySetupModal } from '../components/security/SecuritySetupModal';
 import { CurrencyPickerModal } from '../components/settings/CurrencyPickerModal';
 import { LanguagePickerModal } from '../components/settings/LanguagePickerModal';
 import { MonthStartDayPickerModal } from '../components/settings/MonthStartDayPickerModal';
+import { OptionPickerModal, type PickerOption } from '../components/settings/OptionPickerModal';
+import { fabTopOffset } from '../components/navigation/tabBarMetrics';
 import { IconBadge } from '../components/ui/IconBadge';
 import { ListItem } from '../components/ui/ListItem';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useSecurity } from '../core/security/SecurityContext';
+import type { DateFormatPreference, ThemePreference } from '../data/services/settingsService';
 import { toPeriodStartDay } from '../domain/period';
 import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../theme/theme';
@@ -26,6 +29,16 @@ import { getButtonA11y } from '../utils/accessibility';
  * nothing, in which case the row simply carries no subtitle.
  */
 const APP_VERSION = Application.nativeApplicationVersion;
+
+/** The themes the theme picker offers, in order (REGISTRE C43). */
+const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
+
+/** The date formats the date-format picker offers, in order (REGISTRE C43). */
+const DATE_FORMAT_OPTIONS: DateFormatPreference[] = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
+
+/** settings.themeSystem / themeLight / themeDark. */
+const themeLabelKey = (theme: ThemePreference): string =>
+    `settings.theme${theme.charAt(0).toUpperCase() + theme.slice(1)}`;
 
 export const SettingsScreen = () => {
     const { t } = useTranslation();
@@ -58,6 +71,10 @@ export const SettingsScreen = () => {
     const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
     const [languagePickerVisible, setLanguagePickerVisible] = useState(false);
     const [monthStartPickerVisible, setMonthStartPickerVisible] = useState(false);
+    // Theme and date format were Alerts of three options plus Cancel; Android
+    // draws at most three Alert buttons, so Cancel was lost (REGISTRE C43).
+    const [themePickerVisible, setThemePickerVisible] = useState(false);
+    const [dateFormatPickerVisible, setDateFormatPickerVisible] = useState(false);
 
     // Security subtitle
     const securitySubtitle = isSecurityEnabled
@@ -65,7 +82,19 @@ export const SettingsScreen = () => {
         : t('settings.securityOff');
 
     // Theme label
-    const themeLabel = t(`settings.theme${settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1)}`);
+    const themeLabel = t(themeLabelKey(settings.theme));
+
+    const themeOptions: PickerOption<ThemePreference>[] = THEME_OPTIONS.map((theme) => ({
+        value: theme,
+        label: t(themeLabelKey(theme)),
+        testID: `theme_picker_option_${theme}`,
+    }));
+
+    const dateFormatOptions: PickerOption<DateFormatPreference>[] = DATE_FORMAT_OPTIONS.map((format) => ({
+        value: format,
+        label: format,
+        testID: `date_format_picker_option_${format.replace(/\W/g, '_').toLowerCase()}`,
+    }));
 
     const handleSecurityPress = useCallback(() => {
         if (isSecurityEnabled) {
@@ -110,7 +139,10 @@ export const SettingsScreen = () => {
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{
                 paddingTop: insets.top + spacing.md,
-                paddingBottom: spacing.tabBarOffset,
+                // Room for the tab bar and the "+" button drawn over the list's
+                // end, at this device's bottom inset: the last row (About) must
+                // end above the "+" (REGISTRE C47).
+                paddingBottom: fabTopOffset(insets.bottom),
                 paddingHorizontal: spacing.md,
             }}
             showsVerticalScrollIndicator={false}
@@ -177,7 +209,7 @@ export const SettingsScreen = () => {
                             <IconBadge icon={<Ionicons name="color-palette-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={changeTheme}
+                        onPress={() => setThemePickerVisible(true)}
                         testID="settings_theme_item"
                     />
                 </View>
@@ -289,7 +321,7 @@ export const SettingsScreen = () => {
                             <IconBadge icon={<Ionicons name="calendar-outline" size={20} color={colors.primary} />} />
                         }
                         showChevron
-                        onPress={changeDateFormat}
+                        onPress={() => setDateFormatPickerVisible(true)}
                         testID="settings_date_format_item"
                     />
                     <ListItem
@@ -465,6 +497,26 @@ export const SettingsScreen = () => {
                 onClose={() => setMonthStartPickerVisible(false)}
                 onSelect={changeMonthStartDay}
                 selectedDay={monthStartDay}
+            />
+            <OptionPickerModal
+                visible={themePickerVisible}
+                title={t('alerts.chooseTheme')}
+                options={themeOptions}
+                selectedValue={settings.theme}
+                onSelect={changeTheme}
+                onClose={() => setThemePickerVisible(false)}
+                closeLabel={t('alerts.cancel')}
+                closeTestID="theme_picker_close"
+            />
+            <OptionPickerModal
+                visible={dateFormatPickerVisible}
+                title={t('settings.dateFormat')}
+                options={dateFormatOptions}
+                selectedValue={settings.dateFormat}
+                onSelect={changeDateFormat}
+                onClose={() => setDateFormatPickerVisible(false)}
+                closeLabel={t('alerts.cancel')}
+                closeTestID="date_format_picker_close"
             />
         </ScrollView>
     );

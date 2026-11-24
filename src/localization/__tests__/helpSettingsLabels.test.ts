@@ -24,10 +24,16 @@
  * punctuation, or at the locale's word for "and" ("Settings > Theme and
  * choose"). Any other continuation means the text cites a longer title than
  * the row has.
+ *
+ * Pass 101b item 5 (REGISTRE C57): the "set-budget" answer said budgets are
+ * set per month without saying where the month starts. It now adds one
+ * sentence citing Settings > Month starts on; the last block checks that
+ * citation in the five complete locales, fr included.
  */
 
 import en from '../locales/en.json';
 import es from '../locales/es.json';
+import fr from '../locales/fr.json';
 import pt from '../locales/pt.json';
 import ru from '../locales/ru.json';
 
@@ -40,7 +46,7 @@ interface Bundle {
 type NestedRecord = { [key: string]: unknown };
 
 /** The word for "and" after a cited label, per locale (ru: U+0438). */
-const AND: Record<string, string> = { en: 'and', pt: 'e', ru: '\u0438', es: 'y' };
+const AND: Record<string, string> = { en: 'and', pt: 'e', ru: '\u0438', es: 'y', fr: 'et' };
 
 const endsCitation = (rest: string, locale: string): boolean =>
     rest === '' || /^[.,;:]/.test(rest) || rest.startsWith(` ${AND[locale]} `);
@@ -154,5 +160,31 @@ describe('pass 83b items 1 and 2. Settings rows cited outside the Help answers',
 
             expect(citationProblems(text, keys, locale, bundle)).toEqual([]);
         });
+    });
+});
+
+describe('pass 101b item 5. the set-budget answer cites the "Month starts on" row', () => {
+    const COMPLETE: [string, Bundle][] = [
+        ['en', EN],
+        ['es', es as unknown as Bundle],
+        ['fr', fr as unknown as Bundle],
+        ['pt', pt as unknown as Bundle],
+        ['ru', ru as unknown as Bundle],
+    ];
+
+    it('pass 101b item 5 (en): set-budget still says "per month" and cites exactly the month start row', () => {
+        const item = EN.faq.items.find((candidate) => candidate.id === 'set-budget');
+
+        expect(item?.answer).toContain('per month');
+        expect(citedKeys(item?.answer ?? '')).toEqual(['monthStartDay']);
+    });
+
+    it.each(COMPLETE)('pass 101b item 5 (%s): set-budget cites the month start row by its current title', (locale, bundle) => {
+        const item = bundle.faq.items.find((candidate) => candidate.id === 'set-budget');
+        if (!item) {
+            throw new Error(`${locale}.json faq.items has no "set-budget" entry`);
+        }
+
+        expect(citationProblems(item.answer, ['monthStartDay'], locale, bundle)).toEqual([]);
     });
 });

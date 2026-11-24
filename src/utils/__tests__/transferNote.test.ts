@@ -8,26 +8,30 @@
  * the display no longer recognises fails here. transferFunds itself is not
  * changed by C38; the last test re-reads what it stored.
  *
- * French strings are ASCII ("Transfert vers", "Transfert de").
+ * French strings are ASCII ("Transfert vers"). The incoming prefix is read
+ * from fr.json (pass 101b item 6 changed its value).
  */
 
 import { createMockRepositories, type MockRepositoryBundle } from '../../test-utils/mockRepositories';
 import { TransactionType, WalletType } from '../../domain/entities';
 import { transferFunds } from '../../domain/useCases/transferFunds';
 import i18n from '../../localization/i18n';
+import frBundle from '../../localization/locales/fr.json';
 import { displayTransactionNote } from '../transferNote';
 
 const fr = i18n.getFixedT('fr');
 const en = i18n.getFixedT('en');
 /** An incomplete bundle: it has no transactions.transferNote keys. */
 const zh = i18n.getFixedT('zh');
+/** The French incoming-leg prefix, as fr.json holds it. */
+const FR_FROM = frBundle.transactions.transferNote.from;
 
 const leg = (categoryId: string, note: string | undefined, type = TransactionType.TRANSFER) => ({ type, categoryId, note });
 
 describe('displayTransactionNote - recognition', () => {
     it('translates the prefix of each leg and keeps the rest byte for byte', () => {
         expect(displayTransactionNote(leg('transfer-out', 'Transfer to Bank - rent'), fr)).toBe('Transfert vers Bank - rent');
-        expect(displayTransactionNote(leg('transfer-in', 'Transfer from Cash'), fr)).toBe('Transfert de Cash');
+        expect(displayTransactionNote(leg('transfer-in', 'Transfer from Cash'), fr)).toBe(`${FR_FROM} Cash`);
         expect(displayTransactionNote(leg('transfer-out', 'Transfer to  two  spaces - Transfer to'), fr))
             .toBe('Transfert vers  two  spaces - Transfer to');
     });
@@ -89,10 +93,10 @@ describe('displayTransactionNote - on what transferFunds writes', () => {
             'Transfer to Caisse',
         ]);
         expect(rows.map(tx => displayTransactionNote(tx, fr)).sort()).toEqual([
-            'Transfert de Banque',
-            'Transfert de Caisse - loyer',
+            `${FR_FROM} Banque`,
+            `${FR_FROM} Caisse - loyer`,
             'Transfert vers Banque - loyer',
             'Transfert vers Caisse',
-        ]);
+        ].sort());
     });
 });

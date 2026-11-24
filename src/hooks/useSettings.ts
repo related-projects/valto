@@ -120,7 +120,8 @@ export interface UseSettingsResult {
     createBackup: () => Promise<void>;
     restoreBackup: () => void;
     resetAllData: () => void;
-    changeTheme: () => void;
+    /** Store the theme picked in the theme picker and apply it (C43). */
+    changeTheme: (theme: ThemePreference) => Promise<void>;
     handleCurrencySelect: (currency: CurrencyDefinition) => Promise<void>;
     handleLanguageSelect: (language: LanguageDefinition) => Promise<void>;
     toggleNotifications: () => void;
@@ -129,7 +130,8 @@ export interface UseSettingsResult {
     openNotificationSettings: () => void;
     resetCurrency: () => void;
     cancelCurrencyReset: () => void;
-    changeDateFormat: () => void;
+    /** Store the date format picked in the date-format picker and emit 'settings' (C43). */
+    changeDateFormat: (format: DateFormatPreference) => Promise<void>;
     /** Ask to confirm, then store the month start day and emit 'settings' (C20). */
     changeMonthStartDay: (day: number) => void;
     changeDecimalSeparator: () => void;
@@ -361,25 +363,14 @@ export function useSettings(): UseSettingsResult {
     }, [setThemePreference, t]);
 
     // ── Theme ─────────────────────────────────────────────────────────
-    const changeTheme = useCallback(() => {
-        const options: ThemePreference[] = ['system', 'light', 'dark'];
-
-        Alert.alert(
-            t('alerts.chooseTheme'),
-            undefined,
-            [
-                ...options.map(opt => ({
-                    text: t(`settings.theme${opt.charAt(0).toUpperCase() + opt.slice(1)}`) + (settings.theme === opt ? ' ✓' : ''),
-                    onPress: async () => {
-                        const updated = await updateSetting('theme', opt);
-                        setSettings(updated);
-                        setThemePreference(opt);
-                    },
-                })),
-                { text: t('alerts.cancel'), style: 'cancel' },
-            ],
-        );
-    }, [settings.theme, setThemePreference, t]);
+    // The choice comes from the theme picker on the Settings screen. It was an
+    // Alert of three options plus Cancel, and Android draws at most three
+    // Alert buttons, so Cancel was lost (REGISTRE C43, pass 101b item 1).
+    const changeTheme = useCallback(async (theme: ThemePreference) => {
+        const updated = await updateSetting('theme', theme);
+        setSettings(updated);
+        setThemePreference(theme);
+    }, [setThemePreference]);
 
     // ── Currency ──────────────────────────────────────────────────────
     const handleCurrencySelect = useCallback(async (selected: CurrencyDefinition) => {
@@ -532,25 +523,13 @@ export function useSettings(): UseSettingsResult {
     );
 
     // ── Date Format ───────────────────────────────────────────────────
-    const changeDateFormat = useCallback(() => {
-        const options: DateFormatPreference[] = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
-
-        Alert.alert(
-            t('settings.dateFormat'),
-            undefined,
-            [
-                ...options.map(opt => ({
-                    text: opt + (settings.dateFormat === opt ? ' ✓' : ''),
-                    onPress: async () => {
-                        const updated = await updateSetting('dateFormat', opt);
-                        setSettings(updated);
-                        dataEvents.emit('settings');
-                    },
-                })),
-                { text: t('alerts.cancel'), style: 'cancel' },
-            ],
-        );
-    }, [settings.dateFormat, t]);
+    // The choice comes from the date-format picker on the Settings screen, for
+    // the same reason as the theme (REGISTRE C43, pass 101b item 1).
+    const changeDateFormat = useCallback(async (format: DateFormatPreference) => {
+        const updated = await updateSetting('dateFormat', format);
+        setSettings(updated);
+        dataEvents.emit('settings');
+    }, []);
 
     // --- Month Start Day ---------------------------------------------
     // REGISTRE C20. The current day changes nothing and asks nothing. Any other

@@ -8,7 +8,8 @@
  * the detail screen; the wallet name and the typed note are kept as stored, and
  * a note that is not a transfer leg's own prefix is never changed (controls).
  *
- * French strings here are ASCII ("Transfert vers", "Transfert de").
+ * French strings here are ASCII ("Transfert vers"). The incoming prefix is
+ * read from fr.json (pass 101b item 6 changed its value).
  */
 
 import { getCurrencyByCode } from '../../domain/constants/currencies';
@@ -17,11 +18,14 @@ import { TransactionType, type Transaction } from '../../domain/entities/Transac
 import { WalletType, type Wallet } from '../../domain/entities/Wallet';
 import { TRANSFER_IN_CATEGORY_ID, TRANSFER_OUT_CATEGORY_ID } from '../../domain/ledger/transferCategories';
 import i18n from '../../localization/i18n';
+import frBundle from '../../localization/locales/fr.json';
 import { generateCSV, generateReportHTML } from '../services/export/TransactionExportService';
 
 const usd = getCurrencyByCode('USD');
 const fr = i18n.getFixedT('fr');
 const en = i18n.getFixedT('en');
+/** The French incoming-leg prefix, as fr.json holds it. */
+const FR_FROM = frBundle.transactions.transferNote.from;
 
 const wallets: Wallet[] = [
     { id: 'w-1', name: 'Caisse', balance: 0, type: WalletType.CASH, createdAt: new Date(2026, 0, 1) },
@@ -46,7 +50,7 @@ describe('C38 generateCSV description column', () => {
     it('fr: transfer legs carry the French prefix, the expense note is unchanged', () => {
         expect(csvDescriptions(generateCSV(transactions, wallets, categories, usd, fr))).toEqual([
             'Transfert vers Banque - loyer',
-            'Transfert de Caisse - loyer',
+            `${FR_FROM} Caisse - loyer`,
             'Transfer to Mum',
         ]);
     });
@@ -65,7 +69,7 @@ describe('C38 generateReportHTML note cell', () => {
         const html = generateReportHTML(2026, 2, [...transactions], wallets, categories, usd, 'space', 'DD/MM/YYYY', fr);
         expect(pdfNoteCells(html)).toEqual([
             'Transfert vers Banque - loyer',
-            'Transfert de Caisse - loyer',
+            `${FR_FROM} Caisse - loyer`,
             'Transfer to Mum',
         ]);
     });

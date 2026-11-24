@@ -14,15 +14,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/theme';
 import { AddTransactionModal } from '../modals/AddTransactionModal';
+import { FAB_SIZE, TAB_BAR_HEIGHT, fabBottomOffset } from './tabBarMetrics';
 
 export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, navigation }) => {
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
     const { colors, shadows, spacing, typography } = useTheme();
     const [showAddModal, setShowAddModal] = useState(false);
-
-    const TAB_BAR_HEIGHT = 60;
-    const FAB_SIZE = 52;
 
     return (
         <View style={styles.container}>
@@ -97,7 +95,7 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, 
                         width: FAB_SIZE,
                         height: FAB_SIZE,
                         borderRadius: FAB_SIZE / 2,
-                        bottom: TAB_BAR_HEIGHT + insets.bottom + spacing.sm,
+                        bottom: fabBottomOffset(insets.bottom),
                         right: spacing.md,
                         ...shadows.elevated,
                     },

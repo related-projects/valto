@@ -342,7 +342,7 @@
             {
                 "id": "set-budget",
                 "question": "Como funcionam os orçamentos?",
-                "answer": "Os orçamentos são definidos por categoria por mês. Vá para a aba Painel e toque em «Criar um orçamento» na seção Orçamento mensal. Você verá uma barra de progresso mostrando quanto de cada orçamento já foi utilizado."
+                "answer": "Os orçamentos são definidos por categoria por mês. O mês começa no dia escolhido em Configurações > O mês começa em. Vá para a aba Painel e toque em «Criar um orçamento» na seção Orçamento mensal. Você verá uma barra de progresso mostrando quanto de cada orçamento já foi utilizado."
             },
             {
                 "id": "month-start",

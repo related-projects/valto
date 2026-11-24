@@ -10,13 +10,16 @@
  *
  * Rendered against the REAL fr resources. Rows are addressed by testID; the
  * search field by its placeholder, read from the bundle so no line here needs a
- * non-ASCII character. Harness from TransactionsScreen.addControl.test.tsx.
+ * non-ASCII character. The incoming prefix is read from fr.json too (pass
+ * 101b item 6 changed its value). Harness from
+ * TransactionsScreen.addControl.test.tsx.
  */
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
 import i18n from '../../localization/i18n';
+import frBundle from '../../localization/locales/fr.json';
 import { TransactionsScreen } from '../TransactionsScreen';
 
 // jest.mock is hoisted above the imports above, so every factory here is
@@ -106,9 +109,9 @@ describe('C38 TransactionsScreen search on transfer notes', () => {
         expect(rowsShown()).toEqual(['leg-out']);
     });
 
-    it('fr: "Transfert de Caisse" finds the incoming leg by its displayed note', () => {
+    it('fr: the incoming prefix followed by "Caisse" finds the incoming leg by its displayed note', () => {
         render(<TransactionsScreen />);
-        search('Transfert de Caisse');
+        search(`${frBundle.transactions.transferNote.from} Caisse`);
         expect(rowsShown()).toEqual(['leg-in']);
     });
 

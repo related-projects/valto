@@ -7,7 +7,8 @@
  * UI-only responsibilities:
  * - Collects filter inputs into local state
  * - On "Apply": pushes local state to the hook's setFilters(), closes modal;
- *   an amount bound above the entry cap is refused with a message instead
+ *   an amount bound above the entry cap, or one the parser cannot read, is
+ *   refused with a message instead
  * - On "Reset": clears local state and resets hook filters
  * - On close (tap outside / ✕): discards local changes, closes modal
  */
@@ -35,6 +36,7 @@ import { useCategories } from '../../hooks/useCategories';
 import { useFormatting } from '../../hooks/useFormatting';
 import { useWallets } from '../../hooks/useWallets';
 import { amountRefusalMessage } from '../../utils/amountRefusalMessage';
+import type { AmountRefusalCause } from '../../utils/normalizeAmount';
 import { radius } from '../../theme/radius';
 import { spacing } from '../../theme/spacing';
 import { useTheme } from '../../theme/theme';
@@ -53,6 +55,13 @@ interface TransactionFilterModalProps {
 
 /** Share of the current window height the sheet takes. */
 const MODAL_HEIGHT_RATIO = 0.85;
+
+/**
+ * The amount refusals Apply reports instead of applying, checked in this
+ * order across both bounds: too large (REGISTRE V-128), then not readable
+ * (REGISTRE C27). Empty, zero and negative bounds are left unapplied.
+ */
+const REFUSED_WITH_MESSAGE: AmountRefusalCause[] = ['tooLarge', 'notANumber', 'tooManyDecimals'];
 
 // ─── Component ────────────────────────────────────────────────────────
 
@@ -160,18 +169,21 @@ export const TransactionFilterModal: React.FC<TransactionFilterModalProps> = ({
         if (endDate) filters.endDate = endDate;
 
         // The user types major units; transactions are stored in minor units. Convert at
-        // this boundary so the filter compares minor units to minor units. Unparseable
-        // input is dropped silently, leaving that bound unapplied. A bound above the
-        // entry cap is not: no amount entered in the app can reach it, so it is refused
-        // with the same sentence the amount fields give, and nothing is applied
-        // (REGISTRE V-128).
+        // this boundary so the filter compares minor units to minor units. A bound above
+        // the entry cap is refused: no amount entered in the app can reach it, so it gets
+        // the same sentence the amount fields give, and nothing is applied (REGISTRE
+        // V-128). A bound the parser cannot read - not a number, or more decimals than
+        // the currency has - is refused the same way, with the sentence for its cause
+        // (REGISTRE C27); it used to be dropped without a word. The too-large check comes
+        // first, as before. An empty, zero or negative bound is still left unapplied.
         const parsedMin = parseAmountToCentsResult(minAmount);
         const parsedMax = parseAmountToCentsResult(maxAmount);
-        const tooLarge = [parsedMin, parsedMax].some((parsed) => !parsed.ok && parsed.cause === 'tooLarge');
-        if (tooLarge) {
+        const refusedCauses = [parsedMin, parsedMax].flatMap((parsed) => (parsed.ok ? [] : [parsed.cause]));
+        const refusal = REFUSED_WITH_MESSAGE.find((cause) => refusedCauses.includes(cause));
+        if (refusal) {
             Alert.alert(
                 t('transactions.filter.amountRange'),
-                amountRefusalMessage('tooLarge', t, 'transactions.filter.amountRange', amountPlaceholder, maxEntryAmount),
+                amountRefusalMessage(refusal, t, 'transactions.filter.amountRange', amountPlaceholder, maxEntryAmount),
             );
             return;
         }
