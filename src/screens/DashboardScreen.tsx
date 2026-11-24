@@ -27,6 +27,7 @@ import { useRecurringRules } from '../hooks/useRecurringRules';
 import { useTransactions } from '../hooks/useTransactions';
 import { useWallets } from '../hooks/useWallets';
 import { useTheme } from '../theme/theme';
+import { boundPercentParams } from '../utils/formatPercent';
 import { getGreeting } from '../utils/getGreeting';
 
 /** Map savings-health level -> visual variant */
@@ -103,7 +104,10 @@ export const DashboardScreen = () => {
         );
     }, [t, deleteBudget]);
 
-    // Financial Insights
+    // Financial Insights. The savings and pace percentages come from the domain
+    // already interpolated into messageParams, so a value beyond 999 is turned
+    // into words at render (boundPercentParams, REGISTRE C28); the category
+    // share goes through formatPercentNumber, which does the same.
     const { savingsHealth, categoryRisk, budgetPace } = useFinancialInsights();
     const { formatPercentNumber } = useFormatting();
 
@@ -210,7 +214,7 @@ export const DashboardScreen = () => {
 
             <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                 <InsightBanner
-                    message={t(savingsHealth.messageKey, savingsHealth.messageParams)}
+                    message={t(savingsHealth.messageKey, boundPercentParams(savingsHealth.messageParams, t))}
                     variant={SAVINGS_VARIANT[savingsHealth.level]}
                     icon="pulse-outline"
                 />
@@ -238,7 +242,7 @@ export const DashboardScreen = () => {
             {budgetPace && (
                 <View style={{ paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                     <InsightBanner
-                        message={t(budgetPace.messageKey, budgetPace.messageParams)}
+                        message={t(budgetPace.messageKey, boundPercentParams(budgetPace.messageParams, t))}
                         variant={budgetPace.overBudgetPace ? 'warning' : 'success'}
                         icon="speedometer-outline"
                     />

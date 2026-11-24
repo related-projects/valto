@@ -225,3 +225,22 @@ describe('generateReportHTML — currency-aware amounts', () => {
         expect(html).toContain(`+${usd.symbol}7.50`);
     });
 });
+
+describe('generateReportHTML - the caller\'s array (pass 101, neighbour b)', () => {
+    it('leaves the order of the array it is given unchanged', () => {
+        // Newest first, the order the transactions screen lists them in; the
+        // report prints oldest first, on its own copy.
+        const later = makeTx({ id: 'tx-later', date: new Date(2026, 1, 20, 12, 0) });
+        const earlier = makeTx({ id: 'tx-earlier', date: new Date(2026, 1, 5, 12, 0) });
+        const given = [later, earlier];
+
+        const html = generateReportHTML(2026, 2, given, wallets, categories, usd, 'dot', 'YYYY-MM-DD', en);
+
+        expect(given.map(tx => tx.id)).toEqual(['tx-later', 'tx-earlier']);
+        expect(given[0]).toBe(later);
+        expect(given[1]).toBe(earlier);
+        // The report itself is still oldest first.
+        expect(html.indexOf('2026-02-05')).toBeLessThan(html.indexOf('2026-02-20'));
+    });
+});
+

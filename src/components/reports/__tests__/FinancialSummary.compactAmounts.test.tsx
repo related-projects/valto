@@ -7,7 +7,7 @@
  *
  * Real useFormatting with settingsService.loadSettings mocked one level below it.
  * XOF: 0 decimals, symbol "FCFA"; space profile: group U+00A0, decimal comma,
- * symbol after U+00A0. Language fr: M, Md, Bn after U+00A0.
+ * symbol after U+00A0. Language fr: M, Md after U+00A0 (no Bn since C32).
  */
 
 import { render, screen } from '@testing-library/react-native';

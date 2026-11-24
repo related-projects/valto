@@ -58,21 +58,21 @@
   "insights": {
     "noIncomeSpending": "No se registraron ingresos; todo el gasto proviene de los ahorros.",
     "noIncomeNoExpense": "No se registraron ingresos ni gastos en este período.",
-    "spendingOverIncome": "Estás gastando un {{percent}}% más de lo que ganas.",
+    "spendingOverIncome": "Estás gastando {{percent}}% más de lo que ganas.",
     "savingsWeak": "Solo ahorras el {{percent}}% de tus ingresos; intenta llegar al 10%.",
     "savingsAcceptable": "Ahorras el {{percent}}% de tus ingresos, por un camino saludable.",
     "savingsStrong": "¡Muy bien! Ahorras el {{percent}}% de tus ingresos.",
     "invalidBudgetPeriod": "Período de presupuesto no válido.",
     "noBudgetWithSpending": "No hay presupuesto establecido, pero tienes gastos registrados.",
     "noBudgetSet": "No hay presupuesto establecido para este período.",
-    "spendingAhead": "El gasto va un {{percent}}% por delante del ritmo del presupuesto.",
+    "spendingAhead": "El gasto va {{percent}}% por delante del ritmo del presupuesto.",
     "spendingOnTrack": "El gasto va acorde con el ritmo de tu presupuesto.",
     "firstTrackedMonth": "No hubo gastos el mes pasado; este es tu primer mes registrado.",
     "noSpendingEither": "No se registraron gastos en ninguno de los dos meses.",
     "spendingStable": "El gasto es más o menos igual que el mes pasado.",
     "spendingIncreased": "El gasto aumentó un {{percent}}% en comparación con el mes pasado.",
     "spendingDecreased": "El gasto disminuyó un {{percent}}% en comparación con el mes pasado.",
-    "categoryRisk": "{{category}} representa el {{percent}}% de tu gasto.",
+    "categoryRisk": "{{category}} representa {{percent}}% de tu gasto.",
     "recurringRulesNotRunning": "Algunas reglas recurrentes no se están ejecutando. Abre Transacciones recurrentes para ver por qué."
   },
   "reports": {
@@ -114,6 +114,10 @@
     "title": "Transacciones",
     "add": "Añadir",
     "searchPlaceholder": "Buscar transacciones...",
+    "transferNote": {
+      "to": "Transferencia a",
+      "from": "Transferencia de"
+    },
     "filterAll": "Todas",
     "filterIncome": "Ingresos",
     "filterExpense": "Gastos",
@@ -516,7 +520,9 @@
     "back": "Atrás",
     "somethingWentWrong": "Algo salió mal",
     "fatalError": "La app encontró un error inesperado. Puedes intentar recargar para continuar.",
-    "reloadApp": "Recargar app"
+    "reloadApp": "Recargar app",
+    "percentOver": "más de {{limit}}",
+    "percentBelow": "menos de {{limit}}"
   },
   "recurring": {
     "title": "Transacciones recurrentes",

@@ -279,3 +279,56 @@ describe('useWallets', () => {
         expect(caught).toBeInstanceOf(RepositoryError);
     });
 });
+
+/**
+ * Pass 101, neighbour (a) (Owner decisions 24/11, decision 2). EditWalletModal
+ * picks its delete dialog from hasTransactions: true -> the cautious
+ * "Delete Anyway" warning, false -> the plain "delete <name>?" dialog. When the
+ * lookup failed, hasTransactions answered false, so a wallet whose transactions
+ * could not be read was offered the dialog for a wallet that has none. A failed
+ * lookup now counts as "may have transactions".
+ */
+describe('useWallets hasTransactions', () => {
+    beforeEach(async () => {
+        mockDb = await createTestDb({ writeGuard: true });
+        mockWalletRepo = new WalletRepository(mockDb);
+        mockTransactionRepo = new TransactionRepository(mockDb);
+    });
+
+    it('answers true when the lookup fails, so the delete dialog is the cautious one', async () => {
+        const lookup = jest.spyOn(mockTransactionRepo, 'getByWalletId').mockRejectedValue(new Error('disk read failed'));
+        const logged = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+            const { result } = renderHook(() => useWallets());
+            await waitFor(() => {
+                expect(result.current.loading).toBe(false);
+            });
+
+            let answer: boolean | undefined;
+            await act(async () => {
+                answer = await result.current.hasTransactions('w-unknown');
+            });
+
+            // The forcing: the lookup really was attempted and really failed.
+            expect(lookup).toHaveBeenCalledWith('w-unknown');
+            expect(answer).toBe(true);
+        } finally {
+            logged.mockRestore();
+            lookup.mockRestore();
+        }
+    });
+
+    it('control: answers false for a wallet with no transactions when the lookup succeeds', async () => {
+        const { result } = renderHook(() => useWallets());
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false);
+        });
+
+        let answer: boolean | undefined;
+        await act(async () => {
+            answer = await result.current.hasTransactions('w-empty');
+        });
+
+        expect(answer).toBe(false);
+    });
+});

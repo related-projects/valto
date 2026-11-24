@@ -32,6 +32,7 @@ import { formatDate } from '../../../utils/formatDate';
 import { MISSING_CATEGORY_LABEL_KEY } from '../../../utils/missingCategory';
 import { centsToMajor } from '../../../utils/normalizeAmount';
 import { formatPeriodLabel } from '../../../utils/periodLabel';
+import { displayTransactionNote } from '../../../utils/transferNote';
 import { discardExportCopies } from '../backupCopies';
 
 // ─── CSV Export ───────────────────────────────────────────────────────
@@ -111,7 +112,9 @@ export function generateCSV(
                 ? tx.categoryId
                 : categoryNames.get(tx.categoryId) ?? t(MISSING_CATEGORY_LABEL_KEY),
         );
-        const description = escapeCSV(tx.note ?? '');
+        // A transfer leg's stored English prefix in the export language (C38),
+        // as the detail screen shows it; any other note as typed.
+        const description = escapeCSV(displayTransactionNote(tx, t));
         return `${date},${tx.type},${amount},${currency.code},${wallet},${category},${description}`;
     });
 
@@ -209,6 +212,19 @@ function escapeHTML(value: string): string {
  * src/data/__tests__/exportService.datesTransfersEscaping.test.ts (T3 transfer
  * legs, T4 escaping).
  *
+ * Page breaks (REGISTRE C22): the footer line is kept with the last rows. It
+ * is the last row of the table body, and no break is allowed before it, so
+ * when it does not fit the renderer moves the last data row over with it
+ * instead of leaving it alone on a page. Chrome honours that avoid between
+ * rows of one body at every page boundary; a footer after the table, or in a
+ * row group of its own, was still left alone (with only the repeated header)
+ * once the table had been split. It closes the report once: a running footer
+ * repeated on every page would overlap rows at zero margins unless space were
+ * reserved for it. The body has no bottom padding: an end padding that did not
+ * fit pushed the footer to a page of its own as well. Checked with headless
+ * Chrome over 0-130 rows, en and fr, margins 0 and 1 cm, US Letter and A4
+ * (pass 101).
+ *
  * `year`-`month` is a period key (src/domain/period) of the user's month
  * `startDay` (REGISTRE C20). At 1 the report names its calendar month as
  * before; at any other day it names the period by its dates, "20 Nov - 19 Dec
@@ -236,7 +252,9 @@ export function generateReportHTML(
     let totalIncome = 0;
     let totalExpense = 0;
 
-    const rows = transactions
+    // Sorted on a copy: the caller's array keeps its order (pass 101,
+    // neighbour b; exportService.test.ts "the caller's array").
+    const rows = [...transactions]
         .sort((a, b) => a.date.getTime() - b.date.getTime())
         .map(tx => {
             if (tx.type === 'income') totalIncome += tx.amount;
@@ -256,7 +274,7 @@ export function generateReportHTML(
                     <td style="color: ${color}; font-weight: 600;">${sign}${formatAmount(tx.amount, currency.symbol, separator, currency.decimals)}</td>
                     <td>${escapeHTML(walletNames.get(tx.walletId) ?? tx.walletId)}</td>
                     <td>${category}</td>
-                    <td>${escapeHTML(tx.note ?? '')}</td>
+                    <td>${escapeHTML(displayTransactionNote(tx, t))}</td>
                 </tr>`;
         })
         .join('');
@@ -271,7 +289,7 @@ export function generateReportHTML(
     <meta charset="utf-8">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #1a1a2e; padding: 32px; }
+        body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #1a1a2e; padding: 32px 32px 0; }
         h1 { font-size: 24px; color: #1a1a2e; margin-bottom: 4px; }
         .subtitle { font-size: 14px; color: #666; margin-bottom: 24px; }
         .summary { display: flex; gap: 16px; margin-bottom: 24px; }
@@ -287,7 +305,8 @@ export function generateReportHTML(
         th { background: #f1f5f9; padding: 10px 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
         td { padding: 8px; border-bottom: 1px solid #f1f5f9; }
         tr:nth-child(even) td { background: #fafafa; }
-        .footer { margin-top: 24px; font-size: 11px; color: #999; text-align: center; }
+        tr.report-footer { break-before: avoid; page-break-before: avoid; }
+        tr.report-footer td { background: none; border: 0; padding: 24px 0 0; font-size: 11px; color: #999; text-align: center; }
     </style>
 </head>
 <body>
@@ -322,10 +341,9 @@ export function generateReportHTML(
         </thead>
         <tbody>
             ${rows || `<tr><td colspan="6" style="text-align:center; padding:16px; color:#999;">${t('reports.financialSummary.noActivity')}</td></tr>`}
+            <tr class="report-footer"><td colspan="6">${t('export.report.footer', { period })}</td></tr>
         </tbody>
     </table>
-
-    <div class="footer">${t('export.report.footer', { period })}</div>
 </body>
 </html>`;
 }

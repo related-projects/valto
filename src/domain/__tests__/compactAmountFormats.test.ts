@@ -11,6 +11,11 @@
  * At pass 89 (Node 25.2.1, ICU 78.1, CLDR 48) ICU agreed with the CLDR 49 chart
  * for all five locales; Spanish has no 10^9 suffix in either ("1000 M" at 10^9,
  * "mil M" from 10^10), and the table follows that (Owner answer, pass 89).
+ *
+ * One tier departs from CLDR on purpose: French has no 10^12 word in the app.
+ * CLDR's "Bn" is not understood, so from 10^12 an amount stays in "Md" with its
+ * thousands grouped, "1 000 Md" (REGISTRE C32, Owner decision 05/11). That tier
+ * is listed in OWNER_DEVIATIONS and checked by its own test below, not by ICU.
  */
 
 import { formatAmountCompactLarge } from '../../utils/formatAmount';
@@ -26,6 +31,12 @@ const icuSuffix = (locale: string, value: number): string =>
 
 /** Profile whose decimal character matches the locale's: en writes a point, the rest a comma. */
 const profileFor = (locale: string) => (locale === 'en' ? 'dot' as const : 'space' as const);
+
+/**
+ * Tiers that follow an Owner decision instead of CLDR, as "locale@fromExponent".
+ * The ICU oracle skips them; each has a test of its own.
+ */
+const OWNER_DEVIATIONS = new Set(['fr@12']);
 
 /** Each power of ten a tier covers, up to the next tier (three for the last). */
 function tierExponents(locale: (typeof COMPLETE_LANGUAGE_CODES)[number], index: number): number[] {
@@ -89,6 +100,8 @@ describe('COMPACT_AMOUNT_TIERS - ICU oracle', () => {
 
     for (const locale of COMPLETE_LANGUAGE_CODES) {
         COMPACT_AMOUNT_TIERS[locale].forEach((tier, index) => {
+            if (OWNER_DEVIATIONS.has(`${locale}@${tier.fromExponent}`)) return;
+
             it(`${locale} tier from 10^${tier.fromExponent}: suffix equals ICU's at every power of ten`, () => {
                 for (const e of tierExponents(locale, index)) {
                     expect([e, icuSuffix(locale, 10 ** e)]).toEqual([e, tier.suffix]);
@@ -105,4 +118,26 @@ describe('COMPACT_AMOUNT_TIERS - ICU oracle', () => {
             });
         });
     }
+});
+
+describe('COMPACT_AMOUNT_TIERS - Owner deviations from CLDR', () => {
+    it('C32: fr has no 10^12 word; from 10^12 the suffix stays Md, divided by 10^9 and grouped', () => {
+        const fr = COMPACT_AMOUNT_TIERS.fr;
+        const last = fr[fr.length - 1];
+        expect(last.fromExponent).toBe(12);
+        expect(last.divisorExponent).toBe(9);
+        expect(last.suffix).toBe(fr[1].suffix);
+        expect(last.groupHead).toBe(true);
+        // What the deviation replaces: ICU still prints CLDR's word there.
+        expect(icuSuffix('fr', 10 ** 12)).not.toBe(last.suffix);
+    });
+
+    it('C32: no other locale groups its head', () => {
+        for (const locale of COMPLETE_LANGUAGE_CODES) {
+            for (const tier of COMPACT_AMOUNT_TIERS[locale]) {
+                if (OWNER_DEVIATIONS.has(`${locale}@${tier.fromExponent}`)) continue;
+                expect([locale, tier.fromExponent, tier.groupHead ?? false]).toEqual([locale, tier.fromExponent, false]);
+            }
+        }
+    });
 });

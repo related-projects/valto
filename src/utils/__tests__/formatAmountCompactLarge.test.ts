@@ -12,6 +12,11 @@
  * suffix, so 10^9 to 10^10 stays in "M" with four integer digits, "mil M" starts
  * at 10^10 and "B" at 10^12.
  *
+ * French has no 10^12 word (REGISTRE C32, Owner decision 05/11): CLDR's "Bn" is
+ * not understood, so from 10^12 the amount stays in "Md", its head grouped by
+ * thousands with the profile's grouping character, truncated and with one
+ * decimal at most as everywhere else: "1 000 Md", "9 007 199,2 Md".
+ *
  * Expected strings are written out by hand from those rules. Non-ASCII characters
  * are escapes so this file stays ASCII:
  *   U+00A0 no-break space (profile gap, CLDR gap before the suffix)
@@ -105,11 +110,14 @@ describe('formatAmountCompactLarge - tiers per complete locale', () => {
         expect(bare(1_000_000_000_000, 'es')).toBe(`1${NBSP}B`);
     });
 
-    it('fr: M, Md, Bn', () => {
+    it('fr: M, Md, then thousands of Md from 10^12 (C32, no Bn)', () => {
         expect(bare(1_000_000, 'fr')).toBe(`1${NBSP}M`);
         expect(bare(1_000_000_000, 'fr')).toBe(`1${NBSP}Md`);
         expect(bare(2_500_000_000, 'fr')).toBe(`2,5${NBSP}Md`);
-        expect(bare(1_000_000_000_000, 'fr')).toBe(`1${NBSP}Bn`);
+        expect(bare(999_999_999_999, 'fr')).toBe(`999,9${NBSP}Md`);
+        expect(bare(1_000_000_000_000, 'fr')).toBe(`1${NBSP}000${NBSP}Md`);
+        expect(bare(1_234_567_890_123, 'fr')).toBe(`1${NBSP}234,5${NBSP}Md`);
+        expect(bare(-1_234_567_890_123, 'fr')).toBe(`-1${NBSP}234,5${NBSP}Md`);
     });
 
     it('pt: mi, bi, tri', () => {
@@ -189,6 +197,28 @@ describe('formatAmountCompactLarge - safe integer range', () => {
     it('the largest enterable amount (999 999 999 999 minor) at 0 and 2 decimals', () => {
         expect(formatAmountCompactLarge(999_999_999_999, 'FCFA', 'space', 0, 'fr')).toBe(`999,9${NBSP}Md${NBSP}FCFA`);
         expect(formatAmountCompactLarge(999_999_999_999, '$', 'dot', 2, 'en')).toBe('$9.9B');
+    });
+
+    it('fr: Number.MAX_SAFE_INTEGER and MIN_SAFE_INTEGER in grouped Md, truncated to one decimal (C32)', () => {
+        // 9 007 199 254 740 991 major at 0 decimals: 9 007 199,25... Md.
+        expect(bare(Number.MAX_SAFE_INTEGER, 'fr')).toBe(`9${NBSP}007${NBSP}199,2${NBSP}Md`);
+        expect(bare(Number.MIN_SAFE_INTEGER, 'fr')).toBe(`-9${NBSP}007${NBSP}199,2${NBSP}Md`);
+        // 90 071 992 547 409,91 major at 2 decimals: 90 071,9... Md.
+        expect(formatAmountCompactLarge(Number.MAX_SAFE_INTEGER, 'FCFA', 'space', 2, 'fr'))
+            .toBe(`90${NBSP}071,9${NBSP}Md${NBSP}FCFA`);
+    });
+
+    it('fr from 10^12: the profile, not the language, picks the grouping character (C32)', () => {
+        expect(formatAmountCompactLarge(1_000_000_000_000, '$', 'dot', 0, 'fr')).toBe(`$1,000${NBSP}Md`);
+        expect(formatAmountCompactLarge(1_000_000_000_000, 'EUR', 'comma', 0, 'fr')).toBe(`1.000${NBSP}Md${NBSP}EUR`);
+        expect(formatAmountCompactLarge(1_000_000_000_000, 'FCFA', 'space', 0, 'fr')).toBe(`1${NBSP}000${NBSP}Md${NBSP}FCFA`);
+    });
+
+    it('control: other locales keep their ungrouped 10^12 forms', () => {
+        expect(formatAmountCompactLarge(Number.MAX_SAFE_INTEGER, '', 'space', 0, 'es')).toBe(`9007,1${NBSP}B`);
+        expect(formatAmountCompactLarge(Number.MAX_SAFE_INTEGER, '', 'space', 0, 'pt')).toBe(`9007,1${NBSP}tri`);
+        expect(formatAmountCompactLarge(Number.MAX_SAFE_INTEGER, '', 'space', 0, 'ru')).toBe(`9007,1${NBSP}${RU_TRLN}`);
+        expect(formatAmountCompactLarge(Number.MAX_SAFE_INTEGER, '', 'space', 0, 'ar')).toBe('9007,1T');
     });
 
     it('a value that is not a safe integer is left to formatAmount', () => {
