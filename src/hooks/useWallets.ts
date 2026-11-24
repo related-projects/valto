@@ -134,7 +134,12 @@ export function useWallets(): UseWalletsResult {
     }, [walletRepo, loadWallets]);
 
     /**
-     * Check if wallet has any transactions
+     * Check if wallet has any transactions.
+     *
+     * A lookup that fails answers true: "may have transactions". The delete
+     * dialog is chosen from this answer, and false would tell the user the
+     * wallet has none when nobody knows (pass 101, neighbour a, Owner decisions
+     * 24/11, decision 2); true gives the cautious "Delete Anyway" warning.
      */
     const hasTransactions = useCallback(async (walletId: string): Promise<boolean> => {
         try {
@@ -142,7 +147,7 @@ export function useWallets(): UseWalletsResult {
             return transactions.length > 0;
         } catch (err) {
             console.error('Failed to check wallet transactions:', err);
-            return false;
+            return true;
         }
     }, [transactionRepo]);
 

@@ -213,8 +213,11 @@ describe('generateReportHTML - transfer legs and escaped text', () => {
         expect(html).not.toContain('<h1>X</h1>');
 
         // The given note closes a row without opening one, so both tags are counted.
+        // The body ends with the report's footer row (C22, pass 101), which
+        // carries a class: one more closing tag, and exactly one such row.
         const body = tableBody(html);
         expect(body.match(/<tr>/g) ?? []).toHaveLength(transactions.length);
-        expect(body.match(/<\/tr>/g) ?? []).toHaveLength(transactions.length);
+        expect(body.match(/<tr class="report-footer">/g) ?? []).toHaveLength(1);
+        expect(body.match(/<\/tr>/g) ?? []).toHaveLength(transactions.length + 1);
     });
 });

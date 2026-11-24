@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     FlatList,
+    type NativeScrollEvent,
+    type NativeSyntheticEvent,
     ScrollView,
     StyleSheet,
     Text,
@@ -74,14 +76,48 @@ export const WalletsScreen = () => {
 
     const snapInterval = cardWidth + WALLET_CARD_GAP;
 
+    // Offsets are measured from the start of the content, which begins with the
+    // list's left padding (contentContainerStyle below), so card i starts after
+    // it (REGISTRE C23).
     const getItemLayout = useCallback(
         (_data: ArrayLike<Wallet> | null | undefined, index: number) => ({
             length: cardWidth,
-            offset: (cardWidth + WALLET_CARD_GAP) * index,
+            offset: spacing.lg + (cardWidth + WALLET_CARD_GAP) * index,
             index,
         }),
-        [cardWidth],
+        [cardWidth, spacing.lg],
     );
+
+    // --- Scroll correction (REGISTRE C23) ---------------------------------
+    // When a wallet is deleted the content gets shorter, but the native view
+    // keeps its scroll offset and does not clamp it: scrolled to the end, the
+    // carousel stays past the new end. The offset is remembered here and,
+    // whenever the content no longer reaches that far, brought back to the
+    // largest offset the content allows - the new last card, flush with the
+    // right padding.
+    const listRef = useRef<FlatList<Wallet>>(null);
+    const scrollOffsetRef = useRef(0);
+
+    const handleCarouselScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        scrollOffsetRef.current = event.nativeEvent.contentOffset.x;
+    }, []);
+
+    const walletCount = wallets.length;
+    useEffect(() => {
+        if (walletCount === 0) {
+            // The list unmounts; the next one starts at 0.
+            scrollOffsetRef.current = 0;
+            return;
+        }
+        // The list spans the window (no horizontal padding on its parent): its
+        // content is both paddings, the cards and the gaps between them.
+        const contentWidth = 2 * spacing.lg + walletCount * cardWidth + (walletCount - 1) * WALLET_CARD_GAP;
+        const maxOffset = Math.max(0, contentWidth - windowWidth);
+        if (scrollOffsetRef.current > maxOffset) {
+            scrollOffsetRef.current = maxOffset;
+            listRef.current?.scrollToOffset({ offset: maxOffset, animated: false });
+        }
+    }, [walletCount, cardWidth, windowWidth, spacing.lg]);
 
     const keyExtractor = useCallback((item: Wallet) => item.id, []);
 
@@ -245,6 +281,7 @@ export const WalletsScreen = () => {
                 ) : (
                     <View style={{ marginBottom: spacing['2xl'] }}>
                         <FlatList
+                            ref={listRef}
                             data={wallets}
                             renderItem={renderWalletCard}
                             keyExtractor={keyExtractor}
@@ -252,6 +289,8 @@ export const WalletsScreen = () => {
                             showsHorizontalScrollIndicator={false}
                             snapToInterval={snapInterval}
                             decelerationRate="fast"
+                            onScroll={handleCarouselScroll}
+                            scrollEventThrottle={16}
                             contentContainerStyle={{
                                 paddingHorizontal: spacing.lg,
                                 // When single wallet, center it

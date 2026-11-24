@@ -14,8 +14,15 @@
  * pass 89: Spanish follows CLDR exactly). Each suffix carries CLDR's own gap,
  * U+00A0 or nothing.
  *
+ * One tier departs from CLDR on purpose. French CLDR has "Bn" for 10^12, which
+ * French users do not understand, so from 10^12 a French amount stays in "Md"
+ * and its head is grouped by thousands: "1 000 Md", "9 007 199,2 Md" (REGISTRE
+ * C32, Owner decision 05/11). The grouping character is the number-format
+ * profile's, like every other character of the amount.
+ *
  * src/domain/__tests__/compactAmountFormats.test.ts checks every tier against
- * Node's ICU, which is used there as a test-only oracle.
+ * Node's ICU, which is used there as a test-only oracle, except that French
+ * 10^12 tier, which it checks against the decision instead.
  *
  * Non-ASCII characters are escapes so this file stays ASCII; the Cyrillic
  * suffixes are "mln", "mlrd" and "trln".
@@ -33,6 +40,12 @@ export interface CompactTier {
     readonly divisorExponent: number;
     /** Written after the digits, gap included. */
     readonly suffix: string;
+    /**
+     * Group the digits before the decimal by thousands, with the profile's
+     * grouping character. Only for a tier whose head can exceed four digits
+     * (French from 10^12, C32); CLDR's own tiers never group.
+     */
+    readonly groupHead?: boolean;
 }
 
 /** Below 10^6 major units an amount is never compact (V-128, decision 2). */
@@ -40,6 +53,10 @@ export const COMPACT_AMOUNT_FROM_EXPONENT = 6;
 
 const tier = (fromExponent: number, divisorExponent: number, suffix: string): CompactTier =>
     ({ fromExponent, divisorExponent, suffix });
+
+/** A tier whose head is grouped by thousands (see CompactTier.groupHead). */
+const groupedTier = (fromExponent: number, divisorExponent: number, suffix: string): CompactTier =>
+    ({ fromExponent, divisorExponent, suffix, groupHead: true });
 
 /**
  * Ascending by fromExponent. Keyed by every complete language, so a bundle that
@@ -56,7 +73,8 @@ export const COMPACT_AMOUNT_TIERS: Record<CompleteLanguageCode, readonly Compact
     fr: [
         tier(6, 6, `${NO_BREAK_SPACE}M`),
         tier(9, 9, `${NO_BREAK_SPACE}Md`),
-        tier(12, 12, `${NO_BREAK_SPACE}Bn`),
+        // No 10^12 word (C32): thousands of Md, "1 000 Md".
+        groupedTier(12, 9, `${NO_BREAK_SPACE}Md`),
     ],
     pt: [
         tier(6, 6, `${NO_BREAK_SPACE}mi`),

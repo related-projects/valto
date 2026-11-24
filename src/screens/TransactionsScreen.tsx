@@ -13,6 +13,7 @@ import { TransactionType } from '../domain/entities';
 import { TransactionFilters } from '../domain/filters/filterTransactions';
 import { useTransactions } from '../hooks/useTransactions';
 import { useTheme } from '../theme/theme';
+import { displayTransactionNote } from '../utils/transferNote';
 
 type FilterType = 'all' | 'income' | 'expense' | 'transfer';
 
@@ -55,14 +56,17 @@ export const TransactionsScreen = () => {
      * The hook handles the modal filters; this layer adds the quick-access filters.
      */
     const displayedTransactions = useMemo(() => {
-        return hookFilteredTransactions.filter((t) => {
-            // Search by note field
-            const matchesSearch = (t.note || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const query = searchQuery.toLowerCase();
+        return hookFilteredTransactions.filter((tx) => {
+            // Search by note: the stored text, or the note as the detail screen
+            // shows it - a transfer leg's English prefix in the app language (C38).
+            const matchesSearch = (tx.note || '').toLowerCase().includes(query)
+                || displayTransactionNote(tx, t).toLowerCase().includes(query);
             // Quick type pill filter (composable with modal filters)
-            const matchesFilter = activeFilter === 'all' || t.type === activeFilter;
+            const matchesFilter = activeFilter === 'all' || tx.type === activeFilter;
             return matchesSearch && matchesFilter;
         });
-    }, [hookFilteredTransactions, searchQuery, activeFilter]);
+    }, [hookFilteredTransactions, searchQuery, activeFilter, t]);
 
     const { totalIncome, totalExpenses } = useMemo(() => {
         const income = displayedTransactions

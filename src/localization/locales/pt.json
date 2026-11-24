@@ -114,6 +114,10 @@
         "title": "Transações",
         "add": "Adicionar",
         "searchPlaceholder": "Buscar transações...",
+        "transferNote": {
+            "to": "Transferência para",
+            "from": "Transferência de"
+        },
         "filterAll": "Todas",
         "filterIncome": "Receita",
         "filterExpense": "Despesa",
@@ -516,7 +520,9 @@
         "back": "Voltar",
         "somethingWentWrong": "Algo deu errado",
         "fatalError": "O app encontrou um erro inesperado. Você pode tentar recarregar para continuar.",
-        "reloadApp": "Recarregar app"
+        "reloadApp": "Recarregar app",
+        "percentOver": "mais de {{limit}}",
+        "percentBelow": "menos de {{limit}}"
     },
     "recurring": {
         "title": "Transações recorrentes",

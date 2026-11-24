@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { dataEvents } from '../core/events/dataEvents';
 import { type AppSettings, loadSettings } from '../data/services/settingsService';
 import { MAX_ENTRY_AMOUNT_MINOR } from '../domain/constants/amounts';
@@ -15,10 +16,11 @@ import { DEFAULT_NUMBER_FORMAT } from '../domain/constants/numberFormats';
 import { amountPlaceholder as amountPlaceholderUtil } from '../utils/amountPlaceholder';
 import { formatAmountCompactLarge as formatAmountCompactLargeUtil, formatAmount as formatAmountUtil, formatAmountWholeCompactLarge as formatAmountWholeCompactLargeUtil, formatAmountWhole as formatAmountWholeUtil } from '../utils/formatAmount';
 import { formatDate as formatDateUtil } from '../utils/formatDate';
-import { formatPercentNumber as formatPercentNumberUtil } from '../utils/formatPercent';
+import { formatPercentNumber as formatPercentNumberUtil, percentLimitText, percentOutOfRange } from '../utils/formatPercent';
 import { centsToMajor as centsToMajorUtil, normalizeAmount as normalizeAmountUtil, parseAmountInputResult as parseAmountInputResultUtil, parseAmountInput as parseAmountInputUtil, parseAndNormalizeAmountResult as parseAndNormalizeAmountResultUtil, parseAndNormalizeAmount as parseAndNormalizeAmountUtil } from '../utils/normalizeAmount';
 
 export function useFormatting() {
+    const { t } = useTranslation();
     const [settings, setSettings] = useState<AppSettings | null>(null);
 
     useEffect(() => {
@@ -69,10 +71,16 @@ export function useFormatting() {
     /**
      * The digits of a percentage on the 0-100 scale, with the same decimal
      * character as the amounts. No "%" and no grouping: see formatPercent.ts.
+     * Beyond 999 in either direction, the words "over 999" / "below -999" in
+     * the app language instead (REGISTRE C28), so every site that appends "%"
+     * shows "over 999%".
      */
     const formatPercentNumber = useCallback(
-        (value: number, digits: number) => formatPercentNumberUtil(value, digits, numberFormat),
-        [numberFormat],
+        (value: number, digits: number) => {
+            const range = percentOutOfRange(value);
+            return range ? percentLimitText(range, t) : formatPercentNumberUtil(value, digits, numberFormat);
+        },
+        [numberFormat, t],
     );
 
     const formatDate = useCallback(

@@ -15,6 +15,7 @@ import { useWallets } from '../../hooks/useWallets';
 import { useTheme } from '../../theme/theme';
 import { getButtonA11y } from '../../utils/accessibility';
 import { isTransferCategoryId } from '../../utils/categoryVisuals';
+import { displayTransactionNote } from '../../utils/transferNote';
 
 export function TransactionDetailsModal() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -164,8 +165,9 @@ export function TransactionDetailsModal() {
                         <Text style={[styles.label, { color: colors.mutedForeground, marginBottom: spacing.sm }]}>
                             {t('modals.addTransaction.notes')}
                         </Text>
+                        {/* A transfer leg's stored English prefix, in the app language (C38). */}
                         <Text style={[styles.value, { color: colors.foreground }]}>
-                            {transaction.note}
+                            {displayTransactionNote(transaction, t)}
                         </Text>
                     </View>
                 ) : null}

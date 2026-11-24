@@ -120,8 +120,10 @@ export function formatAmountWhole(
  *
  * Only the number part differs from formatAmount: the decimal character, the
  * sign and the currency side and gap follow the same profile rules. The head
- * is never grouped - no in-range value has more than four digits there, and
- * CLDR does not group them either.
+ * is not grouped in CLDR's own tiers - none has more than four digits there,
+ * and CLDR does not group them either. The one exception is a tier marked
+ * groupHead (French from 10^12, REGISTRE C32: "1 000 Md"), whose head is
+ * grouped with the profile's grouping character, as formatAmount groups.
  *
  * Returns null for a value that is not a safe integer: amounts are integer minor
  * units, so such a value is not one, and the callers fall back to their exact
@@ -148,7 +150,8 @@ function formatCompactLarge(
     }
 
     const headLength = majorDigits.length - tier.divisorExponent;
-    const head = majorDigits.slice(0, headLength);
+    const headDigits = majorDigits.slice(0, headLength);
+    const head = tier.groupHead ? groupIntegerDigits(headDigits, NUMBER_FORMATS[profile].group) : headDigits;
     const firstDecimal = majorDigits.charAt(headLength);
     const fraction = firstDecimal === '0' ? '' : `${NUMBER_FORMATS[profile].decimal}${firstDecimal}`;
 
