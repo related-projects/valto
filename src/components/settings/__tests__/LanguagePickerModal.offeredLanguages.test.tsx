@@ -3,7 +3,7 @@
  *
  * SUPPORTED_LANGUAGES is the set of codes storage may legitimately hold, which
  * is not the same question as the set a user may choose. Five of its ten bundles
- * carry 71 or 89 of en.json's 558 keys, so picking one hands the user a screen
+ * are partial, so picking one hands the user a screen
  * that is part their language and part English fallback.
  *
  * The offered set is therefore the complete locales plus whatever the install
