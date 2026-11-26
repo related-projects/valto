@@ -195,7 +195,7 @@ This maps the main directories; it is not an exhaustive inventory.
 
 Genuinely future work (not yet implemented):
 
-- Complete the five partial locales. zh, ar, bn, hi and ur carry 71-89 of the 554 keys en carries; everything else falls back to English.
+- Complete the five partial locales (ar, bn, hi, ur, zh), which fall back to English; the five complete locales are en, es, fr, pt and ru.
 - Optional move to a newer Expo SDK.
 - Local-first sync: the data layer (encrypted store, transactional writes, recomputable balances) is structured to support a sync engine with explicit conflict resolution, which is the natural next step beyond local-only.
 
